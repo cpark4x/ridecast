@@ -16,29 +16,37 @@ This is a **spec-driven filesystem** for the Ridecast project. All product requi
 
 ```
 ridecast/
-├── vision/              # High-level vision and goals
+├── 1-vision/            # High-level vision and goals
 │   ├── Vision.md
 │   ├── ProblemStatement.md
 │   ├── Principles.md
 │   └── SuccessMetrics.md
 │
-├── product/             # Product specifications
-│   ├── Epics/           # High-level feature epics
-│   ├── Features/        # Detailed feature specs
-│   └── UserStories/     # User stories with acceptance criteria
+├── 2-product/           # Product specifications
+│   ├── epics/           # High-level feature epics (Epic 1-5)
+│   ├── features/        # Detailed feature specs (Feature 1.1, 2.1, etc.)
+│   │   ├── epic-1-audio-creation/
+│   │   ├── epic-2-voice-system/
+│   │   ├── epic-3-library-playback/
+│   │   ├── epic-4-user-profiles/
+│   │   └── epic-5-car-mode/
+│   └── userstories/     # User stories (US 1.1.1, 1.1.2, etc.)
+│       └── epic-{name}/feature-{x.y}/
 │
-├── design/              # Design documentation
+├── 3-design/            # Design documentation
 │   ├── DesignVision.md
 │   ├── InteractionFlow.md
 │   ├── CarModeUI.md
 │   ├── VoiceSelectionUI.md
 │   └── PrototypeLinks.md
 │
-├── tech/                # Technical architecture
+├── 4-technology/        # Technical architecture
 │   ├── Architecture.md
 │   ├── StackDecisionLog.md
 │   └── DataFlowDiagram.md
 │
+├── amplifier/           # Symlink to ~/dev/toolkits/amplifier
+├── templates/           # Symlink to ~/dev/toolkits/templates
 └── README.md            # This file
 ```
 
@@ -78,32 +86,32 @@ ridecast/
 ## 📋 Documentation Index
 
 ### Vision & Strategy
-- [Vision](vision/Vision.md) - Full product vision and long-term goals
-- [Problem Statement](vision/ProblemStatement.md) - The problem we're solving
-- [Design Principles](vision/Principles.md) - Core principles guiding decisions
-- [Success Metrics](vision/SuccessMetrics.md) - How we measure success
+- [Vision](1-vision/Vision.md) - Full product vision and long-term goals
+- [Problem Statement](1-vision/ProblemStatement.md) - The problem we're solving
+- [Design Principles](1-vision/Principles.md) - Core principles guiding decisions
+- [Success Metrics](1-vision/SuccessMetrics.md) - How we measure success
 
 ### Product Specifications
-- [Epics](product/Epics/) - High-level feature groups
-  - E1: Audio Creation
-  - E2: Voice System
-  - E3: Library & Playback
-  - E4: User Profiles
-  - E5: Car Mode
-- [Features](product/Features/) - Detailed feature specs
-- [User Stories](product/UserStories/) - Stories with acceptance criteria
+- [Epics](2-product/epics/) - High-level feature groups (Epic 1-5)
+  - Epic 1: Audio Creation
+  - Epic 2: Voice System
+  - Epic 3: Library & Playback
+  - Epic 4: User Profiles
+  - Epic 5: Car Mode
+- [Features](2-product/features/) - Detailed feature specs (Feature 1.1, 2.1, 3.1, 3.2, 4.1, 5.1)
+- [User Stories](2-product/userstories/) - Stories with acceptance criteria (US 1.1.1, 1.1.2, etc.)
 
 ### Design
-- [Design Vision](design/DesignVision.md) - Visual and interaction design philosophy
-- [Interaction Flow](design/InteractionFlow.md) - User flows and journeys
-- [Car Mode UI](design/CarModeUI.md) - Driving-optimized interface
-- [Voice Selection UI](design/VoiceSelectionUI.md) - Voice browsing and preview
-- [Prototype Links](design/PrototypeLinks.md) - Links to Figma/mockups
+- [Design Vision](3-design/DesignVision.md) - Visual and interaction design philosophy
+- [Interaction Flow](3-design/InteractionFlow.md) - User flows and journeys
+- [Car Mode UI](3-design/CarModeUI.md) - Driving-optimized interface
+- [Voice Selection UI](3-design/VoiceSelectionUI.md) - Voice browsing and preview
+- [Prototype Links](3-design/PrototypeLinks.md) - Links to Figma/mockups
 
 ### Technical
-- [Architecture](tech/Architecture.md) - System architecture overview
-- [Stack Decision Log](tech/StackDecisionLog.md) - Technology choices and rationale
-- [Data Flow Diagram](tech/DataFlowDiagram.md) - How data moves through the system
+- [Architecture](4-technology/Architecture.md) - System architecture overview
+- [Stack Decision Log](4-technology/StackDecisionLog.md) - Technology choices and rationale
+- [Data Flow Diagram](4-technology/DataFlowDiagram.md) - How data moves through the system
 
 ---
 
@@ -175,10 +183,10 @@ This is currently a solo project by Chris Park. If you're interested in contribu
 
 ### How to Use This Repo
 
-1. **Start with Vision**: Read [Vision.md](vision/Vision.md) to understand the big picture
-2. **Explore Product**: Check [Epics](product/Epics/) to see planned features
-3. **Review Design**: Look at [Design Vision](design/DesignVision.md) for UX principles
-4. **Understand Tech**: Read [Architecture.md](tech/Architecture.md) for technical details
+1. **Start with Vision**: Read [Vision.md](1-vision/Vision.md) to understand the big picture
+2. **Explore Product**: Check [Epics](2-product/epics/) to see planned features
+3. **Review Design**: Look at [Design Vision](3-design/DesignVision.md) for UX principles
+4. **Understand Tech**: Read [Architecture.md](4-technology/Architecture.md) for technical details
 
 ---
 
