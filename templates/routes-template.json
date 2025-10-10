@@ -1,0 +1,102 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "component": "HomePage",
+      "layout": "PublicLayout",
+      "public": true,
+      "exact": true,
+      "meta": {
+        "title": "Home - [App Name]",
+        "description": "[Page description for SEO]"
+      }
+    },
+    {
+      "path": "/login",
+      "component": "LoginPage",
+      "layout": "AuthLayout",
+      "public": true,
+      "exact": true,
+      "meta": {
+        "title": "Login - [App Name]",
+        "noindex": true
+      }
+    },
+    {
+      "path": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "AppLayout",
+      "requireAuth": true,
+      "exact": true,
+      "meta": {
+        "title": "Dashboard - [App Name]",
+        "noindex": true
+      }
+    },
+    {
+      "path": "/feature/:id",
+      "component": "FeatureDetailPage",
+      "layout": "AppLayout",
+      "requireAuth": true,
+      "exact": true,
+      "params": {
+        "id": {
+          "type": "uuid",
+          "required": true
+        }
+      },
+      "meta": {
+        "title": "[Feature Name] - [App Name]",
+        "noindex": true
+      }
+    },
+    {
+      "path": "/settings",
+      "component": "SettingsPage",
+      "layout": "AppLayout",
+      "requireAuth": true,
+      "exact": false,
+      "children": [
+        {
+          "path": "/settings/profile",
+          "component": "ProfileSettingsPage",
+          "exact": true
+        },
+        {
+          "path": "/settings/security",
+          "component": "SecuritySettingsPage",
+          "exact": true
+        }
+      ],
+      "meta": {
+        "title": "Settings - [App Name]",
+        "noindex": true
+      }
+    },
+    {
+      "path": "/404",
+      "component": "NotFoundPage",
+      "layout": "ErrorLayout",
+      "public": true,
+      "meta": {
+        "title": "Page Not Found - [App Name]",
+        "noindex": true
+      }
+    }
+  ],
+  "redirects": [
+    {
+      "from": "/old-path",
+      "to": "/new-path",
+      "status": 301,
+      "reason": "Route renamed for clarity"
+    }
+  ],
+  "guards": [
+    {
+      "path": "/admin/*",
+      "requirePermission": "admin",
+      "redirect": "/403"
+    }
+  ]
+}
