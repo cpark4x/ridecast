@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="#2563eb"/>
+
+  <!-- Microphone/Audio Wave Icon -->
+  <g transform="translate(256, 256)">
+    <!-- Center circle (microphone) -->
+    <circle cx="0" cy="0" r="60" fill="#ffffff"/>
+
+    <!-- Audio waves -->
+    <path d="M -140 -40 Q -140 0 -140 40" stroke="#ffffff" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M -100 -60 Q -100 0 -100 60" stroke="#ffffff" stroke-width="24" fill="none" stroke-linecap="round"/>
+
+    <path d="M 140 -40 Q 140 0 140 40" stroke="#ffffff" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M 100 -60 Q 100 0 100 60" stroke="#ffffff" stroke-width="24" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="80" font-weight="bold" text-anchor="middle" fill="#ffffff">RC</text>
+</svg>

@@ -157,11 +157,13 @@ async function extractFromEpub(file: File): Promise<string> {
     const textChunks: string[] = [];
 
     // Extract text from each chapter
+    // @ts-expect-error - epub.js types are incomplete
     for (const item of spine.items) {
       try {
         const doc = await book.load(item.href);
 
         // Extract text content from the document
+        // @ts-expect-error - epub.js returns Document but types don't match
         const text = extractTextFromDocument(doc);
         if (text && text.trim()) {
           textChunks.push(text.trim());
