@@ -1,124 +1,151 @@
----
-version: 0.1.0
-author: Chris Park
-status: draft
-last_updated: 2025-10-10
-type: vision
----
-
-# Ridecast Design Principles
+# Product Principles — Ridecast
 
 ## Core Principles
 
-### 1. Safety First
-**Driving safety is non-negotiable.**
+These principles guide every decision we make—from feature prioritization to design choices to technical architecture.
 
-- All interactions must be completable in <2 seconds
-- Large touch targets (minimum 44x44pt)
-- Voice control for all primary functions
-- Minimize cognitive load and visual attention
-- Never require typing or complex navigation while driving
-- Auto-pause on phone calls or navigation alerts
+### 1. **Safety First**
 
-### 2. Offline-First
-**Audio must work without connectivity.**
+Driving safety is non-negotiable. Every feature must support, not distract from, safe driving.
 
-- Download entire books/articles before commute
-- Background downloading on WiFi
-- Smart storage management
-- Graceful degradation when offline
-- Sync progress across devices when online
+- **Large Touch Targets**: Minimum 44x44pt tap targets for glance-free operation
+- **Voice Control**: All primary functions accessible via voice commands
+- **Why**: Distracted driving causes 3,000+ deaths annually; we refuse to contribute to that statistic
 
-### 3. Human-Quality Audio
-**Generated audio must be indistinguishable from human narration.**
+**Decision Test**: Can this feature be used safely at 65mph? If not, redesign or cut it.
 
-- Natural prosody and emotion
-- Proper pronunciation and pacing
-- Context-aware emphasis
-- Expressive voice performance
-- Multiple voice personality options
+---
 
-### 4. Respect Time
-**Value the user's limited commute time.**
+### 2. **Offline-First**
 
-- Smart content segmentation for typical drive lengths
-- Quick resume from exact stopping point
-- Speed controls without voice distortion
-- Skip forward/back by time or chapter
-- Progress tracking and completion stats
+Audio must work without connectivity. Commutes go through tunnels, rural areas, and dead zones.
 
-### 5. Delightful Simplicity
-**Complex technology, simple experience.**
+- **Full Downloads**: Complete books/articles downloaded before playback
+- **Background Sync**: Content syncs progress and downloads on WiFi automatically
+- **Why**: Streaming interruptions break immersion and create anxiety about data usage
 
-- One-tap to convert content to audio
-- Automatic queue management
-- Sensible defaults (but customizable)
-- Minimal decision fatigue
-- Progressive disclosure of advanced features
+**Decision Test**: Does this work in airplane mode? If not, can we make it work offline?
 
-### 6. Personalization Without Overwhelm
-**Adapt to preferences without requiring configuration.**
+---
 
-- Learn from listening patterns
-- Smart voice matching to content type
-- Adjust pacing based on content complexity
-- Remember preferences per book or category
-- Suggest content based on commute length
+### 3. **Human-Quality Audio**
 
-### 7. Content Respect
-**Honor the author's work and intent.**
+Generated audio must be indistinguishable from professional human narration.
 
-- Preserve chapter structure and flow
-- Maintain narrative voice and tone
-- Accurate rendering of technical terms
-- Proper attribution always visible
-- Support for author/publisher partnerships
+- **Natural Prosody**: Proper emphasis, emotion, and pacing in speech
+- **Context-Aware**: Pronunciation adapts to content type (technical vs. narrative)
+- **Why**: Poor TTS quality is the #1 reason users abandon text-to-speech solutions
 
-### 8. Accessibility Core
-**Audio is essential for many, convenient for all.**
+**Decision Test**: Would you listen to this for 8 hours? If not, the quality isn't good enough.
 
-- Screen reader compatibility
-- Support for vision impairments
-- Dyslexia-friendly workflows
-- Learning difference accommodations
-- Multiple interaction modalities
+---
 
-## Technical Principles
+### 4. **Respect Time**
 
-### 9. Privacy-Centric
-**User data stays with the user.**
+The user's commute time is limited and valuable. Don't waste it.
 
-- Minimal data collection
-- Local processing when possible
-- No selling of user data
-- Transparent data usage
-- User controls all sharing
+- **Instant Resume**: Pick up exactly where you left off, within 1 second of opening app
+- **Smart Segmentation**: Content chunks match typical commute lengths (20-40 min)
+- **Why**: Commuters have 20-60 minutes—every wasted second is friction
 
-### 10. Platform Excellence
-**Native quality on every platform.**
+**Decision Test**: Does this save the user time or cost them time? Optimize for saved time.
 
-- Deep iOS and Android integration
-- CarPlay and Android Auto support
-- Wear OS/Apple Watch controls
-- Web app for management
-- Consistent cross-platform experience
+---
+
+### 5. **Delightful Simplicity**
+
+Complex technology should produce simple experiences. One tap to convert, one tap to play.
+
+- **Sensible Defaults**: 95% of users never need to configure anything
+- **Progressive Disclosure**: Advanced features hidden until needed
+- **Why**: Decision fatigue is real; default choices should "just work"
+
+**Decision Test**: Can a new user complete the core flow without reading instructions? If not, simplify.
+
+---
+
+### 6. **Personalization Without Overwhelm**
+
+Adapt to user preferences by learning behavior, not asking 20 questions upfront.
+
+- **Learn Preferences**: Track voice choices, speed settings, content types over time
+- **Smart Defaults**: Suggest voices based on content genre automatically
+- **Why**: Users don't know what they want until they experience it
+
+**Decision Test**: Does this require user configuration, or can the system learn it? Prefer learning.
+
+---
+
+### 7. **Content Respect**
+
+We're a delivery mechanism, not content creators. Honor the author's work and intent.
+
+- **Preserve Structure**: Maintain chapters, sections, and narrative flow
+- **Accurate Attribution**: Author and source always visible
+- **Why**: Content creators deserve respect; users deserve authenticity
+
+**Decision Test**: Would the author approve of how we present their work? If unsure, ask.
+
+---
 
 ## Decision Framework
 
-When evaluating features or design choices, ask:
+When faced with trade-offs, use this hierarchy:
 
-1. **Does it improve driving safety?** (If it degrades safety, it's a no)
-2. **Does it work offline?** (If not, is it worth the dependency?)
-3. **Does it respect the user's time?** (Quick to use, high value)
-4. **Is it simpler than the alternative?** (Complexity is a last resort)
-5. **Does it delight?** (Meets expectations and occasionally exceeds them)
+1. **Safety**: Does this make driving safer or more dangerous?
+2. **Offline Capability**: Can this work without connectivity?
+3. **Audio Quality**: Does this maintain human-quality narration?
+4. **Time Respect**: Does this save or waste the user's time?
+5. **Simplicity**: Is this the simplest solution that works?
 
-## Anti-Patterns to Avoid
+If principles conflict, **Safety** wins. A great feature that causes accidents isn't worth building.
 
-- Complex multi-step flows while driving
-- Requiring internet for core functionality
-- Robotic or unnatural voice synthesis
-- Interrupting playback for non-critical notifications
-- Feature bloat that obscures core use case
-- Aggressive monetization that harms experience
-- Dark patterns or manipulative design
+---
+
+## Non-Goals
+
+What we are **explicitly NOT** trying to do:
+
+### **Not a Social Network**
+- No feeds, likes, or follower counts
+- No pressure to share what you're reading
+- Reading is personal; we keep it that way
+
+### **Not a Content Discovery Engine**
+- We're not trying to replace Goodreads or book recommendation engines
+- Users bring their own content; we convert it
+- Focus on consumption, not curation
+
+### **Not a Productivity Tracker**
+- No "streaks" or gamification of reading
+- No guilt-inducing notifications
+- Reading should be joyful, not another task to optimize
+
+### **Not Maximum Features**
+- We avoid feature bloat
+- Every feature must serve the core use case: listening to content during commutes
+- "Nice to have" features that distract from core value get cut
+
+### **Not Maximum Data Collection**
+- We collect minimum data necessary for functionality
+- No selling user data or reading habits
+- Privacy is a feature, not a compliance checkbox
+
+### **Not Maximum Monetization**
+- No interruptive ads during playback
+- No manipulative upsell tactics
+- Sustainable business model, but never at the cost of user experience
+
+---
+
+## Guiding Questions
+
+When evaluating new features or resolving conflicts, ask:
+
+- **Can I use this while driving at highway speeds?** (If no, redesign for safety)
+- **Does this work in airplane mode?** (If no, add offline support or reconsider)
+- **Would I listen to this for hours?** (If no, audio quality isn't sufficient)
+- **Does this save the user's time?** (If no, cut it or simplify it)
+- **Can my parents use this without help?** (If no, too complex)
+
+These principles are living guidelines. They evolve as we learn—but they should change slowly and deliberately, not reactively.
