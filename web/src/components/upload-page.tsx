@@ -9,11 +9,13 @@ import {
   type TTSConfig,
 } from '@/lib/tts';
 import { addContent, storeAudio } from '@/lib/storage';
+import { VoiceSelector } from './voice-selector';
 
 export function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
+  const [selectedVoiceId, setSelectedVoiceId] = useState(getDefaultVoice().id);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -59,10 +61,9 @@ export function UploadPage() {
         throw new Error('No text could be extracted from the file');
       }
 
-      // Configure TTS
-      const defaultVoice = getDefaultVoice();
+      // Configure TTS with selected voice
       const config: TTSConfig = {
-        voice: defaultVoice.id,
+        voice: selectedVoiceId,
         speed: 1.0,
         pitch: 0,
         outputFormat: 'mp3',
@@ -173,6 +174,13 @@ export function UploadPage() {
             />
           </div>
 
+          {/* Voice Selection */}
+          <VoiceSelector
+            selectedVoiceId={selectedVoiceId}
+            onVoiceChange={setSelectedVoiceId}
+            disabled={converting}
+          />
+
           {/* Progress */}
           {converting && (
             <div className="space-y-2">
@@ -214,7 +222,8 @@ export function UploadPage() {
 
           {/* Info */}
           <div className="text-sm text-gray-500 space-y-1">
-            <p>• Supported formats: .txt, .epub, .pdf (epub and pdf coming soon)</p>
+            <p>• Supported formats: .txt, .epub (PDF coming soon)</p>
+            <p>• Choose from 6 different voices</p>
             <p>• Maximum file size: 50MB</p>
             <p>• Audio will be saved to your library for offline playback</p>
           </div>

@@ -7,6 +7,7 @@
 import { TTSConfig, ConversionResult, TTSChunk } from './types';
 import { chunkText } from './chunker';
 import { generateMockAudio } from './mock-tts';
+import ePub from 'epubjs';
 
 /**
  * Convert text to audio
@@ -110,8 +111,7 @@ export async function extractText(file: File): Promise<string> {
     case 'txt':
       return extractFromText(file);
     case 'epub':
-      // TODO: Implement EPUB extraction with epub.js
-      throw new Error('EPUB extraction not yet implemented');
+      return extractFromEpub(file);
     case 'pdf':
       // TODO: Implement PDF extraction with pdf.js
       throw new Error('PDF extraction not yet implemented');
@@ -138,6 +138,69 @@ async function extractFromText(file: File): Promise<string> {
 
     reader.readAsText(file);
   });
+}
+
+/**
+ * Extract text from EPUB file
+ */
+async function extractFromEpub(file: File): Promise<string> {
+  try {
+    // Convert File to ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Load EPUB
+    const book = ePub(arrayBuffer);
+    await book.ready;
+
+    // Get all spine items (chapters)
+    const spine = await book.loaded.spine;
+    const textChunks: string[] = [];
+
+    // Extract text from each chapter
+    for (const item of spine.items) {
+      try {
+        const doc = await book.load(item.href);
+
+        // Extract text content from the document
+        const text = extractTextFromDocument(doc);
+        if (text && text.trim()) {
+          textChunks.push(text.trim());
+        }
+      } catch (error) {
+        console.warn(`Failed to extract chapter ${item.href}:`, error);
+        // Continue with other chapters even if one fails
+      }
+    }
+
+    if (textChunks.length === 0) {
+      throw new Error('No text content found in EPUB file');
+    }
+
+    // Join all chapters with double newline
+    return textChunks.join('\n\n');
+  } catch (error) {
+    console.error('EPUB extraction error:', error);
+    throw new Error(`Failed to extract text from EPUB: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Extract text from HTML/XML document
+ */
+function extractTextFromDocument(doc: Document | XMLDocument): string {
+  // Remove script and style elements
+  const scripts = doc.querySelectorAll('script, style');
+  scripts.forEach((el) => el.remove());
+
+  // Get text content
+  const text = doc.body?.textContent || doc.documentElement?.textContent || '';
+
+  // Clean up whitespace
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join('\n');
 }
 
 /**
