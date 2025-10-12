@@ -54,12 +54,23 @@ async function createSilentAudio(duration: number, format: 'mp3' | 'wav'): Promi
   // Create silent buffer (all zeros)
   const buffer = offlineContext.createBuffer(numberOfChannels, length, sampleRate);
 
-  // Optional: Add very low volume noise to make it a "valid" audio file
+  // Generate a test tone so you can hear playback is working
+  // This is a placeholder until real TTS is implemented
+  const frequency = 440; // A4 note
   for (let channel = 0; channel < numberOfChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
     for (let i = 0; i < length; i++) {
-      // Add tiny amount of noise so audio players recognize it
-      channelData[i] = (Math.random() - 0.5) * 0.0001;
+      // Generate a sine wave tone that fades in/out
+      const fadeTime = sampleRate * 0.5; // 0.5 second fade
+      let envelope = 1.0;
+      if (i < fadeTime) {
+        envelope = i / fadeTime;
+      } else if (i > length - fadeTime) {
+        envelope = (length - i) / fadeTime;
+      }
+
+      // Sine wave with envelope (reduced volume)
+      channelData[i] = Math.sin(2 * Math.PI * frequency * i / sampleRate) * envelope * 0.1;
     }
   }
 
