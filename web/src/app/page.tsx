@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { UploadPage } from '@/components/upload-page';
 import { LibraryPage } from '@/components/library-page';
+import { PlaylistsPage } from '@/components/playlists-page';
 import { initDatabase } from '@/lib/storage';
 
 export default function Home() {
-  const [view, setView] = useState<'upload' | 'library'>('upload');
+  const [view, setView] = useState<'upload' | 'library' | 'playlists'>('upload');
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
@@ -59,13 +60,25 @@ export default function Home() {
             >
               Library
             </button>
+            <button
+              onClick={() => setView('playlists')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                view === 'playlists'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Playlists
+            </button>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {view === 'upload' ? <UploadPage /> : <LibraryPage />}
+        {view === 'upload' && <UploadPage />}
+        {view === 'library' && <LibraryPage />}
+        {view === 'playlists' && <PlaylistsPage />}
       </main>
     </div>
   );
