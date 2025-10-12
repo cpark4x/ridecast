@@ -18,9 +18,22 @@ import { formatDuration } from '@/lib/storage';
 interface PlayerInterfaceProps {
   content: ContentItem;
   onClose: () => void;
+  playlistId?: string;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
 }
 
-export function PlayerInterface({ content, onClose }: PlayerInterfaceProps) {
+export function PlayerInterface({
+  content,
+  onClose,
+  playlistId,
+  onNext,
+  onPrevious,
+  hasNext = false,
+  hasPrevious = false
+}: PlayerInterfaceProps) {
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -54,11 +67,17 @@ export function PlayerInterface({ content, onClose }: PlayerInterfaceProps) {
       },
       onEnded: () => {
         updatePlaybackPosition(content.id, 0, duration);
+        // Auto-advance to next track in playlist
+        if (hasNext && onNext) {
+          onNext();
+        }
       },
       onError: (error) => {
         console.error('Playback error:', error);
         alert('Playback error: ' + error.message);
       },
+      onNext: onNext,
+      onPrevious: onPrevious,
     });
 
     playerRef.current = player;
@@ -197,10 +216,24 @@ export function PlayerInterface({ content, onClose }: PlayerInterfaceProps) {
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-6 mb-4">
-          {/* Skip Backward */}
+          {/* Previous Track (if in playlist) */}
+          {playlistId && hasPrevious && onPrevious && (
+            <button
+              onClick={onPrevious}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              title="Previous Track"
+            >
+              <svg className="w-8 h-8 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
+              </svg>
+            </button>
+          )}
+
+          {/* Skip Backward 15s */}
           <button
             onClick={() => playerRef.current?.skipBackward(15)}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Rewind 15 seconds"
           >
             <svg className="w-8 h-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
@@ -224,15 +257,29 @@ export function PlayerInterface({ content, onClose }: PlayerInterfaceProps) {
             )}
           </button>
 
-          {/* Skip Forward */}
+          {/* Skip Forward 15s */}
           <button
             onClick={() => playerRef.current?.skipForward(15)}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Forward 15 seconds"
           >
             <svg className="w-8 h-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
             </svg>
           </button>
+
+          {/* Next Track (if in playlist) */}
+          {playlistId && hasNext && onNext && (
+            <button
+              onClick={onNext}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              title="Next Track"
+            >
+              <svg className="w-8 h-8 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Playback Speed */}

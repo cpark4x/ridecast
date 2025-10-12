@@ -6,15 +6,19 @@ import {
   createPlaylist,
   deletePlaylist,
   getContent,
+  setPlaylistIndex,
   type Playlist,
   type ContentItem,
 } from '@/lib/storage';
+import { PlayerInterface } from './player-interface';
 
 export function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistContent, setPlaylistContent] = useState<ContentItem[]>([]);
+  const [playingPlaylist, setPlayingPlaylist] = useState<Playlist | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<ContentItem | null>(null);
 
   useEffect(() => {
     loadPlaylists();
@@ -56,6 +60,64 @@ export function PlaylistsPage() {
       }
     }
   };
+
+  const handlePlayPlaylist = async (playlist: Playlist) => {
+    if (playlist.contentIds.length === 0) {
+      alert('This playlist is empty');
+      return;
+    }
+
+    // Reset to beginning of playlist
+    await setPlaylistIndex(playlist.id, 0);
+
+    // Load first track
+    const firstTrack = await getContent(playlist.contentIds[0]);
+    if (firstTrack) {
+      setPlayingPlaylist(playlist);
+      setCurrentTrack(firstTrack);
+    }
+  };
+
+  const handleNext = async () => {
+    if (!playingPlaylist) return;
+
+    const currentIndex = playingPlaylist.currentIndex;
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex < playingPlaylist.contentIds.length) {
+      await setPlaylistIndex(playingPlaylist.id, nextIndex);
+      const nextTrack = await getContent(playingPlaylist.contentIds[nextIndex]);
+
+      if (nextTrack) {
+        // Update playlist state
+        const updatedPlaylist = { ...playingPlaylist, currentIndex: nextIndex };
+        setPlayingPlaylist(updatedPlaylist);
+        setCurrentTrack(nextTrack);
+      }
+    }
+  };
+
+  const handlePrevious = async () => {
+    if (!playingPlaylist) return;
+
+    const currentIndex = playingPlaylist.currentIndex;
+    const prevIndex = currentIndex - 1;
+
+    if (prevIndex >= 0) {
+      await setPlaylistIndex(playingPlaylist.id, prevIndex);
+      const prevTrack = await getContent(playingPlaylist.contentIds[prevIndex]);
+
+      if (prevTrack) {
+        // Update playlist state
+        const updatedPlaylist = { ...playingPlaylist, currentIndex: prevIndex };
+        setPlayingPlaylist(updatedPlaylist);
+        setCurrentTrack(prevTrack);
+      }
+    }
+  };
+
+  const hasNext = playingPlaylist ? playingPlaylist.currentIndex < playingPlaylist.contentIds.length - 1 : false;
+  const hasPrevious = playingPlaylist ? playingPlaylist.currentIndex > 0 : false;
 
   return (
     <div className="space-y-6">
@@ -153,9 +215,22 @@ export function PlaylistsPage() {
           <div className="lg:col-span-2">
             {selectedPlaylist ? (
               <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  {selectedPlaylist.name}
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {selectedPlaylist.name}
+                  </h3>
+                  {playlistContent.length > 0 && (
+                    <button
+                      onClick={() => handlePlayPlaylist(selectedPlaylist)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                      Play Playlist
+                    </button>
+                  )}
+                </div>
                 {playlistContent.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600">
@@ -193,6 +268,22 @@ export function PlaylistsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Player Interface */}
+      {currentTrack && playingPlaylist && (
+        <PlayerInterface
+          content={currentTrack}
+          onClose={() => {
+            setCurrentTrack(null);
+            setPlayingPlaylist(null);
+          }}
+          playlistId={playingPlaylist.id}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+        />
       )}
     </div>
   );
