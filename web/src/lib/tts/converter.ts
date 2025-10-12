@@ -7,6 +7,7 @@
 import { TTSConfig, ConversionResult, TTSChunk } from './types';
 import { chunkText } from './chunker';
 import { generateMockAudio } from './mock-tts';
+import { generateSpeech } from './browser-speech';
 import ePub from 'epubjs';
 
 /**
@@ -85,18 +86,14 @@ export async function convertTextToAudio(
  * Convert single chunk to audio
  */
 async function convertChunk(chunk: TTSChunk, config: TTSConfig): Promise<ConversionResult> {
-  // Use mock TTS in development or when no API key is configured
-  const useMockTTS = process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_AZURE_TTS_KEY;
-
-  if (useMockTTS) {
+  // Use browser Web Speech API for real text-to-speech
+  try {
+    return await generateSpeech(chunk.text, config);
+  } catch (error) {
+    console.error('Browser speech failed, falling back to mock:', error);
+    // Fallback to mock audio if browser speech fails
     return generateMockAudio(chunk.text, config);
   }
-
-  // TODO: Production Azure TTS implementation
-  // return await azureTTS(chunk.text, config);
-
-  // Fallback to mock for now
-  return generateMockAudio(chunk.text, config);
 }
 
 /**
