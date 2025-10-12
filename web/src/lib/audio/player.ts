@@ -1,6 +1,6 @@
 /**
  * Audio Player
- * Web Audio API-based player with playback controls
+ * Web Audio API-based player with playback controls and Media Session support
  */
 
 export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error';
@@ -10,6 +10,15 @@ export interface PlayerCallbacks {
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onError?: (error: Error) => void;
+  onNext?: () => void;
+  onPrevious?: () => void;
+}
+
+export interface MediaMetadata {
+  title: string;
+  artist?: string;
+  album?: string;
+  artwork?: Array<{ src: string; sizes: string; type: string }>;
 }
 
 export class AudioPlayer {
@@ -166,11 +175,93 @@ export class AudioPlayer {
   }
 
   /**
+   * Set media metadata for system integration (lock screen, notifications)
+   */
+  setMediaMetadata(metadata: MediaMetadata): void {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: metadata.title,
+        artist: metadata.artist || 'Unknown Author',
+        album: metadata.album || 'Ridecast',
+        artwork: metadata.artwork || [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      });
+
+      // Setup action handlers for system controls
+      navigator.mediaSession.setActionHandler('play', () => {
+        this.play().catch(console.error);
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        this.pause();
+      });
+
+      navigator.mediaSession.setActionHandler('seekbackward', () => {
+        this.skipBackward();
+      });
+
+      navigator.mediaSession.setActionHandler('seekforward', () => {
+        this.skipForward();
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        this.callbacks.onPrevious?.();
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        this.callbacks.onNext?.();
+      });
+
+      // Update position state
+      this.audio.addEventListener('loadedmetadata', () => {
+        if ('setPositionState' in navigator.mediaSession) {
+          navigator.mediaSession.setPositionState({
+            duration: this.audio.duration,
+            playbackRate: this.audio.playbackRate,
+            position: this.audio.currentTime,
+          });
+        }
+      });
+    }
+  }
+
+  /**
+   * Update media session position state
+   */
+  private updatePositionState(): void {
+    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: this.audio.duration,
+          playbackRate: this.audio.playbackRate,
+          position: this.audio.currentTime,
+        });
+      } catch (error) {
+        // Position state may fail if duration is not available
+        console.debug('Could not update position state:', error);
+      }
+    }
+  }
+
+  /**
    * Cleanup and release resources
    */
   destroy(): void {
     this.audio.pause();
     this.audio.src = '';
     this.audio.load();
+
+    // Clear media session
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.setActionHandler('play', null);
+      navigator.mediaSession.setActionHandler('pause', null);
+      navigator.mediaSession.setActionHandler('seekbackward', null);
+      navigator.mediaSession.setActionHandler('seekforward', null);
+      navigator.mediaSession.setActionHandler('previoustrack', null);
+      navigator.mediaSession.setActionHandler('nexttrack', null);
+    }
   }
 }

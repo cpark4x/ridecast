@@ -50,5 +50,32 @@ export {
   formatDuration,
 } from './stats';
 
+// Bookmarks
+export {
+  createBookmark,
+  getBookmarks,
+  getBookmark,
+  updateBookmark,
+  deleteBookmark,
+  deleteBookmarksForContent,
+  getBookmarkCount,
+} from './bookmarks';
+
+// Playlists
+export {
+  createPlaylist,
+  getAllPlaylists,
+  getPlaylist,
+  updatePlaylist,
+  addToPlaylist,
+  removeFromPlaylist,
+  reorderPlaylist,
+  setPlaylistIndex,
+  getNextInPlaylist,
+  getPreviousInPlaylist,
+  deletePlaylist,
+  getPlaylistsForContent,
+} from './playlists';
+
 // Types
-export type { ContentItem, PlaybackState, LibraryStats, AudioRecord } from './types';
+export type { ContentItem, PlaybackState, LibraryStats, AudioRecord, Bookmark, Playlist } from './types';

@@ -39,3 +39,23 @@ export interface AudioRecord {
   audioBlob: Blob;
   storedAt: Date;
 }
+
+export interface Bookmark {
+  id: string;
+  contentId: string;
+  position: number; // seconds
+  label: string; // user-defined label
+  createdAt: Date;
+  note?: string;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  description?: string;
+  contentIds: string[]; // ordered list of content IDs
+  createdAt: Date;
+  updatedAt: Date;
+  coverImageUrl?: string;
+  currentIndex: number; // track position in playlist
+}

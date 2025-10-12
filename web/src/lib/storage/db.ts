@@ -5,21 +5,32 @@
  */
 
 import Dexie, { Table } from 'dexie';
-import { ContentItem, PlaybackState, AudioRecord } from './types';
+import { ContentItem, PlaybackState, AudioRecord, Bookmark, Playlist } from './types';
 
 export class RidecastDatabase extends Dexie {
   content!: Table<ContentItem, string>;
   playbackState!: Table<PlaybackState, string>;
   audio!: Table<AudioRecord, string>;
+  bookmarks!: Table<Bookmark, string>;
+  playlists!: Table<Playlist, string>;
 
   constructor() {
     super('RidecastDB');
 
-    // Define schema
+    // Define schema version 1
     this.version(1).stores({
       content: 'id, title, author, type, addedAt, lastPlayedAt, isDownloaded',
       playbackState: 'contentId, lastUpdated',
       audio: 'contentId, storedAt',
+    });
+
+    // Upgrade to version 2: Add bookmarks and playlists
+    this.version(2).stores({
+      content: 'id, title, author, type, addedAt, lastPlayedAt, isDownloaded',
+      playbackState: 'contentId, lastUpdated',
+      audio: 'contentId, storedAt',
+      bookmarks: 'id, contentId, position, createdAt',
+      playlists: 'id, name, createdAt, updatedAt',
     });
   }
 }
