@@ -69,8 +69,8 @@ async function createSilentAudio(duration: number, format: 'mp3' | 'wav'): Promi
         envelope = (length - i) / fadeTime;
       }
 
-      // Sine wave with envelope (reduced volume)
-      channelData[i] = Math.sin(2 * Math.PI * frequency * i / sampleRate) * envelope * 0.1;
+      // Sine wave with envelope (comfortable volume)
+      channelData[i] = Math.sin(2 * Math.PI * frequency * i / sampleRate) * envelope * 0.3;
     }
   }
 
@@ -85,7 +85,8 @@ async function createSilentAudio(duration: number, format: 'mp3' | 'wav'): Promi
 
   // Convert to WAV blob
   const wav = audioBufferToWav(renderedBuffer);
-  const blob = new Blob([wav], { type: format === 'wav' ? 'audio/wav' : 'audio/mpeg' });
+  // Always use WAV since that's what we're generating
+  const blob = new Blob([wav], { type: 'audio/wav' });
 
   return blob;
 }
