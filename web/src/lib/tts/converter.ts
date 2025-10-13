@@ -86,14 +86,10 @@ export async function convertTextToAudio(
  * Convert single chunk to audio
  */
 async function convertChunk(chunk: TTSChunk, config: TTSConfig): Promise<ConversionResult> {
-  // Use browser Web Speech API for real text-to-speech
-  try {
-    return await generateSpeech(chunk.text, config);
-  } catch (error) {
-    console.error('Browser speech failed, falling back to mock:', error);
-    // Fallback to mock audio if browser speech fails
-    return generateMockAudio(chunk.text, config);
-  }
+  // Note: Web Speech API cannot be recorded (outputs directly to speakers)
+  // Using mock audio with tone until a real TTS backend is implemented
+  // Options for real TTS: Google Cloud TTS, Amazon Polly, ElevenLabs, etc.
+  return generateMockAudio(chunk.text, config);
 }
 
 /**

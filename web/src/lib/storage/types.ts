@@ -12,6 +12,7 @@ export interface ContentItem {
   audioUrl?: string; // Blob URL for audio
   audioDuration?: number; // seconds
   voiceId: string;
+  voiceConfig?: { voice: string; speed: number; pitch: number }; // Store voice settings for live playback
   coverImageUrl?: string;
   addedAt: Date;
   lastPlayedAt?: Date;
