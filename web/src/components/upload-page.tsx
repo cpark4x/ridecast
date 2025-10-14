@@ -54,8 +54,13 @@ export function UploadPage() {
     setProgress(0);
 
     try {
+      console.log('[Upload] Starting conversion process');
+      console.log('[Upload] File:', file.name, 'Size:', file.size);
+
       // Extract text from file
+      console.log('[Upload] Extracting text...');
       const text = await extractText(file);
+      console.log('[Upload] Text extracted:', text.length, 'characters');
 
       if (!text || text.trim().length === 0) {
         throw new Error('No text could be extracted from the file');
@@ -68,17 +73,25 @@ export function UploadPage() {
         pitch: 0,
         outputFormat: 'mp3',
       };
+      console.log('[Upload] TTS config:', config);
 
       // Convert to audio
+      console.log('[Upload] Converting to audio...');
       const result = await convertTextToAudio(text, config, (p) => {
         setProgress(p);
       });
+      console.log('[Upload] Audio conversion complete:', result);
+      console.log('[Upload] Audio URL:', result.audioUrl);
+      console.log('[Upload] Duration:', result.duration);
 
       // Fetch audio blob from URL
+      console.log('[Upload] Fetching audio blob...');
       const response = await fetch(result.audioUrl);
       const audioBlob = await response.blob();
+      console.log('[Upload] Audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
 
       // Add to library
+      console.log('[Upload] Adding content to library...');
       const content = await addContent({
         title,
         author: author || 'Unknown',
@@ -88,12 +101,16 @@ export function UploadPage() {
         audioDuration: result.duration,
         isDownloaded: false,
       });
+      console.log('[Upload] Content added with ID:', content.id);
 
       // Store audio
+      console.log('[Upload] Storing audio in IndexedDB...');
       await storeAudio(content.id, audioBlob);
+      console.log('[Upload] Audio stored successfully');
 
       setSuccess(true);
       setProgress(100);
+      console.log('[Upload] ✅ Conversion complete!');
 
       // Reset form
       setTimeout(() => {
@@ -104,7 +121,7 @@ export function UploadPage() {
         setSuccess(false);
       }, 3000);
     } catch (err) {
-      console.error('Conversion error:', err);
+      console.error('[Upload] ❌ Conversion error:', err);
       setError(err instanceof Error ? err.message : 'Conversion failed');
     } finally {
       setConverting(false);

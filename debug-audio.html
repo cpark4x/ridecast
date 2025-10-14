@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ridecast Audio Debug</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .output {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .warning { color: orange; }
+    audio {
+      width: 100%;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ridecast Audio Debugger</h1>
+
+  <div class="section">
+    <h2>Step 1: Check IndexedDB</h2>
+    <button onclick="checkDatabase()">Check Database</button>
+    <div id="db-output" class="output"></div>
+  </div>
+
+  <div class="section">
+    <h2>Step 2: Extract & Test Audio</h2>
+    <button onclick="extractAudio()">Extract First Audio File</button>
+    <div id="extract-output" class="output"></div>
+    <audio id="test-player" controls></audio>
+    <button onclick="testPlayback()">Test Playback with Events</button>
+  </div>
+
+  <div class="section">
+    <h2>Step 3: Download Audio File</h2>
+    <button onclick="downloadAudio()">Download Audio File</button>
+    <div id="download-output" class="output"></div>
+  </div>
+
+  <div class="section">
+    <h2>Step 4: Analyze WAV Structure</h2>
+    <button onclick="analyzeWav()">Analyze WAV File</button>
+    <div id="analyze-output" class="output"></div>
+  </div>
+
+  <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+  <script>
+    let currentBlob = null;
+    let currentAudioUrl = null;
+
+    // Initialize Dexie database (matching Ridecast schema)
+    const db = new Dexie('RidecastDB');
+    db.version(2).stores({
+      content: 'id, title, author, type, addedAt, lastPlayedAt, isDownloaded',
+      playbackState: 'contentId, lastUpdated',
+      audio: 'contentId, storedAt',
+      bookmarks: 'id, contentId, position, createdAt',
+      playlists: 'id, name, createdAt, updatedAt',
+    });
+
+    async function checkDatabase() {
+      const output = document.getElementById('db-output');
+      output.innerHTML = 'Checking database...\n';
+
+      try {
+        await db.open();
+        const allAudio = await db.audio.toArray();
+        const allContent = await db.content.toArray();
+
+        output.innerHTML += `✅ Database opened successfully\n`;
+        output.innerHTML += `Found ${allAudio.length} audio files\n`;
+        output.innerHTML += `Found ${allContent.length} content items\n\n`;
+
+        allAudio.forEach((audio, index) => {
+          output.innerHTML += `Audio ${index + 1}:\n`;
+          output.innerHTML += `  Content ID: ${audio.contentId}\n`;
+          output.innerHTML += `  Blob size: ${audio.audioBlob.size.toLocaleString()} bytes\n`;
+          output.innerHTML += `  Blob type: ${audio.audioBlob.type}\n`;
+          output.innerHTML += `  Stored at: ${new Date(audio.storedAt).toLocaleString()}\n\n`;
+        });
+
+        allContent.forEach((content, index) => {
+          output.innerHTML += `Content ${index + 1}:\n`;
+          output.innerHTML += `  ID: ${content.id}\n`;
+          output.innerHTML += `  Title: ${content.title}\n`;
+          output.innerHTML += `  Type: ${content.type}\n`;
+          output.innerHTML += `  Downloaded: ${content.isDownloaded ? '✅' : '❌'}\n\n`;
+        });
+
+      } catch (error) {
+        output.innerHTML += `❌ Error: ${error.message}\n`;
+        console.error(error);
+      }
+    }
+
+    async function extractAudio() {
+      const output = document.getElementById('extract-output');
+      output.innerHTML = 'Extracting audio...\n';
+
+      try {
+        await db.open();
+        const allAudio = await db.audio.toArray();
+
+        if (allAudio.length === 0) {
+          output.innerHTML += '❌ No audio files found in database\n';
+          return;
+        }
+
+        currentBlob = allAudio[0].audioBlob;
+        output.innerHTML += `✅ Extracted audio blob\n`;
+        output.innerHTML += `  Content ID: ${allAudio[0].contentId}\n`;
+        output.innerHTML += `  Size: ${currentBlob.size.toLocaleString()} bytes\n`;
+        output.innerHTML += `  Type: ${currentBlob.type}\n`;
+
+        // Create object URL and set to audio element
+        if (currentAudioUrl) {
+          URL.revokeObjectURL(currentAudioUrl);
+        }
+        currentAudioUrl = URL.createObjectURL(currentBlob);
+
+        const audioElement = document.getElementById('test-player');
+        audioElement.src = currentAudioUrl;
+        output.innerHTML += `✅ Audio loaded into player\n`;
+        output.innerHTML += `  URL: ${currentAudioUrl}\n`;
+
+      } catch (error) {
+        output.innerHTML += `❌ Error: ${error.message}\n`;
+        console.error(error);
+      }
+    }
+
+    async function testPlayback() {
+      const output = document.getElementById('extract-output');
+      const audioElement = document.getElementById('test-player');
+
+      if (!audioElement.src) {
+        output.innerHTML += '❌ No audio loaded. Run "Extract First Audio File" first.\n';
+        return;
+      }
+
+      output.innerHTML += '\nTesting playback with event logging...\n';
+
+      // Set volume to max
+      audioElement.volume = 1.0;
+      output.innerHTML += `  Volume set to: ${audioElement.volume}\n`;
+
+      // Add event listeners
+      const events = ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'play', 'playing', 'pause', 'ended', 'error', 'stalled', 'waiting'];
+
+      events.forEach(eventName => {
+        audioElement.addEventListener(eventName, (e) => {
+          output.innerHTML += `  📢 Event: ${eventName}\n`;
+          if (eventName === 'loadedmetadata') {
+            output.innerHTML += `     Duration: ${audioElement.duration}s\n`;
+          }
+          if (eventName === 'error') {
+            output.innerHTML += `     Error: ${audioElement.error?.message || 'Unknown error'}\n`;
+          }
+        }, { once: true });
+      });
+
+      try {
+        output.innerHTML += '  Calling play()...\n';
+        await audioElement.play();
+        output.innerHTML += `  ✅ play() succeeded\n`;
+        output.innerHTML += `  Current time: ${audioElement.currentTime}s\n`;
+        output.innerHTML += `  Paused: ${audioElement.paused}\n`;
+        output.innerHTML += `  Muted: ${audioElement.muted}\n`;
+        output.innerHTML += `  Volume: ${audioElement.volume}\n`;
+      } catch (error) {
+        output.innerHTML += `  ❌ play() failed: ${error.message}\n`;
+      }
+    }
+
+    async function downloadAudio() {
+      const output = document.getElementById('download-output');
+
+      if (!currentBlob) {
+        output.innerHTML = '❌ No audio extracted. Run "Extract First Audio File" first.\n';
+        return;
+      }
+
+      output.innerHTML = 'Downloading audio file...\n';
+
+      try {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(currentBlob);
+        a.download = 'ridecast-audio-test.wav';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        output.innerHTML += `✅ Download started: ridecast-audio-test.wav\n`;
+        output.innerHTML += `  Try playing this file in your system media player\n`;
+      } catch (error) {
+        output.innerHTML += `❌ Error: ${error.message}\n`;
+      }
+    }
+
+    async function analyzeWav() {
+      const output = document.getElementById('analyze-output');
+
+      if (!currentBlob) {
+        output.innerHTML = '❌ No audio extracted. Run "Extract First Audio File" first.\n';
+        return;
+      }
+
+      output.innerHTML = 'Analyzing WAV structure...\n';
+
+      try {
+        const arrayBuffer = await currentBlob.arrayBuffer();
+        const view = new DataView(arrayBuffer);
+
+        // Read WAV header
+        const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+        const fileSize = view.getUint32(4, true);
+        const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+        const fmt = String.fromCharCode(view.getUint8(12), view.getUint8(13), view.getUint8(14), view.getUint8(15));
+        const audioFormat = view.getUint16(20, true);
+        const numChannels = view.getUint16(22, true);
+        const sampleRate = view.getUint32(24, true);
+        const byteRate = view.getUint32(28, true);
+        const blockAlign = view.getUint16(32, true);
+        const bitsPerSample = view.getUint16(34, true);
+
+        output.innerHTML += `WAV File Structure:\n`;
+        output.innerHTML += `  RIFF Header: "${riff}" ${riff === 'RIFF' ? '✅' : '❌'}\n`;
+        output.innerHTML += `  File Size: ${fileSize.toLocaleString()} bytes\n`;
+        output.innerHTML += `  WAVE Header: "${wave}" ${wave === 'WAVE' ? '✅' : '❌'}\n`;
+        output.innerHTML += `  Format Chunk: "${fmt}" ${fmt === 'fmt ' ? '✅' : '❌'}\n`;
+        output.innerHTML += `  Audio Format: ${audioFormat} (1 = PCM) ${audioFormat === 1 ? '✅' : '❌'}\n`;
+        output.innerHTML += `  Channels: ${numChannels}\n`;
+        output.innerHTML += `  Sample Rate: ${sampleRate} Hz\n`;
+        output.innerHTML += `  Byte Rate: ${byteRate.toLocaleString()} bytes/sec\n`;
+        output.innerHTML += `  Block Align: ${blockAlign}\n`;
+        output.innerHTML += `  Bits Per Sample: ${bitsPerSample}\n\n`;
+
+        // Check for data chunk
+        let dataOffset = 36;
+        const dataChunk = String.fromCharCode(view.getUint8(dataOffset), view.getUint8(dataOffset+1), view.getUint8(dataOffset+2), view.getUint8(dataOffset+3));
+        const dataSize = view.getUint32(dataOffset + 4, true);
+
+        output.innerHTML += `Data Chunk:\n`;
+        output.innerHTML += `  Chunk ID: "${dataChunk}" ${dataChunk === 'data' ? '✅' : '❌'}\n`;
+        output.innerHTML += `  Data Size: ${dataSize.toLocaleString()} bytes\n`;
+
+        const expectedDuration = dataSize / byteRate;
+        output.innerHTML += `  Expected Duration: ${expectedDuration.toFixed(2)}s\n\n`;
+
+        // Sample some audio data
+        output.innerHTML += `Audio Data Sample (first 100 samples):\n`;
+        let hasNonZero = false;
+        let maxAmplitude = 0;
+
+        for (let i = 0; i < 100 && (dataOffset + 8 + i * 2) < arrayBuffer.byteLength; i++) {
+          const sample = view.getInt16(dataOffset + 8 + i * 2, true);
+          const amplitude = Math.abs(sample);
+          if (amplitude > 0) hasNonZero = true;
+          if (amplitude > maxAmplitude) maxAmplitude = amplitude;
+        }
+
+        output.innerHTML += `  Contains non-zero samples: ${hasNonZero ? '✅' : '❌'}\n`;
+        output.innerHTML += `  Max amplitude (first 100): ${maxAmplitude} / 32767 (${(maxAmplitude/32767*100).toFixed(1)}%)\n`;
+
+        if (maxAmplitude < 1000) {
+          output.innerHTML += `  ⚠️ WARNING: Audio amplitude very low, may be inaudible\n`;
+        }
+
+      } catch (error) {
+        output.innerHTML += `❌ Error: ${error.message}\n`;
+      }
+    }
+  </script>
+</body>
+</html>
