@@ -1,5 +1,6 @@
 'use client';
 
+// Debug logging enabled - v2
 import { useState } from 'react';
 import {
   convertTextToAudio,
