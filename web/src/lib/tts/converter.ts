@@ -70,8 +70,9 @@ export async function convertTextToAudio(
   }
 
   // Combine all audio chunks into single file
+  // Note: We're generating WAV audio, so always use audio/wav MIME type
   const combinedBlob = new Blob(chunkResults, {
-    type: config.outputFormat === 'mp3' ? 'audio/mpeg' : 'audio/wav',
+    type: 'audio/wav',
   });
 
   const audioUrl = URL.createObjectURL(combinedBlob);
