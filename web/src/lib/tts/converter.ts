@@ -1,6 +1,6 @@
 /**
  * TTS Converter - Main Entry Point
- * Converts text to audio using chunking and TTS service
+ * Converts text to audio using backend API or fallback to mock
  * Contract: web/docs/modules/tts-contract.md
  */
 
@@ -11,6 +11,9 @@ import { generateSpeech } from './browser-speech';
 import ePub from 'epubjs';
 
 /**
+ * DEPRECATED: Use convertWithBackend from backend-converter.ts instead
+ * This function is kept for backward compatibility with mock TTS
+ *
  * Convert text to audio
  * @param text - Full text to convert
  * @param config - TTS configuration
@@ -84,12 +87,11 @@ export async function convertTextToAudio(
 }
 
 /**
- * Convert single chunk to audio
+ * Convert single chunk to audio (FALLBACK - uses mock TTS)
  */
 async function convertChunk(chunk: TTSChunk, config: TTSConfig): Promise<ConversionResult> {
-  // Note: Web Speech API cannot be recorded (outputs directly to speakers)
-  // Using mock audio with tone until a real TTS backend is implemented
-  // Options for real TTS: Google Cloud TTS, Amazon Polly, ElevenLabs, etc.
+  // Fallback to mock audio
+  // Real TTS is now handled by backend-converter.ts
   return generateMockAudio(chunk.text, config);
 }
 

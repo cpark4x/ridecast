@@ -1,0 +1,1 @@
+This is a test file for Ridecast TTS conversion. It contains enough text to verify that the upload and text extraction process works correctly. We're testing the backend API endpoints systematically with curl before connecting the frontend.
