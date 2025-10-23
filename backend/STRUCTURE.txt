@@ -1,0 +1,208 @@
+RIDECAST BACKEND - FILE STRUCTURE
+==================================
+
+backend/
+│
+├── Configuration & Setup
+│   ├── package.json              # Dependencies and scripts
+│   ├── tsconfig.json             # TypeScript configuration
+│   ├── docker-compose.yml        # PostgreSQL + Redis containers
+│   ├── .env                      # Environment variables (configured)
+│   ├── .env.example              # Environment template
+│   └── .gitignore                # Git exclusions
+│
+├── Documentation
+│   ├── README.md                 # Overview and features
+│   ├── SETUP.md                  # Setup instructions with troubleshooting
+│   ├── API.md                    # Complete API documentation
+│   ├── IMPLEMENTATION_REPORT.md  # Detailed implementation report
+│   └── STRUCTURE.txt             # This file
+│
+├── Database
+│   └── migrations/               # SQL migration files
+│       ├── 001_create_users.sql
+│       ├── 002_create_content.sql
+│       ├── 003_create_audio_cache.sql
+│       ├── 004_create_conversion_jobs.sql
+│       ├── 005_create_user_library.sql
+│       └── 006_create_playback_progress.sql
+│
+├── Scripts
+│   └── scripts/
+│       └── migrate.js            # Database migration runner
+│
+└── Source Code (src/)
+    │
+    ├── Main Entry
+    │   └── server.ts             # Express app and server startup
+    │
+    ├── Configuration (config/)
+    │   ├── database.ts           # PostgreSQL connection pool
+    │   ├── redis.ts              # Redis client
+    │   └── azure-tts.ts          # Azure Speech SDK config
+    │
+    ├── Shared Components (shared/)
+    │   ├── types/
+    │   │   └── index.ts          # TypeScript type definitions
+    │   │
+    │   ├── middleware/
+    │   │   ├── auth.ts           # JWT authentication
+    │   │   ├── validation.ts     # Joi request validation
+    │   │   └── errorHandler.ts   # Global error handling
+    │   │
+    │   └── utils/
+    │       ├── logger.ts         # Winston logger
+    │       ├── hash.ts           # SHA-256 hashing utilities
+    │       └── response.ts       # API response helpers
+    │
+    └── Microservices (services/)
+        │
+        ├── Authentication Service (auth/)
+        │   ├── controller.ts     # Register, login, refresh, logout
+        │   ├── routes.ts         # POST /register, /login, /refresh, /logout, GET /me
+        │   └── schemas.ts        # Joi validation schemas
+        │
+        ├── Content Service (content/)
+        │   ├── controller.ts     # Upload, list, get, delete content
+        │   ├── routes.ts         # POST /upload, GET /, GET /:id, DELETE /:id
+        │   ├── schemas.ts        # Validation schemas
+        │   ├── textExtractor.ts  # PDF/EPUB/TXT text extraction
+        │   └── s3Client.ts       # AWS S3 upload/download
+        │
+        ├── Audio Service (audio/)
+        │   ├── controller.ts     # Convert, status, jobs, voices
+        │   ├── routes.ts         # POST /convert, GET /status/:jobId, /jobs, /voices
+        │   ├── schemas.ts        # Validation schemas
+        │   ├── ttsEngine.ts      # Azure TTS integration with SSML
+        │   └── queue.ts          # Bull job queue for background processing
+        │
+        └── User Service (user/)
+            ├── controller.ts     # Profile, library, favorites, progress
+            ├── routes.ts         # GET/PUT /profile, library, progress endpoints
+            └── schemas.ts        # Validation schemas
+
+
+API ENDPOINTS SUMMARY
+=====================
+
+Authentication (/api/v1/auth)
+  POST   /register              Register new user
+  POST   /login                 Login user
+  POST   /refresh               Refresh access token
+  POST   /logout                Logout user
+  GET    /me                    Get current user
+
+Content (/api/v1/content)
+  POST   /upload                Upload PDF/EPUB/TXT file
+  GET    /                      List all content (paginated)
+  GET    /:id                   Get specific content
+  DELETE /:id                   Delete content
+
+Audio (/api/v1/audio)
+  POST   /convert               Start TTS conversion job
+  GET    /status/:jobId         Get job status
+  GET    /jobs                  List all jobs
+  GET    /voices                Get available voices
+
+User (/api/v1/user)
+  GET    /profile               Get user profile
+  PUT    /profile               Update profile
+  GET    /library               Get user library (paginated)
+  POST   /library               Add content to library
+  DELETE /library/:contentId    Remove from library
+  POST   /library/:contentId/favorite   Toggle favorite
+  GET    /progress/:contentId   Get playback progress
+  PUT    /progress/:contentId   Update playback progress
+
+
+DATABASE SCHEMA
+===============
+
+users
+  - id (UUID)
+  - email (unique)
+  - password_hash
+  - name
+  - created_at, updated_at
+
+content
+  - id (UUID)
+  - user_id (FK → users)
+  - title, author, type
+  - text_content
+  - text_hash (SHA-256 for deduplication)
+  - source_file_url (S3)
+  - file_size_bytes, word_count
+  - created_at
+
+audio_cache
+  - id (UUID)
+  - content_hash (SHA-256 of text+voice+config)
+  - voice_id
+  - audio_url (S3)
+  - duration_seconds, file_size_bytes
+  - created_at, last_accessed_at, access_count
+
+conversion_jobs
+  - id (UUID)
+  - content_id (FK → content)
+  - user_id (FK → users)
+  - status (pending/processing/completed/failed)
+  - progress (0-100)
+  - audio_cache_id (FK → audio_cache)
+  - error_message
+  - created_at, completed_at
+
+user_library
+  - id (UUID)
+  - user_id (FK → users)
+  - content_id (FK → content)
+  - is_favorite
+  - added_at
+
+playback_progress
+  - id (UUID)
+  - user_id (FK → users)
+  - content_id (FK → content)
+  - position_seconds, duration_seconds
+  - completed
+  - updated_at
+
+
+TECHNOLOGY STACK
+================
+
+Runtime:           Node.js 18+
+Language:          TypeScript 5
+Web Framework:     Express.js 4
+Database:          PostgreSQL 16
+Cache/Queue:       Redis 7 + Bull
+Text-to-Speech:    Azure Cognitive Services
+Storage:           AWS S3
+Authentication:    JWT (jsonwebtoken)
+Password Hashing:  bcrypt
+Validation:        Joi
+Logging:           Winston
+Security:          Helmet, CORS, Rate Limiting
+File Upload:       Multer
+Text Extraction:   pdf-parse, epub
+
+
+KEY FEATURES
+============
+
+✓ Modular microservices architecture
+✓ JWT authentication with refresh tokens
+✓ Multi-format text extraction (PDF, EPUB, TXT)
+✓ Azure Neural TTS with 6 premium voices
+✓ Intelligent audio caching (content-based hashing)
+✓ Background job queue for async TTS conversion
+✓ User library with favorites
+✓ Cross-device playback progress sync
+✓ Comprehensive error handling
+✓ Request validation
+✓ Security headers and CORS
+✓ Rate limiting
+✓ Database connection pooling
+✓ Structured logging
+✓ TypeScript throughout

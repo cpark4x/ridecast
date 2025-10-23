@@ -225,7 +225,7 @@ lerna-debug.log*
 .pnpm-debug.log*
 
 # Package managers
-package-lock.json
+# package-lock.json - KEEP THIS for reproducible builds
 yarn.lock
 pnpm-lock.yaml
 

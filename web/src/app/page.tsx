@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UploadPage } from '@/components/upload-page';
-import { LibraryPage } from '@/components/library-page';
+import { useAuth } from '@/lib/auth';
+import { AuthPage } from '@/components/auth-page';
+import { UploadPageBackend } from '@/components/upload-page-backend';
+import { LibraryPageBackend } from '@/components/library-page-backend';
 import { PlaylistsPage } from '@/components/playlists-page';
 import { initDatabase } from '@/lib/storage';
+import { useNetworkStatus } from '@/lib/sync';
 
 export default function Home() {
+  const { isAuthenticated, user, logout } = useAuth();
   const [view, setView] = useState<'upload' | 'library' | 'playlists'>('upload');
   const [dbReady, setDbReady] = useState(false);
+  const networkStatus = useNetworkStatus();
 
   useEffect(() => {
     // Initialize database on mount
@@ -21,6 +26,11 @@ export default function Home() {
         console.error('Failed to initialize database:', error);
       });
   }, []);
+
+  // Show auth page if not authenticated
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
 
   if (!dbReady) {
     return (
@@ -38,8 +48,20 @@ export default function Home() {
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Ridecast</h1>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">Ridecast</h1>
+            {/* Network Status Indicator */}
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              networkStatus === 'online'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-orange-100 text-orange-800'
+            }`}>
+              {networkStatus === 'online' ? 'Online' : 'Offline'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Navigation Buttons */}
             <button
               onClick={() => setView('upload')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -70,14 +92,27 @@ export default function Home() {
             >
               Playlists
             </button>
+
+            {/* User Menu */}
+            <div className="flex items-center gap-2 pl-4 border-l border-gray-300">
+              <span className="text-sm text-gray-600">
+                {user?.email || 'User'}
+              </span>
+              <button
+                onClick={() => logout()}
+                className="text-sm text-red-600 hover:text-red-700 font-medium"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {view === 'upload' && <UploadPage />}
-        {view === 'library' && <LibraryPage />}
+        {view === 'upload' && <UploadPageBackend />}
+        {view === 'library' && <LibraryPageBackend />}
         {view === 'playlists' && <PlaylistsPage />}
       </main>
     </div>
