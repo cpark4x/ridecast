@@ -18,6 +18,26 @@ echo "🔧  Configuring Git for auto-push..."
 git config --global push.autoSetupRemote true
 echo "    ✅ Git configured"
 
+echo ""
+echo "📦  Cloning latest amplifier toolkit..."
+if [ ! -d "/workspaces/amplifier" ]; then
+    git clone https://github.com/microsoft/amplifier.git /workspaces/amplifier
+    echo "    ✅ Amplifier cloned to /workspaces/amplifier"
+else
+    echo "    ℹ️  Amplifier already exists, pulling latest..."
+    cd /workspaces/amplifier && git pull
+fi
+
+echo ""
+echo "🔗  Symlinking amplifier to project..."
+cd /workspaces/$(basename "$PWD")
+if [ ! -L "amplifier" ]; then
+    ln -s /workspaces/amplifier amplifier
+    echo "    ✅ Amplifier symlinked"
+else
+    echo "    ℹ️  Amplifier symlink already exists"
+fi
+
 # Add your project-specific setup here
 # Examples:
 # echo ""
