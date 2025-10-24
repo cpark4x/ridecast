@@ -132,7 +132,19 @@ export async function getContent(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    successResponse(res, result.rows[0]);
+    // Transform snake_case to camelCase for frontend
+    const row = result.rows[0];
+    const transformedContent = {
+      id: row.id,
+      title: row.title,
+      author: row.author,
+      type: row.type,
+      textContent: row.text_content,
+      wordCount: row.word_count,
+      createdAt: row.created_at
+    };
+
+    successResponse(res, transformedContent);
   } catch (error) {
     logger.error('Get content error', { error });
     errorResponse(res, 'Failed to fetch content', 500);
@@ -155,18 +167,35 @@ export async function listContent(req: Request, res: Response): Promise<void> {
     const offset = (page - 1) * limit;
 
     let queryText = `
-      SELECT id, title, author, type, word_count, created_at
-      FROM content
-      WHERE user_id = $1
+      SELECT
+        c.id,
+        c.title,
+        c.author,
+        c.type,
+        c.word_count,
+        c.created_at,
+        ac.audio_url,
+        ac.duration_seconds,
+        cj.id as conversion_job_id
+      FROM content c
+      LEFT JOIN LATERAL (
+        SELECT id, audio_cache_id
+        FROM conversion_jobs
+        WHERE content_id = c.id AND user_id = $1 AND status = 'completed'
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) cj ON true
+      LEFT JOIN audio_cache ac ON cj.audio_cache_id = ac.id
+      WHERE c.user_id = $1
     `;
     const queryParams: any[] = [userId];
 
     if (type) {
-      queryText += ` AND type = $2`;
+      queryText += ` AND c.type = $2`;
       queryParams.push(type);
     }
 
-    queryText += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${
+    queryText += ` ORDER BY c.created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${
       queryParams.length + 2
     }`;
     queryParams.push(limit, offset);
@@ -187,7 +216,19 @@ export async function listContent(req: Request, res: Response): Promise<void> {
 
     const total = parseInt(countResult.rows[0].count, 10);
 
-    paginatedResponse(res, contentResult.rows, page, limit, total);
+    // Transform snake_case to camelCase for frontend
+    const transformedContent = contentResult.rows.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      author: row.author,
+      type: row.type,
+      wordCount: row.word_count,
+      createdAt: row.created_at,
+      audioUrl: row.audio_url || undefined,
+      durationSeconds: row.duration_seconds || undefined
+    }));
+
+    paginatedResponse(res, transformedContent, page, limit, total);
   } catch (error) {
     logger.error('List content error', { error });
     errorResponse(res, 'Failed to fetch content list', 500);

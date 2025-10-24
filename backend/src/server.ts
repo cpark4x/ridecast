@@ -14,6 +14,7 @@ import authRoutes from './services/auth/routes';
 import contentRoutes from './services/content/routes';
 import audioRoutes from './services/audio/routes';
 import userRoutes from './services/user/routes';
+import compressionRoutes from './services/compression/routes';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './shared/middleware/errorHandler';
@@ -91,6 +92,7 @@ function configureRoutes() {
   app.use('/api/v1/content', contentRoutes);
   app.use('/api/v1/audio', audioRoutes);
   app.use('/api/v1/user', userRoutes);
+  app.use('/api/v1/compression', compressionRoutes);
 
   // 404 handler
   app.use(notFoundHandler);

@@ -23,6 +23,7 @@ export interface ContentItem {
   type: 'book' | 'article' | 'pdf' | 'other';
   textContent: string;
   textHash: string;
+  wordCount?: number;
   coverImageUrl?: string;
   createdAt: string;
 }

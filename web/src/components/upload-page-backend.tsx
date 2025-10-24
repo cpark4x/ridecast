@@ -80,8 +80,7 @@ export function UploadPageBackend() {
       const audioUrl = await audioApi.convertToAudio(
         content.id,
         selectedVoiceId,
-        1.0,
-        0,
+        { speed: 1.0, pitch: 0 },
         (p) => {
           // Map 0-100 progress to 20-90%
           const mappedProgress = 20 + (p * 0.7);

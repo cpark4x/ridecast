@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { AuthPage } from '@/components/auth-page';
 import { UploadPageBackend } from '@/components/upload-page-backend';
-import { LibraryPageBackend } from '@/components/library-page-backend';
+import { LibraryPageEnhanced } from '@/components/library-page-enhanced';
 import { PlaylistsPage } from '@/components/playlists-page';
 import { initDatabase } from '@/lib/storage';
 import { useNetworkStatus } from '@/lib/sync';
@@ -13,9 +13,11 @@ export default function Home() {
   const { isAuthenticated, user, logout } = useAuth();
   const [view, setView] = useState<'upload' | 'library' | 'playlists'>('upload');
   const [dbReady, setDbReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const networkStatus = useNetworkStatus();
 
   useEffect(() => {
+    setMounted(true);
     // Initialize database on mount
     initDatabase()
       .then(() => {
@@ -26,6 +28,11 @@ export default function Home() {
         console.error('Failed to initialize database:', error);
       });
   }, []);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null;
+  }
 
   // Show auth page if not authenticated
   if (!isAuthenticated) {
@@ -112,7 +119,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {view === 'upload' && <UploadPageBackend />}
-        {view === 'library' && <LibraryPageBackend />}
+        {view === 'library' && <LibraryPageEnhanced />}
         {view === 'playlists' && <PlaylistsPage />}
       </main>
     </div>

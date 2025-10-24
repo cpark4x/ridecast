@@ -28,8 +28,7 @@ export async function convertWithBackend(
   const audioUrl = await audioApi.convertToAudio(
     contentId,
     voiceId,
-    speed,
-    pitch,
+    { speed, pitch },
     onProgress
   );
 
