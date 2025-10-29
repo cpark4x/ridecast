@@ -30,10 +30,12 @@ fi
 
 echo ""
 echo "🔗  Symlinking amplifier to project..."
-cd /workspaces/$(basename "$PWD")
+# In Codespaces, this is /workspaces/ridecast
+PROJECT_ROOT="${CODESPACE_VSCODE_FOLDER:-/workspaces/ridecast}"
+cd "$PROJECT_ROOT"
 if [ ! -L "amplifier" ]; then
     ln -s /workspaces/amplifier amplifier
-    echo "    ✅ Amplifier symlinked"
+    echo "    ✅ Amplifier symlinked at $PROJECT_ROOT/amplifier"
 else
     echo "    ℹ️  Amplifier symlink already exists"
 fi
@@ -60,17 +62,39 @@ else
 fi
 
 # Return to project root
-cd /workspaces/$(basename "$PWD")
+PROJECT_ROOT="${CODESPACE_VSCODE_FOLDER:-/workspaces/ridecast}"
+cd "$PROJECT_ROOT"
+echo "📂  Working directory: $PROJECT_ROOT"
 
-# Add your project-specific setup here
-# Examples:
-# echo ""
-# echo "📦  Installing project dependencies..."
-# make install
-#
-# echo ""
-# echo "🗄️  Setting up database..."
-# make db-setup
+# Install Ridecast dependencies
+echo ""
+echo "📦  Installing Ridecast backend dependencies..."
+if [ -f "backend/pyproject.toml" ]; then
+    cd backend
+    uv sync
+    echo "    ✅ Backend dependencies installed"
+    cd "$PROJECT_ROOT"
+else
+    echo "    ⚠️  backend/pyproject.toml not found"
+fi
+
+echo ""
+echo "📦  Installing Ridecast frontend dependencies..."
+if [ -f "web/package.json" ]; then
+    cd web
+    npm install
+    echo "    ✅ Frontend dependencies installed"
+    cd "$PROJECT_ROOT"
+else
+    echo "    ⚠️  web/package.json not found"
+fi
+
+echo ""
+echo "📝  Next steps:"
+echo "  1. Set up your environment variables in backend/.env"
+echo "  2. Start PostgreSQL and Redis services"
+echo "  3. Run 'npm run dev' in the web directory"
+echo "  4. Run backend server"
 
 echo ""
 echo "========================================="
