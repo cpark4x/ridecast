@@ -1,31 +1,18 @@
-// GitHub Codespaces Devcontainer Configuration
-// Minimal template with Claude Code pre-installed
 {
-  "name": "project",
-
-  // Base image: Python 3.11 on Debian Bookworm
+  "name": "ridecast_fullstack",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
-
-  // Resource requirements
   "hostRequirements": {
     "cpus": 2,
     "memory": "8gb",
     "storage": "32gb"
   },
-
-  // Development tools to install
   "features": {
-    // Build tools
     "ghcr.io/jungaretti/features/make:1": {},
     "ghcr.io/jungaretti/features/vim:1": {},
-
-    // Python package manager (fast, modern)
     "ghcr.io/devcontainers-extra/features/pipx-package:1": {
       "package": "uv",
       "version": "latest"
     },
-
-    // Node.js for additional tooling
     "ghcr.io/devcontainers/features/node:1": {
       "nodeGypDependencies": true,
       "installYarnUsingApt": true,
@@ -33,61 +20,27 @@
       "nvmVersion": "latest",
       "pnpmVersion": "latest"
     },
-
-    // Claude Code CLI - The key tool!
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
-
-    // GitHub CLI for Codespace management
     "ghcr.io/devcontainers/features/github-cli:1": {},
-
-    // Docker-in-Docker (optional, remove if not needed)
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
-
-  // Ports to forward (uncomment and customize as needed)
-  // "forwardPorts": [3000, 8000],
-
-  // Port configuration (uncomment to use)
-  // "portsAttributes": {
-  //   "3000": {
-  //     "label": "Frontend",
-  //     "onAutoForward": "notify"
-  //   },
-  //   "8000": {
-  //     "label": "API",
-  //     "onAutoForward": "openBrowser"
-  //   }
-  // },
-
-  // Run this script after container creation
   "postCreateCommand": "./.devcontainer/post-create.sh",
-
-  // Named container for easier identification in Docker Desktop
-  "runArgs": ["--name=project_devcontainer"],
-
-  // VS Code customizations
+  "runArgs": ["--name=ridecast_devcontainer"],
   "customizations": {
-    // GitHub Codespaces settings
     "codespaces": {
-      "openFiles": [".devcontainer/POST_SETUP_README.md"]
+      "openFiles": ["README.md", ".devcontainer/README.md"]
     },
-
-    // VS Code extensions to install
     "vscode": {
       "extensions": [
-        // AI assistants
         "anthropic.claude-code",
         "GitHub.copilot",
-
-        // GitHub integration
         "github.codespaces",
-
-        // Python development
         "ms-python.python",
         "ms-python.debugpy",
         "charliermarsh.ruff",
-
-        // General development
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "firsttris.vscode-jest-runner",
         "aaron-bond.better-comments",
         "bierner.markdown-mermaid",
         "bierner.markdown-preview-github-styles",
@@ -97,11 +50,26 @@
       ]
     }
   },
-
-  // Environment variables
   "containerEnv": {
-    // Optimize uv cache location for performance
-    // https://docs.astral.sh/uv/concepts/cache/#cache-directory
     "UV_CACHE_DIR": "${containerWorkspaceFolder}/../.cache/uv"
+  },
+  "forwardPorts": [3003, 3004, 5432, 6379],
+  "portsAttributes": {
+    "3003": {
+      "label": "Next.js Frontend",
+      "onAutoForward": "notify"
+    },
+    "3004": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    }
   }
 }

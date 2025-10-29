@@ -21,7 +21,7 @@ echo "    ✅ Git configured"
 echo ""
 echo "📦  Cloning latest amplifier toolkit..."
 if [ ! -d "/workspaces/amplifier" ]; then
-    git clone https://github.com/microsoft/amplifier.git /workspaces/amplifier
+    git clone https://github.com/cpark4x/amplifier.git /workspaces/amplifier
     echo "    ✅ Amplifier cloned to /workspaces/amplifier"
 else
     echo "    ℹ️  Amplifier already exists, pulling latest..."
@@ -37,6 +37,30 @@ if [ ! -L "amplifier" ]; then
 else
     echo "    ℹ️  Amplifier symlink already exists"
 fi
+
+echo ""
+echo "📦  Setting up amplifier dependencies..."
+cd /workspaces/amplifier
+if [ -f "pyproject.toml" ]; then
+    uv sync
+    echo "    ✅ Amplifier dependencies installed"
+else
+    echo "    ⚠️  pyproject.toml not found, skipping uv sync"
+fi
+
+echo ""
+echo "🔧  Setting up amplifier .env..."
+cd /workspaces/amplifier
+if [ -f ".env.example" ] && [ ! -f ".env" ]; then
+    cp .env.example .env
+    echo "    ✅ .env created from .env.example"
+    echo "    ⚠️  Remember to add your API keys to .env"
+else
+    echo "    ℹ️  .env already exists or .env.example not found"
+fi
+
+# Return to project root
+cd /workspaces/$(basename "$PWD")
 
 # Add your project-specific setup here
 # Examples:
