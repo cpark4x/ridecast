@@ -111,23 +111,49 @@ function buildSSML(text: string, voiceId: string, config: TTSConfig): string {
 
 /**
  * Chunk text into smaller segments for processing
- * Target: 5-10 minutes of audio per chunk (~1000-2000 words)
+ * Target: ~5 minutes of audio per chunk (800 words at 150 wpm = ~5.3 minutes)
+ * Guarantees that no chunk exceeds wordsPerChunk words by splitting long sentences at word boundaries
  */
-export function chunkText(text: string, wordsPerChunk: number = 1500): string[] {
+export function chunkText(text: string, wordsPerChunk: number = 800): string[] {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
   const chunks: string[] = [];
   let currentChunk = '';
   let wordCount = 0;
 
   for (const sentence of sentences) {
-    const sentenceWords = sentence.trim().split(/\s+/).length;
+    const trimmedSentence = sentence.trim();
+    const words = trimmedSentence.split(/\s+/);
+    const sentenceWords = words.length;
 
+    // If adding this sentence would exceed the limit AND we have content, start a new chunk
     if (wordCount + sentenceWords > wordsPerChunk && currentChunk.length > 0) {
       chunks.push(currentChunk.trim());
-      currentChunk = sentence;
-      wordCount = sentenceWords;
+      currentChunk = '';
+      wordCount = 0;
+    }
+
+    // If the sentence itself exceeds the limit, split it at word boundaries
+    if (sentenceWords > wordsPerChunk) {
+      let i = 0;
+      while (i < words.length) {
+        const remainingSpace = wordsPerChunk - wordCount;
+        const wordsToTake = Math.min(remainingSpace, words.length - i);
+        const chunk = words.slice(i, i + wordsToTake).join(' ');
+
+        currentChunk += (currentChunk.length > 0 ? ' ' : '') + chunk;
+        wordCount += wordsToTake;
+        i += wordsToTake;
+
+        // If we've filled the current chunk, push it and start a new one
+        if (wordCount >= wordsPerChunk && i < words.length) {
+          chunks.push(currentChunk.trim());
+          currentChunk = '';
+          wordCount = 0;
+        }
+      }
     } else {
-      currentChunk += ' ' + sentence;
+      // Normal case: sentence fits, add it to current chunk
+      currentChunk += (currentChunk.length > 0 ? ' ' : '') + trimmedSentence;
       wordCount += sentenceWords;
     }
   }

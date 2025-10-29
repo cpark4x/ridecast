@@ -100,7 +100,7 @@ audioQueue.process(5, async (job) => {
 
     // Determine if chunking is needed
     const wordCount = text.split(/\s+/).length;
-    const requiresChunking = wordCount > 1400;
+    const requiresChunking = wordCount > 800;
 
     let finalAudioPath: string;
     let durationSeconds: number;
@@ -110,7 +110,7 @@ audioQueue.process(5, async (job) => {
       logger.info('Text requires chunking', { jobId, wordCount });
 
       // Chunk the text
-      const chunks = chunkText(text, 1400);
+      const chunks = chunkText(text, 800);
       await query('UPDATE conversion_jobs SET progress = $1 WHERE id = $2', [10, jobId]);
 
       logger.info('Text chunked', { jobId, chunkCount: chunks.length });
