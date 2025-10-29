@@ -20,25 +20,22 @@ interface CompressionPanelProps {
 const COMPRESSION_RATIOS = [
   {
     ratio: 0.2,
-    label: 'Light',
-    percentage: '20%',
-    description: 'Minimal compression, preserves most details',
+    label: 'Quick Summary',
+    description: 'Keep most details, save ~20% time',
     color: 'bg-green-600 hover:bg-green-700',
     badge: 'bg-green-100 text-green-800',
   },
   {
     ratio: 0.4,
-    label: 'Medium',
-    percentage: '40%',
-    description: 'Balanced compression, good for most content',
+    label: 'Main Points',
+    description: 'Focus on key ideas, save ~40% time',
     color: 'bg-blue-600 hover:bg-blue-700',
     badge: 'bg-blue-100 text-blue-800',
   },
   {
     ratio: 0.6,
-    label: 'Heavy',
-    percentage: '60%',
-    description: 'Maximum compression, key points only',
+    label: 'Essential Only',
+    description: 'Just the highlights, save ~60% time',
     color: 'bg-purple-600 hover:bg-purple-700',
     badge: 'bg-purple-100 text-purple-800',
   },
@@ -131,8 +128,33 @@ export function CompressionPanel({
 
   const calculateSavings = (compressedWords: number) => {
     const saved = originalWordCount - compressedWords;
-    const percentage = ((saved / originalWordCount) * 100).toFixed(1);
+    const percentage = ((saved / originalWordCount) * 100).toFixed(0);
     return { saved, percentage };
+  };
+
+  const estimateListeningTime = (wordCount: number): string => {
+    const minutes = Math.round(wordCount / 150); // ~150 words per minute
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMins = minutes % 60;
+    return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+  };
+
+  const getTimeSavings = (originalWords: number, compressedWords: number): string => {
+    const originalMins = Math.round(originalWords / 150);
+    const compressedMins = Math.round(compressedWords / 150);
+    const savedMins = originalMins - compressedMins;
+
+    if (savedMins < 60) {
+      return `~${savedMins} min shorter`;
+    }
+    const hours = Math.floor(savedMins / 60);
+    const remainingMins = savedMins % 60;
+    return remainingMins > 0
+      ? `~${hours}h ${remainingMins}m shorter`
+      : `~${hours}h shorter`;
   };
 
   const formatDate = (dateString: string) => {
@@ -156,28 +178,27 @@ export function CompressionPanel({
       {/* Header */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Content Compression
+          AI Summaries
         </h3>
         <p className="text-sm text-gray-600">
-          Create shortened versions of "{contentTitle}" to save listening time
+          Get the key ideas from "{contentTitle}" in less time
         </p>
       </div>
 
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="text-blue-600 text-xl">ℹ️</div>
+          <div className="text-blue-600 text-xl">⏱️</div>
           <div className="flex-1">
             <p className="text-sm text-blue-900 font-medium mb-1">
-              How Compression Works
+              Save Time with AI Summaries
             </p>
             <p className="text-sm text-blue-800">
-              Our AI analyzes your content and creates a condensed version that preserves
-              the most important information. Choose your compression level based on how
-              much detail you want to keep.
+              Create shorter versions that capture the key ideas. Perfect for when you want
+              the main points without listening to everything.
             </p>
             <p className="text-xs text-blue-700 mt-2">
-              Original: {originalWordCount.toLocaleString()} words
+              Full version: {estimateListeningTime(originalWordCount)} listening time
             </p>
           </div>
         </div>
@@ -190,19 +211,20 @@ export function CompressionPanel({
             <div className="text-green-600 text-xl">✓</div>
             <div className="flex-1">
               <p className="text-sm text-green-900 font-medium mb-1">
-                Compression Complete!
+                Summary Created!
               </p>
               <div className="text-sm text-green-800 space-y-1">
-                <p>
-                  Reduced from {compressionResult.originalWordCount.toLocaleString()} to{' '}
-                  {compressionResult.compressedWordCount.toLocaleString()} words
+                <p className="font-medium">
+                  {getTimeSavings(compressionResult.originalWordCount, compressionResult.compressedWordCount)}
                 </p>
                 <p>
-                  Saved {calculateSavings(compressionResult.compressedWordCount).percentage}% of
-                  reading time
+                  New length: {estimateListeningTime(compressionResult.compressedWordCount)}
+                  <span className="text-gray-600 ml-1">
+                    ({compressionResult.compressedWordCount.toLocaleString()} words)
+                  </span>
                 </p>
                 <p className="text-xs text-green-700">
-                  Processed in {(compressionResult.processingTimeMs / 1000).toFixed(2)}s
+                  Created in {(compressionResult.processingTimeMs / 1000).toFixed(0)}s
                 </p>
               </div>
             </div>
@@ -225,30 +247,34 @@ export function CompressionPanel({
 
       {/* Compression Buttons */}
       <div>
-        <h4 className="text-sm font-medium text-gray-900 mb-3">Create New Compressed Version</h4>
+        <h4 className="text-sm font-medium text-gray-900 mb-3">Choose Your Summary Length</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {COMPRESSION_RATIOS.map((config) => (
-            <button
-              key={config.ratio}
-              onClick={() => handleCompress(config.ratio)}
-              disabled={compressing}
-              className={`${config.color} text-white p-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left`}
-            >
-              <div className="font-semibold text-lg mb-1">
-                {config.label} ({config.percentage})
-              </div>
-              <div className="text-xs opacity-90">{config.description}</div>
-              <div className="text-xs opacity-75 mt-2">
-                ~{Math.round(originalWordCount * (1 - config.ratio)).toLocaleString()} words
-              </div>
-            </button>
-          ))}
+          {COMPRESSION_RATIOS.map((config) => {
+            const estimatedWords = Math.round(originalWordCount * (1 - config.ratio));
+            const estimatedTime = estimateListeningTime(estimatedWords);
+            return (
+              <button
+                key={config.ratio}
+                onClick={() => handleCompress(config.ratio)}
+                disabled={compressing}
+                className={`${config.color} text-white p-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left`}
+              >
+                <div className="font-semibold text-lg mb-1">
+                  {config.label}
+                </div>
+                <div className="text-xs opacity-90 mb-2">{config.description}</div>
+                <div className="text-sm opacity-95 font-medium">
+                  ≈ {estimatedTime}
+                </div>
+              </button>
+            );
+          })}
         </div>
         {compressing && (
           <div className="mt-3 text-center">
             <div className="inline-flex items-center gap-2 text-sm text-gray-600">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
-              <span>Compressing content...</span>
+              <span>Creating summary...</span>
             </div>
           </div>
         )}
@@ -257,28 +283,29 @@ export function CompressionPanel({
       {/* Existing Versions */}
       <div>
         <h4 className="text-sm font-medium text-gray-900 mb-3">
-          Existing Compressed Versions ({versions.length})
+          Your Summaries ({versions.length})
         </h4>
 
         {loading ? (
           <div className="text-center py-6">
             <div className="inline-flex items-center gap-2 text-sm text-gray-600">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
-              <span>Loading versions...</span>
+              <span>Loading summaries...</span>
             </div>
           </div>
         ) : versions.length === 0 ? (
           <div className="text-center py-6 bg-white rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600">No compressed versions yet</p>
+            <p className="text-sm text-gray-600">No summaries yet</p>
             <p className="text-xs text-gray-500 mt-1">
-              Create your first compressed version using the buttons above
+              Create your first summary using the buttons above
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {versions.map((version) => {
               const savings = calculateSavings(version.compressed_word_count);
-              const ratioPercent = Math.round(version.compression_ratio * 100);
+              const config = COMPRESSION_RATIOS.find((r) => Math.abs(r.ratio - version.compression_ratio) < 0.01);
+              const label = config?.label || 'Custom';
 
               return (
                 <div
@@ -293,18 +320,18 @@ export function CompressionPanel({
                             version.compression_ratio
                           )}`}
                         >
-                          {ratioPercent}% Compression
+                          {label}
                         </span>
                         <span className="text-xs text-gray-500">
                           {formatDate(version.created_at)}
                         </span>
                       </div>
                       <div className="text-sm text-gray-700">
-                        <p>
-                          {version.compressed_word_count.toLocaleString()} words
-                          <span className="text-gray-500 ml-2">
-                            (Saved {savings.saved.toLocaleString()} words, {savings.percentage}%)
-                          </span>
+                        <p className="font-medium">
+                          {estimateListeningTime(version.compressed_word_count)} listening time
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {getTimeSavings(originalWordCount, version.compressed_word_count)}
                         </p>
                       </div>
                     </div>
@@ -312,7 +339,7 @@ export function CompressionPanel({
                     <div className="flex items-center gap-2">
                       {onPlayCompressed && (
                         <button
-                          onClick={() => onPlayCompressed(version.id, `${contentTitle} (${ratioPercent}%)`)}
+                          onClick={() => onPlayCompressed(version.id, `${contentTitle} - ${label}`)}
                           className="px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
                         >
                           ▶ Play

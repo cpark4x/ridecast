@@ -3,6 +3,44 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Ridecast Design System - Professional Audio App */
+
+  /* Primary Action (Play/Convert) - Spotify Green */
+  --primary: #1DB954;
+  --primary-hover: #1ed760;
+  --primary-active: #169c46;
+
+  /* Secondary Actions - Neutral Grays */
+  --secondary: #535353;
+  --secondary-hover: #282828;
+  --secondary-light: #b3b3b3;
+
+  /* Destructive - Red for Delete */
+  --destructive: #e22134;
+  --destructive-hover: #c41829;
+
+  /* Surfaces */
+  --surface-base: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-hover: #f6f6f6;
+  --surface-active: #efefef;
+
+  /* Borders */
+  --border-subtle: #e8e8e8;
+  --border-default: #d4d4d4;
+  --border-focus: #1DB954;
+
+  /* Text Hierarchy */
+  --text-primary: #121212;
+  --text-secondary: #535353;
+  --text-tertiary: #878787;
+  --text-on-primary: #ffffff;
+
+  /* Status Colors */
+  --status-converted: #1DB954;
+  --status-ready: #2e77d0;
+  --status-processing: #ff9500;
 }
 
 @theme inline {
@@ -14,13 +52,26 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #121212;
+    --foreground: #ffffff;
+
+    /* Dark mode adjustments */
+    --surface-base: #121212;
+    --surface-elevated: #1a1a1a;
+    --surface-hover: #282828;
+    --surface-active: #3e3e3e;
+
+    --border-subtle: #282828;
+    --border-default: #3e3e3e;
+
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --text-tertiary: #6a6a6a;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }

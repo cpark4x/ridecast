@@ -286,159 +286,190 @@ export function LibraryPageEnhanced() {
         )}
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredContent.map((item) => {
-          const isConverted = !!item.audioUrl;
-          const isPlaying = playingContent?.id === item.id;
-          const selectedVoice = selectedVoices[item.id] || 'en-US-JennyNeural';
+      {/* Content Table - Spotify Style */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Table Header */}
+        <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <div className="col-span-1 text-center">#</div>
+          <div className="col-span-5">Title</div>
+          <div className="col-span-2">Author</div>
+          <div className="col-span-2">Status</div>
+          <div className="col-span-2 text-right">Duration</div>
+        </div>
 
-          return (
-            <div
-              key={item.id}
-              className={`bg-white rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-all ${
-                isPlaying ? 'border-blue-500' : 'border-gray-200'
-              }`}
-            >
-              {/* Content Info */}
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 text-lg mb-1 line-clamp-2">
-                  {item.title}
-                </h3>
-                {item.author && (
-                  <p className="text-sm text-gray-600">{item.author}</p>
-                )}
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                  <span className="capitalize">{item.type}</span>
-                  {item.wordCount && (
-                    <>
-                      <span>•</span>
-                      <span>{item.wordCount} words</span>
-                      <span>•</span>
-                      <span>~{estimateReadingTime(item.wordCount)} min read</span>
-                    </>
-                  )}
-                </div>
-                {item.durationSeconds && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Audio: {formatTime(item.durationSeconds)}
-                  </p>
-                )}
-              </div>
+        {/* Table Body */}
+        <div className="divide-y divide-gray-100">
+          {filteredContent.map((item, index) => {
+            const isConverted = !!item.audioUrl;
+            const isPlaying = playingContent?.id === item.id;
+            const selectedVoice = selectedVoices[item.id] || 'en-US-JennyNeural';
 
-              {/* Status Badge */}
-              <div className="mb-4 flex flex-wrap gap-2">
-                {isConverted ? (
-                  <>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      ✓ Converted
+            return (
+              <div key={item.id}>
+                <div
+                  className={`grid grid-cols-12 gap-4 px-4 py-3 group hover:bg-gray-50 transition-colors ${
+                    isPlaying ? 'bg-green-50' : ''
+                  }`}
+                >
+                  {/* Number */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <span className="text-sm text-gray-500 group-hover:hidden">
+                      {index + 1}
                     </span>
-                    {item.voiceUsed && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {AVAILABLE_VOICES.find(v => v.id === item.voiceUsed)?.name || 'Voice'}
+                    {/* Show play button on hover for converted items */}
+                    {isConverted && (
+                      <button
+                        onClick={() => handlePlay(item)}
+                        className="hidden group-hover:flex w-8 h-8 items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors"
+                        title="Play"
+                      >
+                        <svg className="w-3 h-3 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <div className="col-span-5 flex items-center min-w-0">
+                    <div className="truncate">
+                      <p className="font-medium text-gray-900 truncate">{item.title}</p>
+                      {item.wordCount && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {item.wordCount.toLocaleString()} words • {estimateReadingTime(item.wordCount)} min
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Author */}
+                  <div className="col-span-2 flex items-center">
+                    <p className="text-sm text-gray-600 truncate">
+                      {item.author || '-'}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <div className="col-span-2 flex items-center">
+                    {isConverted ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓ Ready
+                      </span>
+                    ) : converting === item.id ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        Converting...
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                        Not converted
                       </span>
                     )}
-                  </>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Ready to Convert
-                  </span>
-                )}
-                {isPlaying && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    ▶ Playing
-                  </span>
-                )}
-              </div>
-
-              {/* Voice Selector Modal */}
-              {showVoiceSelector === item.id && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm font-medium text-gray-900 mb-3">Choose a voice:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {AVAILABLE_VOICES.map((voice) => (
-                      <button
-                        key={voice.id}
-                        onClick={() => {
-                          setSelectedVoices({ ...selectedVoices, [item.id]: voice.id });
-                          handleConvert(item.id, voice.id);
-                        }}
-                        className="p-2 text-left text-xs bg-white hover:bg-blue-50 border border-gray-200 rounded hover:border-blue-500 transition-colors"
-                      >
-                        <div className="font-medium">{voice.flag} {voice.name}</div>
-                        <div className="text-gray-600">{voice.description}</div>
-                      </button>
-                    ))}
                   </div>
-                  <button
-                    onClick={() => setShowVoiceSelector(null)}
-                    className="mt-2 w-full text-xs text-gray-600 hover:text-gray-900"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
 
-              {/* Actions */}
-              <div className="flex flex-col gap-2">
-                {isConverted ? (
-                  <>
+                  {/* Duration */}
+                  <div className="col-span-2 flex items-center justify-end gap-2">
+                    {item.durationSeconds ? (
+                      <span className="text-sm text-gray-600">
+                        {formatTime(item.durationSeconds)}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+
+                    {/* Action Buttons - Show on hover */}
+                    <div className="hidden group-hover:flex items-center gap-1 ml-2">
+                      {!isConverted && (
+                        <button
+                          onClick={() => setShowVoiceSelector(item.id)}
+                          disabled={converting === item.id}
+                          className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded disabled:opacity-50"
+                          title="Convert to Audio"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          </svg>
+                        </button>
+                      )}
+                      {isConverted && (
+                        <button
+                          onClick={() => handleDownload(item.audioUrl!, item.title)}
+                          className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded"
+                          title="Download"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleToggleCompressionPanel(item.id)}
+                        className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded"
+                        title="Compress"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        disabled={converting === item.id}
+                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                        title="Delete"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                  </div>
+                </div>
+
+                {/* Voice Selector - Below row */}
+                {showVoiceSelector === item.id && (
+                  <div className="px-4 py-4 bg-gray-50 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-900 mb-3">Choose a voice:</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                      {AVAILABLE_VOICES.map((voice) => (
+                        <button
+                          key={voice.id}
+                          onClick={() => {
+                            setSelectedVoices({ ...selectedVoices, [item.id]: voice.id });
+                            handleConvert(item.id, voice.id);
+                          }}
+                          className="p-2 text-left text-xs bg-white hover:bg-green-50 border border-gray-200 rounded hover:border-green-500 transition-colors"
+                        >
+                          <div className="font-medium">{voice.flag} {voice.name}</div>
+                          <div className="text-gray-600">{voice.description}</div>
+                        </button>
+                      ))}
+                    </div>
                     <button
-                      onClick={() => handlePlay(item)}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                      onClick={() => setShowVoiceSelector(null)}
+                      className="mt-3 text-sm text-gray-600 hover:text-gray-900"
                     >
-                      ▶ Play
+                      Cancel
                     </button>
-                    <button
-                      onClick={() => handleDownload(item.audioUrl!, item.title)}
-                      className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors"
-                    >
-                      ⬇ Download MP3
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setShowVoiceSelector(item.id)}
-                    disabled={converting === item.id}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {converting === item.id ? 'Converting...' : '🎙️ Convert to Audio'}
-                  </button>
+                  </div>
                 )}
 
-                <button
-                  onClick={() => handleToggleCompressionPanel(item.id)}
-                  className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
-                >
-                  {expandedCompressionPanel === item.id ? '▲ Hide Compression' : '▼ Compress'}
-                </button>
-
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  disabled={converting === item.id}
-                  className="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Delete
-                </button>
+                {/* Compression Panel - Below row */}
+                {expandedCompressionPanel === item.id && item.wordCount && (
+                  <div className="px-4 py-4 bg-gray-50 border-t border-gray-200">
+                    <CompressionPanel
+                      contentId={item.id}
+                      contentTitle={item.title}
+                      originalWordCount={item.wordCount}
+                      onCompressionComplete={(compressedId) => {
+                        console.log('Compression completed:', compressedId);
+                      }}
+                      onPlayCompressed={handlePlayCompressed}
+                    />
+                  </div>
+                )}
               </div>
-
-              {/* Compression Panel - Expandable */}
-              {expandedCompressionPanel === item.id && item.wordCount && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <CompressionPanel
-                    contentId={item.id}
-                    contentTitle={item.title}
-                    originalWordCount={item.wordCount}
-                    onCompressionComplete={(compressedId) => {
-                      console.log('Compression completed:', compressedId);
-                    }}
-                    onPlayCompressed={handlePlayCompressed}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Professional Audio Player Modal */}

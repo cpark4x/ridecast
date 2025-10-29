@@ -38,16 +38,16 @@ export async function compressContent(req: Request, res: Response): Promise<void
     });
 
     // Return compressed content without the full text (can be fetched separately)
+    // Transform to camelCase for frontend
     const response = {
-      id: compressed.id,
-      parent_content_id: compressed.parent_content_id,
-      compression_ratio: compressed.compression_ratio,
-      original_word_count: compressed.original_word_count,
-      compressed_word_count: compressed.compressed_word_count,
-      processing_time_ms: compressed.processing_time_ms,
-      quality_score: compressed.quality_score,
-      created_at: compressed.created_at,
-      access_count: compressed.access_count
+      compressedContentId: compressed.id,
+      originalWordCount: compressed.original_word_count,
+      compressedWordCount: compressed.compressed_word_count,
+      compressionRatio: compressed.compression_ratio,
+      processingTimeMs: compressed.processing_time_ms,
+      qualityScore: compressed.quality_score,
+      createdAt: compressed.created_at,
+      accessCount: compressed.access_count
     };
 
     successResponse(res, response, 'Content compressed successfully', 201);
