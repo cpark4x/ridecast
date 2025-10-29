@@ -32,14 +32,30 @@ const redisConfig = redisUrl.startsWith('rediss://')
     }
   : redisUrl;
 
-// Create Bull queue
-const audioQueue = new Queue<AudioConversionJobData>('audio-conversion', redisConfig);
+// Create Bull queue with timeout configuration
+const audioQueue = new Queue<AudioConversionJobData>('audio-conversion', {
+  redis: redisConfig,
+  defaultJobOptions: {
+    attempts: 3,
+    timeout: 30 * 60 * 1000, // 30 minutes
+    removeOnComplete: 100,
+    removeOnFail: 500,
+    backoff: {
+      type: 'exponential',
+      delay: 5000
+    }
+  }
+});
 
-// Process audio conversion jobs
-audioQueue.process(async (job) => {
+// Process audio conversion jobs with concurrency limit
+audioQueue.process(5, async (job) => {
   const { jobId, contentId, userId, text, voiceId, config } = job.data;
 
-  logger.info('Processing audio conversion job', { jobId, contentId });
+  // Track start time for timeout monitoring
+  const startTime = Date.now();
+  const timeoutMs = 30 * 60 * 1000;
+
+  logger.info('Processing audio conversion job', { jobId, contentId, startTime });
 
   try {
     // Update job status to processing

@@ -8,6 +8,7 @@ import { convertTextToSpeech } from './ttsEngine';
 import { uploadToS3, generateS3Key } from '../content/s3Client';
 import { generateContentHash } from '../../shared/utils/hash';
 import logger from '../../shared/utils/logger';
+import audioQueue from './queue';
 
 export async function convertToAudio(req: Request, res: Response): Promise<void> {
   try {
@@ -78,7 +79,7 @@ export async function convertToAudio(req: Request, res: Response): Promise<void>
     const jobResult = await query(
       `INSERT INTO conversion_jobs
         (content_id, user_id, status)
-       VALUES ($1, $2, 'processing')
+       VALUES ($1, $2, 'queued')
        RETURNING id`,
       [contentId, userId]
     );
@@ -86,7 +87,7 @@ export async function convertToAudio(req: Request, res: Response): Promise<void>
     const jobId = jobResult.rows[0].id;
     const ttsConfig = config || { speed: 1.0, pitch: 0 };
 
-    logger.info('Audio conversion started (synchronous)', { jobId, contentId, userId });
+    logger.info('Audio conversion job created', { jobId, contentId, userId });
 
     // Generate content hash for caching
     const contentHash = generateContentHash(content.text_content, voiceId, ttsConfig);
@@ -124,46 +125,22 @@ export async function convertToAudio(req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Generate audio using Azure TTS
-    const tempPath = `/tmp/audio-${jobId}.mp3`;
-    const result = await convertTextToSpeech(content.text_content, {
+    // Queue job for async processing
+    await audioQueue.add({
+      jobId,
+      contentId,
+      userId,
+      text: content.text_content,
       voiceId,
-      config: ttsConfig,
-      outputPath: tempPath
+      config: ttsConfig
     });
 
-    // Upload to S3
-    const s3Key = generateS3Key(userId, `${contentId}.mp3`, 'audio');
-    const audioUrl = await uploadToS3(tempPath, s3Key, 'audio/mpeg');
-
-    // Save to audio cache
-    const audioCacheResult = await query(
-      `INSERT INTO audio_cache
-        (content_hash, voice_id, audio_url, duration_seconds, file_size_bytes)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [contentHash, voiceId, audioUrl, result.durationSeconds, result.fileSizeBytes]
-    );
-
-    const audioCacheId = audioCacheResult.rows[0].id;
-
-    // Update job as completed
-    await query(
-      'UPDATE conversion_jobs SET status = $1, progress = $2, audio_cache_id = $3, completed_at = NOW() WHERE id = $4',
-      ['completed', 100, audioCacheId, jobId]
-    );
-
-    // Clean up temp file
-    await fs.unlink(tempPath);
-
-    logger.info('Audio conversion completed', { jobId, audioCacheId, durationSeconds: result.durationSeconds });
+    logger.info('Audio conversion job queued', { jobId, contentId });
 
     successResponse(res, {
       jobId,
-      status: 'completed',
-      audioUrl,
-      durationSeconds: result.durationSeconds,
-      cached: false
+      status: 'queued',
+      message: 'Audio conversion job queued for processing'
     });
   } catch (error) {
     logger.error('Convert to audio error', { error });

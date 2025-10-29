@@ -42,19 +42,19 @@ export function LibraryPageBackend() {
       setConverting(contentId);
       console.log('Converting content:', contentId);
 
-      const result = await convertToAudio(contentId, 'en-US-JennyNeural', {
+      const audioUrl = await convertToAudio(contentId, 'en-US-JennyNeural', {
         speed: 1.0,
         pitch: 0,
       });
 
-      console.log('Conversion result:', result);
+      console.log('Conversion result:', audioUrl);
 
       // Update content with audio URL
-      if (result.audioUrl) {
+      if (audioUrl) {
         setContent((prev) =>
           prev.map((item) =>
             item.id === contentId
-              ? { ...item, audioUrl: result.audioUrl, durationSeconds: result.durationSeconds }
+              ? { ...item, audioUrl }
               : item
           )
         );

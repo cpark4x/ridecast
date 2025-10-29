@@ -71,18 +71,18 @@ export function LibraryPageEnhanced() {
       setShowVoiceSelector(null);
       console.log('Converting content:', contentId, 'with voice:', voiceId);
 
-      const result = await convertToAudio(contentId, voiceId, {
+      const audioUrl = await convertToAudio(contentId, voiceId, {
         speed: 1.0,
         pitch: 0,
       });
 
-      console.log('Conversion result:', result);
+      console.log('Conversion result:', audioUrl);
 
-      if (result.audioUrl) {
+      if (audioUrl) {
         setContent((prev) =>
           prev.map((item) =>
             item.id === contentId
-              ? { ...item, audioUrl: result.audioUrl, durationSeconds: result.durationSeconds, voiceUsed: voiceId }
+              ? { ...item, audioUrl, voiceUsed: voiceId }
               : item
           )
         );
@@ -158,22 +158,25 @@ export function LibraryPageEnhanced() {
 
       // Convert the compressed text to audio
       console.log('Converting compressed content to audio...');
-      const result = await convertToAudio(compressedId, 'en-US-JennyNeural', {
+      const audioUrl = await convertToAudio(compressedId, 'en-US-JennyNeural', {
         speed: 1.0,
         pitch: 0,
       });
 
-      if (result.audioUrl) {
+      if (audioUrl) {
         // Create a temporary content item for playback
-        const tempContent = {
+        const tempContent: ContentWithAudio = {
           id: compressedId,
           title: title,
           author: compressed.author || 'Compressed',
-          audioUrl: result.audioUrl,
-          durationSeconds: result.durationSeconds,
+          type: 'other',
+          textContent: compressed.compressedText,
+          textHash: compressed.textHash,
+          createdAt: compressed.createdAt || new Date().toISOString(),
+          audioUrl: audioUrl,
         };
 
-        setPlayingContent(tempContent as any);
+        setPlayingContent(tempContent);
       } else {
         alert('Audio conversion failed');
       }

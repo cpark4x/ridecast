@@ -85,7 +85,7 @@ export async function convertTextToSpeech(
 function buildSSML(text: string, voiceId: string, config: TTSConfig): string {
   // Convert speed (0.5-2.0) to rate percentage
   const rate = ((config.speed - 1.0) * 100).toFixed(0);
-  const rateStr = rate >= 0 ? `+${rate}%` : `${rate}%`;
+  const rateStr = parseFloat(rate) >= 0 ? `+${rate}%` : `${rate}%`;
 
   // Convert pitch (-50 to +50) to Hz or percentage
   const pitchStr = config.pitch >= 0 ? `+${config.pitch}%` : `${config.pitch}%`;
