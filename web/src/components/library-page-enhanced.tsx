@@ -158,10 +158,16 @@ export function LibraryPageEnhanced() {
 
       // Convert the compressed text to audio
       console.log('Converting compressed content to audio...');
-      const audioUrl = await convertToAudio(compressedId, 'en-US-JennyNeural', {
-        speed: 1.0,
-        pitch: 0,
-      });
+      const audioUrl = await convertToAudio(
+        compressedId,
+        'en-US-JennyNeural',
+        {
+          speed: 1.0,
+          pitch: 0,
+        },
+        undefined, // onProgress callback
+        true // isCompressed flag
+      );
 
       if (audioUrl) {
         // Create a temporary content item for playback

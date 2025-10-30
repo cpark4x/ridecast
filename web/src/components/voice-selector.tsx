@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getAvailableVoices, type Voice } from '@/lib/tts';
+import { previewVoice } from '@/lib/api/audio';
 
 interface VoiceSelectorProps {
   selectedVoiceId: string;
@@ -13,6 +14,9 @@ export function VoiceSelector({ selectedVoiceId, onVoiceChange, disabled }: Voic
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     loadVoices();
@@ -26,6 +30,47 @@ export function VoiceSelector({ selectedVoiceId, onVoiceChange, disabled }: Voic
       console.error('Failed to load voices:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePreview = async (voiceId: string) => {
+    try {
+      // Stop current audio if playing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // If clicking the same voice that's playing, just stop it
+      if (playingVoiceId === voiceId) {
+        setPlayingVoiceId(null);
+        return;
+      }
+
+      setPreviewLoading(voiceId);
+      const audioUrl = await previewVoice(voiceId);
+
+      // Create and play audio
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setPlayingVoiceId(null);
+        audioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        console.error('Failed to play audio');
+        setPlayingVoiceId(null);
+        audioRef.current = null;
+      };
+
+      await audio.play();
+      setPlayingVoiceId(voiceId);
+    } catch (error) {
+      console.error('Failed to preview voice:', error);
+    } finally {
+      setPreviewLoading(null);
     }
   };
 
@@ -106,16 +151,71 @@ export function VoiceSelector({ selectedVoiceId, onVoiceChange, disabled }: Voic
                 </div>
               </div>
 
-              {/* Preview Button (Coming soon) */}
-              {/* <button
+              {/* Preview Button */}
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // TODO: Preview voice
+                  handlePreview(voice.id);
                 }}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                disabled={disabled || previewLoading === voice.id}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               >
-                Preview
-              </button> */}
+                {previewLoading === voice.id ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Loading...
+                  </>
+                ) : playingVoiceId === voice.id ? (
+                  <>
+                    <svg
+                      className="h-4 w-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="h-4 w-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Preview
+                  </>
+                )}
+              </button>
             </button>
           );
         })}
