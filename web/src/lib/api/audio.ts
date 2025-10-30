@@ -19,12 +19,14 @@ export async function getVoices(): Promise<Voice[]> {
 export async function startConversion(
   contentId: string,
   voiceId: string,
-  config?: { speed?: number; pitch?: number }
+  config?: { speed?: number; pitch?: number },
+  isCompressed?: boolean
 ): Promise<ConversionJob> {
   const request = {
     contentId,
     voiceId,
     config: config || { speed: 1.0, pitch: 0 },
+    isCompressed: isCompressed || false,
   };
 
   const response = await fetchAPI<ConversionJob>('/audio/convert', {
@@ -93,10 +95,11 @@ export async function convertToAudio(
   contentId: string,
   voiceId: string,
   config?: { speed?: number; pitch?: number },
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  isCompressed?: boolean
 ): Promise<string> {
   // Start conversion
-  const job = await startConversion(contentId, voiceId, config);
+  const job = await startConversion(contentId, voiceId, config, isCompressed);
 
   // If cache hit, return audio URL immediately
   if (job.status === 'completed' && job.audioUrl) {
@@ -107,6 +110,18 @@ export async function convertToAudio(
   // Otherwise, poll for completion
   const audioUrl = await pollConversionJob(job.id, onProgress);
   return audioUrl;
+}
+
+/**
+ * Preview a voice with sample audio
+ * @param voiceId - Voice ID to preview
+ * @returns Audio URL for preview
+ */
+export async function previewVoice(voiceId: string): Promise<string> {
+  const response = await fetchAPI<{ audioUrl: string; cached: boolean }>(
+    `/audio/preview/${voiceId}`
+  );
+  return response.audioUrl;
 }
 
 /**

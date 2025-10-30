@@ -8,6 +8,7 @@ import {
   CompressedVersion,
   CompressionResult,
 } from '@/lib/api/compression';
+import { QualityBadge } from './quality-badge';
 
 interface CompressionPanelProps {
   contentId: string;
@@ -223,6 +224,11 @@ export function CompressionPanel({
                     ({compressionResult.compressedWordCount.toLocaleString()} words)
                   </span>
                 </p>
+                {compressionResult.qualityScore !== undefined && (
+                  <div className="mt-1">
+                    <QualityBadge score={compressionResult.qualityScore} />
+                  </div>
+                )}
                 <p className="text-xs text-green-700">
                   Created in {(compressionResult.processingTimeMs / 1000).toFixed(0)}s
                 </p>
@@ -322,6 +328,7 @@ export function CompressionPanel({
                         >
                           {label}
                         </span>
+                        <QualityBadge score={version.quality_score} />
                         <span className="text-xs text-gray-500">
                           {formatDate(version.created_at)}
                         </span>

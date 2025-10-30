@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS compressed_content (
 
   -- Quality metrics
   processing_time_ms INTEGER,
-  quality_score DECIMAL(3,2),
+  quality_score DECIMAL(5,2),
 
   -- Timestamps
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -40,5 +40,5 @@ CREATE INDEX idx_compressed_content_accessed ON compressed_content(accessed_at D
 
 COMMENT ON TABLE compressed_content IS 'Stores compressed versions of content items';
 COMMENT ON COLUMN compressed_content.compression_ratio IS 'Target compression ratio (e.g., 0.5 for 50% compression)';
-COMMENT ON COLUMN compressed_content.quality_score IS 'Quality assessment score from 0-1';
+COMMENT ON COLUMN compressed_content.quality_score IS 'Quality assessment score from 0-100';
 COMMENT ON COLUMN compressed_content.access_count IS 'Number of times this compressed version has been accessed';

@@ -16,6 +16,7 @@ export interface CompressionResult {
   compressedWordCount: number;
   compressionRatio: number;
   processingTimeMs: number;
+  qualityScore?: number;
 }
 
 export interface CompressedVersion {
@@ -23,6 +24,7 @@ export interface CompressedVersion {
   compression_ratio: number;
   compressed_word_count: number;
   created_at: string;
+  quality_score?: number;
 }
 
 /**

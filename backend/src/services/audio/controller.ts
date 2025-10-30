@@ -20,59 +20,85 @@ export async function convertToAudio(req: Request, res: Response): Promise<void>
       return;
     }
 
-    const { contentId, voiceId, config } = req.body;
+    const { contentId, voiceId, config, isCompressed } = req.body;
 
-    // Verify content exists and belongs to user
-    const contentResult = await query(
-      'SELECT id, text_content FROM content WHERE id = $1 AND user_id = $2',
-      [contentId, userId]
-    );
+    let textContent: string;
+    let actualContentId = contentId;
+    let parentContentId = contentId; // For conversion_jobs foreign key
 
-    if (contentResult.rows.length === 0) {
-      errorResponse(res, 'Content not found', 404);
-      return;
-    }
+    // Check if this is compressed content
+    if (isCompressed) {
+      const compressedResult = await query(
+        'SELECT compressed_text, parent_content_id FROM compressed_content WHERE id = $1 AND user_id = $2',
+        [contentId, userId]
+      );
 
-    const content = contentResult.rows[0];
-
-    // Check if a conversion job already exists for this content
-    const existingJobResult = await query(
-      `SELECT id, status, audio_cache_id
-       FROM conversion_jobs
-       WHERE content_id = $1 AND user_id = $2
-       AND status IN ('pending', 'processing', 'completed')
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [contentId, userId]
-    );
-
-    if (existingJobResult.rows.length > 0) {
-      const existingJob = existingJobResult.rows[0];
-
-      // If job is completed, return the audio cache info
-      if (existingJob.status === 'completed' && existingJob.audio_cache_id) {
-        const audioCacheResult = await query(
-          'SELECT audio_url FROM audio_cache WHERE id = $1',
-          [existingJob.audio_cache_id]
-        );
-
-        if (audioCacheResult.rows.length > 0) {
-          successResponse(res, {
-            jobId: existingJob.id,
-            status: 'completed',
-            audioUrl: audioCacheResult.rows[0].audio_url
-          });
-          return;
-        }
+      if (compressedResult.rows.length === 0) {
+        errorResponse(res, 'Compressed content not found', 404);
+        return;
       }
 
-      // If job is pending or processing, return its status
-      successResponse(res, {
-        jobId: existingJob.id,
-        status: existingJob.status,
-        message: 'Conversion job already in progress'
-      });
-      return;
+      textContent = compressedResult.rows[0].compressed_text;
+      parentContentId = compressedResult.rows[0].parent_content_id; // Use parent for DB foreign key
+      actualContentId = contentId; // Keep compressed ID for response
+    } else {
+      // Verify regular content exists and belongs to user
+      const contentResult = await query(
+        'SELECT id, text_content FROM content WHERE id = $1 AND user_id = $2',
+        [contentId, userId]
+      );
+
+      if (contentResult.rows.length === 0) {
+        errorResponse(res, 'Content not found', 404);
+        return;
+      }
+
+      textContent = contentResult.rows[0].text_content;
+    }
+
+    const content = { id: actualContentId, text_content: textContent };
+
+    // Check if a conversion job already exists for this content
+    // Skip cache check for compressed content since it has different text
+    if (!isCompressed) {
+      const existingJobResult = await query(
+        `SELECT id, status, audio_cache_id
+         FROM conversion_jobs
+         WHERE content_id = $1 AND user_id = $2
+         AND status IN ('pending', 'processing', 'completed')
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [parentContentId, userId]
+      );
+
+      if (existingJobResult.rows.length > 0) {
+        const existingJob = existingJobResult.rows[0];
+
+        // If job is completed, return the audio cache info
+        if (existingJob.status === 'completed' && existingJob.audio_cache_id) {
+          const audioCacheResult = await query(
+            'SELECT audio_url FROM audio_cache WHERE id = $1',
+            [existingJob.audio_cache_id]
+          );
+
+          if (audioCacheResult.rows.length > 0) {
+            successResponse(res, {
+              jobId: existingJob.id,
+              status: 'completed',
+              audioUrl: audioCacheResult.rows[0].audio_url
+            });
+            return;
+          }
+        }
+
+        // If job is pending or processing, return its status
+        successResponse(res, {
+          jobId: existingJob.id,
+          status: existingJob.status,
+          message: 'Conversion job already in progress'
+        });
+        return;
+      }
     }
 
     // Create new conversion job
@@ -81,7 +107,7 @@ export async function convertToAudio(req: Request, res: Response): Promise<void>
         (content_id, user_id, status)
        VALUES ($1, $2, 'queued')
        RETURNING id`,
-      [contentId, userId]
+      [parentContentId, userId]
     );
 
     const jobId = jobResult.rows[0].id;
@@ -198,7 +224,7 @@ export async function getJobStatus(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function getVoices(req: Request, res: Response): Promise<void> {
+export async function getVoices(_req: Request, res: Response): Promise<void> {
   try {
     successResponse(res, AVAILABLE_VOICES);
   } catch (error) {
@@ -238,5 +264,92 @@ export async function listJobs(req: Request, res: Response): Promise<void> {
   } catch (error) {
     logger.error('List jobs error', { error });
     errorResponse(res, 'Failed to fetch jobs', 500);
+  }
+}
+
+export async function previewVoice(req: Request, res: Response): Promise<void> {
+  const tempFilePath = `${process.cwd()}/temp/preview_${Date.now()}.mp3`;
+
+  try {
+    const { voiceId } = req.params;
+
+    // Validate voice ID
+    const voice = AVAILABLE_VOICES.find(v => v.id === voiceId);
+    if (!voice) {
+      errorResponse(res, 'Invalid voice ID', 400);
+      return;
+    }
+
+    // Sample text for preview (gender-specific)
+    const sampleTexts = {
+      male: "Hello, I'm a professional voice for your audiobooks. I speak clearly and naturally, perfect for long listening sessions.",
+      female: "Hi there! I'm here to bring your stories to life. My voice is warm and engaging, ideal for your favorite books."
+    };
+
+    const sampleText = voice.gender === 'Male'
+      ? sampleTexts.male
+      : sampleTexts.female;
+
+    // Generate content hash for caching
+    const contentHash = generateContentHash(sampleText, voiceId, { speed: 1.0, pitch: 0 });
+
+    // Check cache first
+    const cacheResult = await query(
+      'SELECT audio_url FROM audio_cache WHERE content_hash = $1',
+      [contentHash]
+    );
+
+    if (cacheResult.rows.length > 0) {
+      const cachedAudio = cacheResult.rows[0];
+
+      // Update cache access stats
+      await query(
+        'UPDATE audio_cache SET last_accessed_at = NOW(), access_count = access_count + 1 WHERE content_hash = $1',
+        [contentHash]
+      );
+
+      logger.info('Using cached preview', { voiceId });
+      successResponse(res, { audioUrl: cachedAudio.audio_url, cached: true });
+      return;
+    }
+
+    // Generate preview audio
+    logger.info('Generating voice preview', { voiceId });
+
+    // Ensure temp directory exists
+    await fs.mkdir(`${process.cwd()}/temp`, { recursive: true });
+
+    const result = await convertTextToSpeech(sampleText, {
+      voiceId,
+      config: { speed: 1.0, pitch: 0 },
+      outputPath: tempFilePath
+    });
+
+    // Upload to S3
+    const s3Key = generateS3Key('previews', `${voiceId}.mp3`, 'audio');
+    const audioUrl = await uploadToS3(tempFilePath, s3Key, 'audio/mpeg');
+
+    // Cache the preview
+    await query(
+      `INSERT INTO audio_cache
+        (content_hash, audio_url, duration_seconds, file_size_bytes, voice_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [contentHash, audioUrl, result.durationSeconds, result.fileSizeBytes, voiceId]
+    );
+
+    // Clean up temp file
+    await fs.unlink(tempFilePath);
+
+    logger.info('Voice preview generated', { voiceId, audioUrl });
+    successResponse(res, { audioUrl, cached: false });
+  } catch (error) {
+    logger.error('Preview voice error', { error });
+
+    // Clean up temp file on error
+    try {
+      await fs.unlink(tempFilePath);
+    } catch {}
+
+    errorResponse(res, 'Failed to generate voice preview', 500);
   }
 }

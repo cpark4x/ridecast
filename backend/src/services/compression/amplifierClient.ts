@@ -71,6 +71,45 @@ export async function executeCompression(
     const compressedWordCount = compressedText.split(/\s+/).filter(w => w.length > 0).length;
     const actualRatio = originalWordCount > 0 ? compressedWordCount / originalWordCount : 0;
 
+    // Evaluate summary quality using Blinkist-style evaluator
+    let qualityScore: number | null = null;
+    try {
+      const evaluatorPath = path.join(AMPLIFIER_PATH, 'scenarios', 'compression_evaluator');
+
+      // Create temp files for evaluator
+      const evalInputFile = path.join(tempDir, `eval-input-${Date.now()}.txt`);
+      const evalSummaryFile = path.join(tempDir, `eval-summary-${Date.now()}.txt`);
+
+      await fs.writeFile(evalInputFile, options.inputText, 'utf-8');
+      await fs.writeFile(evalSummaryFile, compressedText, 'utf-8');
+
+      // Run evaluator
+      const evalArgs = [
+        path.join(evaluatorPath, 'summary_quality.py'),
+        'evaluate',
+        evalInputFile,
+        evalSummaryFile
+      ];
+
+      const evalResult = await executeCLIWithOutput(PYTHON_CMD, evalArgs, AMPLIFIER_PATH);
+
+      // Parse JSON output to extract blinkist_score
+      const jsonMatch = evalResult.match(/JSON OUTPUT:\s*(\{[\s\S]*\})/);
+      if (jsonMatch) {
+        const jsonData = JSON.parse(jsonMatch[1]);
+        qualityScore = Math.round(jsonData.blinkist_score || jsonData.evaluation?.overall_score * 10);
+      }
+
+      // Cleanup eval files
+      await fs.unlink(evalInputFile).catch(() => {});
+      await fs.unlink(evalSummaryFile).catch(() => {});
+
+      logger.info('Quality evaluation completed', { qualityScore });
+    } catch (evalError) {
+      logger.warn('Quality evaluation failed, continuing without score', { evalError });
+      // Don't fail the entire compression if evaluation fails
+    }
+
     // Construct result matching AmplifierOutput interface
     const result: AmplifierOutput = {
       compressed_text: compressedText,
@@ -79,14 +118,16 @@ export async function executeCompression(
         compressed_word_count: compressedWordCount,
         target_ratio: options.ratio,
         actual_ratio: actualRatio,
-        processing_time_ms: processingTime
+        processing_time_ms: processingTime,
+        quality_score: qualityScore
       }
     };
 
     logger.info('Compression completed', {
       originalWords: originalWordCount,
       compressedWords: compressedWordCount,
-      processingTime
+      processingTime,
+      qualityScore
     });
 
     return result;
@@ -111,7 +152,8 @@ function executeCLI(command: string, args: string[], cwd?: string): Promise<void
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
-      cwd: cwd || process.cwd()
+      cwd: cwd || process.cwd(),
+      env: { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
     });
 
     let stdout = '';
@@ -134,6 +176,55 @@ function executeCLI(command: string, args: string[], cwd?: string): Promise<void
       if (code === 0) {
         logger.debug('CLI process completed successfully', { stdout: stdout.trim() });
         resolve();
+      } else {
+        logger.error('CLI process exited with error', { code, stderr, stdout });
+        reject(new Error(`CLI process exited with code ${code}: ${stderr || stdout}`));
+      }
+    });
+
+    // Set timeout for long-running processes (5 minutes)
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error('CLI process timed out after 5 minutes'));
+    }, 5 * 60 * 1000);
+
+    child.on('close', () => {
+      clearTimeout(timeout);
+    });
+  });
+}
+
+/**
+ * Execute CLI command and return stdout output
+ */
+function executeCLIWithOutput(command: string, args: string[], cwd?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: cwd || process.cwd(),
+      env: { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', (error) => {
+      logger.error('CLI process error', { error, command, args });
+      reject(new Error(`Failed to spawn process: ${error.message}`));
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        logger.debug('CLI process completed successfully', { outputLength: stdout.length });
+        resolve(stdout);
       } else {
         logger.error('CLI process exited with error', { code, stderr, stdout });
         reject(new Error(`CLI process exited with code ${code}: ${stderr || stdout}`));

@@ -14,5 +14,6 @@ router.post('/convert', validateRequest(convertAudioSchema), controller.convertT
 router.get('/status/:jobId', validateParams(jobIdParamSchema), controller.getJobStatus);
 router.get('/jobs', controller.listJobs);
 router.get('/voices', controller.getVoices);
+router.get('/preview/:voiceId', controller.previewVoice);
 
 export default router;
