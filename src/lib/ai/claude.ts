@@ -5,6 +5,28 @@ const MODEL = 'claude-sonnet-4-20250514';
 const WORDS_PER_MINUTE = 150;
 const ANALYSIS_MAX_TOKENS = 1024;
 const SCRIPT_MAX_TOKENS = 4096;
+const MAX_ANALYSIS_CHARS = 3000;
+
+const CONTENT_TYPES = [
+  'business_book',
+  'science_article',
+  'news_article',
+  'technical_paper',
+  'fiction',
+  'biography',
+  'self_help',
+  'educational',
+] as const;
+
+function isContentAnalysis(value: unknown): value is ContentAnalysis {
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.contentType === 'string' &&
+    (obj.format === 'narrator' || obj.format === 'conversation') &&
+    Array.isArray(obj.themes) &&
+    typeof obj.summary === 'string'
+  );
+}
 
 export class ClaudeProvider implements AIProvider {
   private client: Anthropic;
@@ -14,7 +36,7 @@ export class ClaudeProvider implements AIProvider {
   }
 
   async analyze(text: string): Promise<ContentAnalysis> {
-    const truncated = text.slice(0, 3000);
+    const truncated = text.slice(0, MAX_ANALYSIS_CHARS);
 
     const response = await this.client.messages.create({
       model: MODEL,
@@ -23,7 +45,7 @@ export class ClaudeProvider implements AIProvider {
         {
           role: 'user',
           content: `Analyze the following text and return a JSON object with these fields:
-- contentType: one of "business_book", "science_article", "news_article", "technical_paper", "fiction", "biography", "self_help", "educational"
+- contentType: one of ${CONTENT_TYPES.map((t) => `"${t}"`).join(', ')}
 - format: either "narrator" or "conversation" (choose based on what would work best for an audio podcast)
 - themes: an array of 3-5 key themes
 - summary: a brief summary of the content
@@ -48,17 +70,11 @@ ${truncated}`,
       throw new Error(`Failed to parse analysis response: ${content.text.slice(0, 200)}`);
     }
 
-    const analysis = parsed as Record<string, unknown>;
-    if (
-      !analysis.contentType ||
-      !analysis.format ||
-      !Array.isArray(analysis.themes) ||
-      !analysis.summary
-    ) {
+    if (!isContentAnalysis(parsed)) {
       throw new Error('Invalid analysis response: missing required fields');
     }
 
-    return analysis as unknown as ContentAnalysis;
+    return parsed;
   }
 
   async generateScript(text: string, config: ScriptConfig): Promise<GeneratedScript> {
