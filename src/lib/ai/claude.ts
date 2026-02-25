@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from './types';
 
+const MODEL = 'claude-sonnet-4-20250514';
 const WORDS_PER_MINUTE = 150;
 
 export class ClaudeProvider implements AIProvider {
@@ -14,7 +15,7 @@ export class ClaudeProvider implements AIProvider {
     const truncated = text.slice(0, 3000);
 
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: MODEL,
       max_tokens: 1024,
       messages: [
         {
@@ -34,11 +35,15 @@ ${truncated}`,
     });
 
     const content = response.content[0];
-    if (content.type !== 'text') {
+    if (!content || content.type !== 'text') {
       throw new Error('Unexpected response type from Claude');
     }
 
-    return JSON.parse(content.text) as ContentAnalysis;
+    try {
+      return JSON.parse(content.text) as ContentAnalysis;
+    } catch {
+      throw new Error(`Failed to parse analysis response: ${content.text.slice(0, 200)}`);
+    }
   }
 
   async generateScript(text: string, config: ScriptConfig): Promise<GeneratedScript> {
@@ -71,7 +76,7 @@ Source text:
 ${text}`;
 
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: MODEL,
       max_tokens: 4096,
       messages: [
         {
@@ -82,7 +87,7 @@ ${text}`;
     });
 
     const content = response.content[0];
-    if (content.type !== 'text') {
+    if (!content || content.type !== 'text') {
       throw new Error('Unexpected response type from Claude');
     }
 
