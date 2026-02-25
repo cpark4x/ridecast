@@ -126,11 +126,17 @@ describe('Seed script', () => {
     const { seed } = await import('../../prisma/seed');
     await seed(prisma);
 
-    // Should still have the same counts
+    // Should still have the same counts across all tables
     const userCount = await prisma.user.count({ where: { id: DEFAULT_USER_ID } });
     const contentCount = await prisma.content.count({ where: { userId: DEFAULT_USER_ID } });
+    const scriptCount = await prisma.script.count({ where: { content: { userId: DEFAULT_USER_ID } } });
+    const audioCount = await prisma.audio.count({ where: { script: { content: { userId: DEFAULT_USER_ID } } } });
+    const playbackCount = await prisma.playbackState.count({ where: { userId: DEFAULT_USER_ID } });
 
     expect(userCount).toBe(1);
     expect(contentCount).toBe(3);
+    expect(scriptCount).toBe(3);
+    expect(audioCount).toBe(3);
+    expect(playbackCount).toBe(1);
   });
 });

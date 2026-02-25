@@ -22,7 +22,7 @@ export async function seed(injectedPrisma?: PrismaClient) {
     // 2. Upsert 3 content items (using contentHash for uniqueness)
     const content1 = await prisma.content.upsert({
       where: { contentHash: 'hash-second-brain' },
-      update: {},
+      update: {}, // No-op update: preserve existing data on re-seed
       create: {
         userId: user.id,
         title: 'How to Build a Second Brain',
@@ -36,7 +36,7 @@ export async function seed(injectedPrisma?: PrismaClient) {
 
     const content2 = await prisma.content.upsert({
       where: { contentHash: 'hash-paul-graham-dttds' },
-      update: {},
+      update: {}, // No-op update: preserve existing data on re-seed
       create: {
         userId: user.id,
         title: "Paul Graham: Do Things That Don't Scale",
@@ -51,7 +51,7 @@ export async function seed(injectedPrisma?: PrismaClient) {
 
     const content3 = await prisma.content.upsert({
       where: { contentHash: 'hash-stripe-annual-2024' },
-      update: {},
+      update: {}, // No-op update: preserve existing data on re-seed
       create: {
         userId: user.id,
         title: 'Stripe Annual Letter 2024',
