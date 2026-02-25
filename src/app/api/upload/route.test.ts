@@ -1,0 +1,122 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock prisma
+vi.mock('@/lib/db', () => ({
+  prisma: {
+    content: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
+  },
+}));
+
+// Mock extractors
+vi.mock('@/lib/extractors', () => ({
+  extractContent: vi.fn(),
+  extractUrl: vi.fn(),
+}));
+
+import { prisma } from '@/lib/db';
+import { extractContent, extractUrl } from '@/lib/extractors';
+import { POST } from './route';
+
+const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
+const mockCreate = prisma.content.create as ReturnType<typeof vi.fn>;
+const mockExtractContent = extractContent as ReturnType<typeof vi.fn>;
+const mockExtractUrl = extractUrl as ReturnType<typeof vi.fn>;
+
+function createMockFile(content: string, filename: string) {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(content);
+  return {
+    name: filename,
+    arrayBuffer: async () => bytes.buffer,
+  };
+}
+
+function createMockRequest(fields: Record<string, unknown>): Request {
+  return {
+    formData: async () => ({
+      get: (key: string) => fields[key] ?? null,
+    }),
+  } as unknown as Request;
+}
+
+describe('POST /api/upload', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFindUnique.mockResolvedValue(null);
+  });
+
+  it('accepts TXT file upload via FormData, returns content record', async () => {
+    const txtContent = 'The quick brown fox jumps over the lazy dog';
+    const file = createMockFile(txtContent, 'test.txt');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'test',
+      text: txtContent,
+      wordCount: 9,
+    });
+
+    const mockRecord = {
+      id: 'test-id',
+      title: 'test',
+      wordCount: 9,
+      sourceType: 'txt',
+      contentHash: expect.any(String),
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.title).toBe('test');
+    expect(data.wordCount).toBe(9);
+    expect(data.sourceType).toBe('txt');
+  });
+
+  it('accepts URL via FormData, returns sourceType url', async () => {
+    mockExtractUrl.mockResolvedValue({
+      title: 'Test Article',
+      text: 'Article body content here',
+      wordCount: 4,
+    });
+
+    const mockRecord = {
+      id: 'url-id',
+      title: 'Test Article',
+      wordCount: 4,
+      sourceType: 'url',
+      contentHash: expect.any(String),
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ url: 'https://example.com/article' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('url');
+  });
+
+  it('rejects duplicate content with 409', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: 'existing-id',
+      contentHash: 'abc123',
+    });
+
+    const file = createMockFile('duplicate content', 'dup.txt');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'dup',
+      text: 'duplicate content',
+      wordCount: 2,
+    });
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    expect(response.status).toBe(409);
+  });
+});
