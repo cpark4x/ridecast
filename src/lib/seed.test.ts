@@ -4,35 +4,29 @@ import { prisma } from './db';
 // Seed IDs used in the seed script - must match seed.ts
 const DEFAULT_USER_ID = 'default-user';
 
+async function cleanSeedData() {
+  await prisma.playbackState.deleteMany({ where: { userId: DEFAULT_USER_ID } });
+  await prisma.audio.deleteMany({
+    where: { script: { content: { userId: DEFAULT_USER_ID } } },
+  });
+  await prisma.script.deleteMany({
+    where: { content: { userId: DEFAULT_USER_ID } },
+  });
+  await prisma.content.deleteMany({ where: { userId: DEFAULT_USER_ID } });
+  await prisma.user.deleteMany({ where: { id: DEFAULT_USER_ID } });
+}
+
 describe('Seed script', () => {
   beforeAll(async () => {
-    // Clean up any existing seed data in reverse dependency order
-    await prisma.playbackState.deleteMany({ where: { userId: DEFAULT_USER_ID } });
-    await prisma.audio.deleteMany({
-      where: { script: { content: { userId: DEFAULT_USER_ID } } },
-    });
-    await prisma.script.deleteMany({
-      where: { content: { userId: DEFAULT_USER_ID } },
-    });
-    await prisma.content.deleteMany({ where: { userId: DEFAULT_USER_ID } });
-    await prisma.user.deleteMany({ where: { id: DEFAULT_USER_ID } });
+    await cleanSeedData();
 
-    // Run the seed function
+    // Run the seed function with the test's shared prisma client
     const { seed } = await import('../../prisma/seed');
-    await seed();
+    await seed(prisma);
   });
 
   afterAll(async () => {
-    // Clean up seed data
-    await prisma.playbackState.deleteMany({ where: { userId: DEFAULT_USER_ID } });
-    await prisma.audio.deleteMany({
-      where: { script: { content: { userId: DEFAULT_USER_ID } } },
-    });
-    await prisma.script.deleteMany({
-      where: { content: { userId: DEFAULT_USER_ID } },
-    });
-    await prisma.content.deleteMany({ where: { userId: DEFAULT_USER_ID } });
-    await prisma.user.deleteMany({ where: { id: DEFAULT_USER_ID } });
+    await cleanSeedData();
     await prisma.$disconnect();
   });
 
@@ -128,9 +122,9 @@ describe('Seed script', () => {
   });
 
   it('is idempotent (running seed twice produces same counts)', async () => {
-    // Run seed again
+    // Run seed again with the test's shared prisma client
     const { seed } = await import('../../prisma/seed');
-    await seed();
+    await seed(prisma);
 
     // Should still have the same counts
     const userCount = await prisma.user.count({ where: { id: DEFAULT_USER_ID } });
