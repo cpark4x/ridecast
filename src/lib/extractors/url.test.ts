@@ -4,11 +4,10 @@ import { extractUrl } from './url';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-beforeEach(() => {
-  mockFetch.mockReset();
-});
-
 describe('extractUrl', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
   it('extracts article content from HTML, filtering out nav and footer', async () => {
     const mockHtml = `
       <!DOCTYPE html>
