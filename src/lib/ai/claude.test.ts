@@ -88,4 +88,54 @@ describe('ClaudeProvider', () => {
       expect(result.wordCount).toBeGreaterThan(0);
     });
   });
+
+  describe('error handling', () => {
+    it('throws on empty content array from analyze()', async () => {
+      mockCreate.mockResolvedValue({ content: [] });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Unexpected response type from Claude',
+      );
+    });
+
+    it('throws on non-text content block from generateScript()', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{ type: 'tool_use', id: 'x', name: 'y', input: {} }],
+      });
+
+      await expect(
+        provider.generateScript('Some text', {
+          format: 'narrator',
+          targetMinutes: 5,
+          contentType: 'business_book',
+          themes: ['productivity'],
+        }),
+      ).rejects.toThrow('Unexpected response type from Claude');
+    });
+
+    it('throws descriptive error on malformed JSON from analyze()', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{ type: 'text', text: 'Not valid JSON at all' }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Failed to parse analysis response: Not valid JSON at all',
+      );
+    });
+
+    it('throws on malformed analysis missing required fields', async () => {
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ contentType: 'business_book' }),
+          },
+        ],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Invalid analysis response: missing required fields',
+      );
+    });
+  });
 });

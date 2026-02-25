@@ -3,6 +3,8 @@ import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from 
 
 const MODEL = 'claude-sonnet-4-20250514';
 const WORDS_PER_MINUTE = 150;
+const ANALYSIS_MAX_TOKENS = 1024;
+const SCRIPT_MAX_TOKENS = 4096;
 
 export class ClaudeProvider implements AIProvider {
   private client: Anthropic;
@@ -16,7 +18,7 @@ export class ClaudeProvider implements AIProvider {
 
     const response = await this.client.messages.create({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: ANALYSIS_MAX_TOKENS,
       messages: [
         {
           role: 'user',
@@ -39,11 +41,24 @@ ${truncated}`,
       throw new Error('Unexpected response type from Claude');
     }
 
+    let parsed: unknown;
     try {
-      return JSON.parse(content.text) as ContentAnalysis;
+      parsed = JSON.parse(content.text);
     } catch {
       throw new Error(`Failed to parse analysis response: ${content.text.slice(0, 200)}`);
     }
+
+    const analysis = parsed as Record<string, unknown>;
+    if (
+      !analysis.contentType ||
+      !analysis.format ||
+      !Array.isArray(analysis.themes) ||
+      !analysis.summary
+    ) {
+      throw new Error('Invalid analysis response: missing required fields');
+    }
+
+    return analysis as unknown as ContentAnalysis;
   }
 
   async generateScript(text: string, config: ScriptConfig): Promise<GeneratedScript> {
@@ -77,7 +92,7 @@ ${text}`;
 
     const response = await this.client.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: SCRIPT_MAX_TOKENS,
       messages: [
         {
           role: 'user',
