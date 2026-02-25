@@ -8,6 +8,7 @@ describe('extractUrl', () => {
   beforeEach(() => {
     mockFetch.mockReset();
   });
+
   it('extracts article content from HTML, filtering out nav and footer', async () => {
     const mockHtml = `
       <!DOCTYPE html>
@@ -36,6 +37,17 @@ describe('extractUrl', () => {
     expect(result.text.length).toBeGreaterThan(0);
     expect(result.wordCount).toBeGreaterThan(0);
     expect(result.text).not.toContain('Navigation links');
+  });
+
+  it("throws when content cannot be parsed into an article", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('<html><body></body></html>'),
+    });
+
+    await expect(extractUrl('https://example.com/empty')).rejects.toThrow(
+      'Failed to extract article content'
+    );
   });
 
   it("throws 'Failed to fetch URL' on 404 response", async () => {
