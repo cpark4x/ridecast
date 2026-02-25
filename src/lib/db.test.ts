@@ -7,7 +7,7 @@ describe('Prisma client', () => {
   afterAll(async () => {
     // Clean up created test data
     for (const id of createdUserIds) {
-      await prisma.user.delete({ where: { id } }).catch(() => {});
+      await prisma.user.delete({ where: { id } }).catch(() => {}); // Ignore if already deleted
     }
     await prisma.$disconnect();
   });
