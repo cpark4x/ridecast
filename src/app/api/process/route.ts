@@ -27,7 +27,13 @@ export async function POST(request: Request) {
     }
 
     // Step 1: Analyze content
-    const ai = new ClaudeProvider(process.env.ANTHROPIC_API_KEY || '');
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'AI provider not configured' },
+        { status: 500 },
+      );
+    }
+    const ai = new ClaudeProvider(process.env.ANTHROPIC_API_KEY);
     const analysis = await ai.analyze(content.rawText);
 
     // Step 2: Generate script using analysis results
@@ -45,7 +51,9 @@ export async function POST(request: Request) {
         format: generated.format,
         targetDuration: targetMinutes,
         actualWordCount: generated.wordCount,
-        compressionRatio: generated.wordCount / content.wordCount,
+        compressionRatio: content.wordCount > 0
+          ? generated.wordCount / content.wordCount
+          : 0,
         scriptText: generated.text,
         contentType: analysis.contentType,
         themes: analysis.themes,
