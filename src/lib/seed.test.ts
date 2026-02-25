@@ -51,17 +51,20 @@ describe('Seed script', () => {
     expect(titles).toContain('Stripe Annual Letter 2024');
 
     // Verify source types and word counts
-    const brain = contents.find((c) => c.title === 'How to Build a Second Brain')!;
-    expect(brain.sourceType).toBe('epub');
-    expect(brain.wordCount).toBe(8420);
+    const brain = contents.find((c) => c.title === 'How to Build a Second Brain');
+    expect(brain).toBeDefined();
+    expect(brain!.sourceType).toBe('epub');
+    expect(brain!.wordCount).toBe(8420);
 
-    const pg = contents.find((c) => c.title.includes('Paul Graham'))!;
-    expect(pg.sourceType).toBe('url');
-    expect(pg.wordCount).toBe(4200);
+    const pg = contents.find((c) => c.title.includes('Paul Graham'));
+    expect(pg).toBeDefined();
+    expect(pg!.sourceType).toBe('url');
+    expect(pg!.wordCount).toBe(4200);
 
-    const stripe = contents.find((c) => c.title.includes('Stripe'))!;
-    expect(stripe.sourceType).toBe('pdf');
-    expect(stripe.wordCount).toBe(12000);
+    const stripe = contents.find((c) => c.title.includes('Stripe'));
+    expect(stripe).toBeDefined();
+    expect(stripe!.sourceType).toBe('pdf');
+    expect(stripe!.wordCount).toBe(12000);
   });
 
   it('creates 3 scripts with correct formats and metrics', async () => {
@@ -72,25 +75,28 @@ describe('Seed script', () => {
     expect(scripts).toHaveLength(3);
 
     // Script for content1 (Second Brain): narrator, 15min, 1920 words, 0.23 ratio
-    const s1 = scripts.find((s) => s.content.title === 'How to Build a Second Brain')!;
-    expect(s1.format).toBe('narrator');
-    expect(s1.targetDuration).toBe(15);
-    expect(s1.actualWordCount).toBe(1920);
-    expect(s1.compressionRatio).toBeCloseTo(0.23, 2);
+    const s1 = scripts.find((s) => s.content.title === 'How to Build a Second Brain');
+    expect(s1).toBeDefined();
+    expect(s1!.format).toBe('narrator');
+    expect(s1!.targetDuration).toBe(15);
+    expect(s1!.actualWordCount).toBe(1920);
+    expect(s1!.compressionRatio).toBeCloseTo(0.23, 2);
 
     // Script for content2 (Paul Graham): conversation, 8min, 1200 words, 0.29 ratio
-    const s2 = scripts.find((s) => s.content.title.includes('Paul Graham'))!;
-    expect(s2.format).toBe('conversation');
-    expect(s2.targetDuration).toBe(8);
-    expect(s2.actualWordCount).toBe(1200);
-    expect(s2.compressionRatio).toBeCloseTo(0.29, 2);
+    const s2 = scripts.find((s) => s.content.title.includes('Paul Graham'));
+    expect(s2).toBeDefined();
+    expect(s2!.format).toBe('conversation');
+    expect(s2!.targetDuration).toBe(8);
+    expect(s2!.actualWordCount).toBe(1200);
+    expect(s2!.compressionRatio).toBeCloseTo(0.29, 2);
 
     // Script for content3 (Stripe): narrator, 22min, 3300 words, 0.28 ratio
-    const s3 = scripts.find((s) => s.content.title.includes('Stripe'))!;
-    expect(s3.format).toBe('narrator');
-    expect(s3.targetDuration).toBe(22);
-    expect(s3.actualWordCount).toBe(3300);
-    expect(s3.compressionRatio).toBeCloseTo(0.28, 2);
+    const s3 = scripts.find((s) => s.content.title.includes('Stripe'));
+    expect(s3).toBeDefined();
+    expect(s3!.format).toBe('narrator');
+    expect(s3!.targetDuration).toBe(22);
+    expect(s3!.actualWordCount).toBe(3300);
+    expect(s3!.compressionRatio).toBeCloseTo(0.28, 2);
   });
 
   it('creates 3 audio records with file paths, durations, and voices', async () => {
@@ -100,16 +106,19 @@ describe('Seed script', () => {
     });
     expect(audios).toHaveLength(3);
 
-    const a1 = audios.find((a) => a.script.content.title === 'How to Build a Second Brain')!;
-    expect(a1.durationSecs).toBe(768);
-    expect(a1.filePath).toBeDefined();
-    expect(a1.voices.length).toBeGreaterThan(0);
+    const a1 = audios.find((a) => a.script.content.title === 'How to Build a Second Brain');
+    expect(a1).toBeDefined();
+    expect(a1!.durationSecs).toBe(768);
+    expect(a1!.filePath).toBeDefined();
+    expect(a1!.voices.length).toBeGreaterThan(0);
 
-    const a2 = audios.find((a) => a.script.content.title.includes('Paul Graham'))!;
-    expect(a2.durationSecs).toBe(495);
+    const a2 = audios.find((a) => a.script.content.title.includes('Paul Graham'));
+    expect(a2).toBeDefined();
+    expect(a2!.durationSecs).toBe(495);
 
-    const a3 = audios.find((a) => a.script.content.title.includes('Stripe'))!;
-    expect(a3.durationSecs).toBe(1350);
+    const a3 = audios.find((a) => a.script.content.title.includes('Stripe'));
+    expect(a3).toBeDefined();
+    expect(a3!.durationSecs).toBe(1350);
   });
 
   it('creates 1 playback state (partially listened, position 318)', async () => {
