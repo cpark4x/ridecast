@@ -30,10 +30,15 @@ export async function extractEpub(buffer: Buffer, filename: string): Promise<Ext
 
   // Build manifest map: id -> href
   const manifest: Record<string, string> = {};
-  const itemRegex = /<item\s+[^>]*id="([^"]+)"[^>]*href="([^"]+)"[^>]*\/?>(?:<\/item>)?/g;
+  const itemRegex = /<item\s+[^>]*\/?>/g;
   let itemMatch;
   while ((itemMatch = itemRegex.exec(opfXml)) !== null) {
-    manifest[itemMatch[1]] = itemMatch[2];
+    const tag = itemMatch[0];
+    const idMatch = tag.match(/id="([^"]+)"/);
+    const hrefMatch = tag.match(/href="([^"]+)"/);
+    if (idMatch && hrefMatch) {
+      manifest[idMatch[1]] = hrefMatch[1];
+    }
   }
 
   // Get spine order
@@ -78,13 +83,18 @@ function stripHtml(html: string): string {
   // Remove all HTML tags
   result = result.replace(/<[^>]+>/g, ' ');
 
-  // Decode common HTML entities
-  result = result.replace(/&amp;/g, '&');
-  result = result.replace(/&lt;/g, '<');
-  result = result.replace(/&gt;/g, '>');
-  result = result.replace(/&quot;/g, '"');
-  result = result.replace(/&#39;/g, "'");
-  result = result.replace(/&nbsp;/g, ' ');
+  // Decode numeric HTML entities (decimal &#8212; and hex &#x2014;)
+  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)));
+  result = result.replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)));
+
+  // Decode named HTML entities
+  const namedEntities: Record<string, string> = {
+    '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'",
+    '&nbsp;': ' ', '&mdash;': '\u2014', '&ndash;': '\u2013',
+    '&lsquo;': '\u2018', '&rsquo;': '\u2019', '&ldquo;': '\u201C', '&rdquo;': '\u201D',
+    '&hellip;': '\u2026', '&copy;': '\u00A9', '&reg;': '\u00AE', '&trade;': '\u2122',
+  };
+  result = result.replace(/&[a-zA-Z]+;/g, (entity) => namedEntities[entity] ?? entity);
 
   // Normalize whitespace
   result = result.replace(/\s+/g, ' ');

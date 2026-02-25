@@ -94,4 +94,88 @@ describe('extractEpub', () => {
     expect(result.text).not.toContain('alert');
     expect(result.text).not.toContain('.hidden');
   });
+
+  it('handles manifest items with href before id', async () => {
+    const zip = new JSZip();
+    zip.file('mimetype', 'application/epub+zip');
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+    );
+    zip.file(
+      'OEBPS/content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Reversed Attrs</dc:title>
+  </metadata>
+  <manifest>
+    <item href="chapter1.xhtml" id="ch1" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+    zip.file(
+      'OEBPS/chapter1.xhtml',
+      `<html><body><p>Content from reversed attributes</p></body></html>`
+    );
+    const buffer = Buffer.from(await zip.generateAsync({ type: 'nodebuffer' }));
+    const result = await extractEpub(buffer, 'reversed.epub');
+
+    expect(result.text).toContain('Content from reversed attributes');
+    expect(result.title).toBe('Reversed Attrs');
+  });
+
+  it('decodes numeric and named HTML entities', async () => {
+    const zip = new JSZip();
+    zip.file('mimetype', 'application/epub+zip');
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+    );
+    zip.file(
+      'OEBPS/content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Entity Test</dc:title>
+  </metadata>
+  <manifest>
+    <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+    zip.file(
+      'OEBPS/chapter1.xhtml',
+      `<html><body><p>Hello&#8212;world &mdash; dash &#169; copy</p></body></html>`
+    );
+    const buffer = Buffer.from(await zip.generateAsync({ type: 'nodebuffer' }));
+    const result = await extractEpub(buffer, 'entities.epub');
+
+    // Numeric entity &#8212; is em-dash (—)
+    expect(result.text).toContain('Hello\u2014world');
+    // Named entity &mdash; is em-dash (—)
+    expect(result.text).toContain('\u2014 dash');
+    // Numeric entity &#169; is copyright (©)
+    expect(result.text).toContain('\u00A9 copy');
+    // No raw entities should remain
+    expect(result.text).not.toContain('&#8212;');
+    expect(result.text).not.toContain('&mdash;');
+    expect(result.text).not.toContain('&#169;');
+  });
 });
