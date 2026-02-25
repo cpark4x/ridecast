@@ -19,9 +19,7 @@ describe('Prisma client', () => {
 
     createdUserIds.push(user.id);
 
-    expect(user.id).toBeDefined();
-    expect(typeof user.id).toBe('string');
-    expect(user.id.length).toBeGreaterThan(0);
+    expect(user.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     expect(user.name).toBe('Test User');
   });
 });
