@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 
 // Mock prisma
 vi.mock('@/lib/db', () => ({
@@ -38,8 +38,15 @@ function createJsonRequest(body: Record<string, unknown>): Request {
 }
 
 describe('POST /api/process', () => {
+  const originalApiKey = process.env.ANTHROPIC_API_KEY;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+  });
+
+  afterAll(() => {
+    process.env.ANTHROPIC_API_KEY = originalApiKey;
   });
 
   it('analyzes content and generates a script', async () => {
@@ -87,6 +94,17 @@ describe('POST /api/process', () => {
     expect(data.scriptText).toContain('Welcome to this episode');
     expect(data.actualWordCount).toBe(1500);
 
+    // Verify analyze was called with content text
+    expect(mockAnalyze).toHaveBeenCalledWith(contentRecord.rawText);
+
+    // Verify generateScript was called with correct config
+    expect(mockGenerateScript).toHaveBeenCalledWith(contentRecord.rawText, {
+      format: 'narrator',
+      targetMinutes: 15,
+      contentType: 'essay',
+      themes: ['technology', 'innovation', 'future'],
+    });
+
     // Verify script was saved with compression ratio
     expect(mockScriptCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -104,5 +122,31 @@ describe('POST /api/process', () => {
 
     expect(response.status).toBe(404);
     expect(data.error).toBeTruthy();
+  });
+
+  it('returns 400 when required params are missing', async () => {
+    const request = createJsonRequest({ contentId: 'content-1' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain('Missing required fields');
+  });
+
+  it('returns 500 when API key is not configured', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+
+    mockFindUnique.mockResolvedValue({
+      id: 'content-1',
+      rawText: 'Some text',
+      wordCount: 500,
+    });
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 10 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe('AI provider not configured');
   });
 });
