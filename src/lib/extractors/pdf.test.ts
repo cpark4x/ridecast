@@ -26,6 +26,7 @@ describe('extractPdf', () => {
     const buffer = Buffer.from('fake-pdf-content');
     const result = await extractPdf(buffer, 'fallback-name.pdf');
 
+    expect(mockedPdfParse).toHaveBeenCalledWith(buffer);
     expect(result.title).toBe('Machine Learning Basics');
     expect(result.author).toBe('Jane Smith');
     expect(result.text).toBe(
@@ -47,6 +48,7 @@ describe('extractPdf', () => {
     const buffer = Buffer.from('fake-pdf-content');
     const result = await extractPdf(buffer, 'my-report.pdf');
 
+    expect(mockedPdfParse).toHaveBeenCalledWith(buffer);
     expect(result.title).toBe('my-report');
     expect(result.author).toBeUndefined();
     expect(result.text).toBe('Some simple content.');
