@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contents       Content[]
+  playbackStates PlaybackState[]
+}
+
+model Content {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  author      String?
+  rawText     String
+  wordCount   Int
+  sourceType  String   // pdf | epub | txt | url
+  sourceUrl   String?
+  contentHash String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  scripts Script[]
+}
+
+model Script {
+  id              String   @id @default(uuid())
+  contentId       String
+  format          String   // narrator | conversation
+  targetDuration  Int      // minutes
+  actualWordCount Int
+  compressionRatio Float
+  scriptText      String
+  contentType     String?
+  themes          String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  content Content @relation(fields: [contentId], references: [id])
+  audios  Audio[]
+}
+
+model Audio {
+  id          String   @id @default(uuid())
+  scriptId    String
+  filePath    String
+  durationSecs Float
+  voices      String[]
+  ttsProvider String   // openai | azure
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  script         Script          @relation(fields: [scriptId], references: [id])
+  playbackStates PlaybackState[]
+}
+
+model PlaybackState {
+  id        String   @id @default(uuid())
+  userId    String
+  audioId   String
+  position  Float    @default(0)
+  speed     Float    @default(1.0)
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id])
+  audio Audio @relation(fields: [audioId], references: [id])
+
+  @@unique([userId, audioId])
+}

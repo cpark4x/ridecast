@@ -10,6 +10,9 @@ export default defineConfig({
     passWithNoTests: true,
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    env: {
+      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:ridecast@localhost:5432/ridecast',
+    },
   },
   resolve: {
     alias: {
