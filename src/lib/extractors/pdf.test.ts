@@ -54,4 +54,18 @@ describe('extractPdf', () => {
     expect(result.text).toBe('Some simple content.');
     expect(result.wordCount).toBe(3);
   });
+
+  it('strips .PDF extension case-insensitively for title fallback', async () => {
+    mockedPdfParse.mockResolvedValue({
+      text: 'Content here.',
+      numpages: 1,
+      numrender: 1,
+      info: {},
+      metadata: null,
+      version: '1.0',
+    });
+
+    const result = await extractPdf(Buffer.from('fake'), 'ANNUAL-REPORT.PDF');
+    expect(result.title).toBe('ANNUAL-REPORT');
+  });
 });

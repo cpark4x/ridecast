@@ -5,7 +5,7 @@ export async function extractPdf(buffer: Buffer, filename: string): Promise<Extr
   const parsed = await pdfParse(buffer);
   const text = parsed.text.trim();
   const wordCount = text === '' ? 0 : text.split(/\s+/).length;
-  const title = parsed.info?.Title || filename.replace(/\.pdf$/, '');
+  const title = parsed.info?.Title || filename.replace(/\.pdf$/i, '');
   const author = parsed.info?.Author || undefined;
 
   return {
