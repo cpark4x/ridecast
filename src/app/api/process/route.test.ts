@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock prisma
 vi.mock('@/lib/db', () => ({
@@ -45,7 +45,7 @@ describe('POST /api/process', () => {
     process.env.ANTHROPIC_API_KEY = 'test-key';
   });
 
-  afterAll(() => {
+  afterEach(() => {
     process.env.ANTHROPIC_API_KEY = originalApiKey;
   });
 
@@ -121,7 +121,7 @@ describe('POST /api/process', () => {
     const data = await response.json();
 
     expect(response.status).toBe(404);
-    expect(data.error).toBeTruthy();
+    expect(data.error).toBe('Content not found');
   });
 
   it('returns 400 when required params are missing', async () => {

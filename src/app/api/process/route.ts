@@ -3,9 +3,11 @@ import { prisma } from '@/lib/db';
 import { ClaudeProvider } from '@/lib/ai/claude';
 
 export async function POST(request: Request) {
+  let contentId: string | undefined;
   try {
     const body = await request.json();
-    const { contentId, targetMinutes } = body;
+    contentId = body.contentId;
+    const { targetMinutes } = body;
 
     if (!contentId || !targetMinutes) {
       return NextResponse.json(
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(script);
   } catch (error) {
-    console.error('Process error:', error);
+    console.error('Process error:', { contentId, error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },
