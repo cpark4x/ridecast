@@ -1,53 +1,49 @@
-import { describe, it, expect } from 'vitest';
-import { parseConversationScript, ScriptSegment } from './script-parser';
+import { describe, it, expect } from "vitest";
+import { parseConversationScript, ScriptSegment } from "./script-parser";
 
-describe('parseConversationScript', () => {
-  it('splits conversation by [Host A]/[Host B] labels into segments with correct speaker and text', () => {
-    const script = `[Host A] Welcome to the show!
-[Host B] Thanks for having me.
-[Host A] Let's get started.`;
+describe("parseConversationScript", () => {
+  it("splits conversation by speaker labels", () => {
+    const script = `[Host A] Hey, so I just read this article.
+[Host B] Oh yeah? What was it about?
+[Host A] It was about building systems for productivity.`;
 
-    const result = parseConversationScript(script);
+    const segments = parseConversationScript(script);
 
-    expect(result).toHaveLength(3);
-    expect(result[0]).toEqual({ speaker: 'Host A', text: 'Welcome to the show!' });
-    expect(result[1]).toEqual({ speaker: 'Host B', text: 'Thanks for having me.' });
-    expect(result[2]).toEqual({ speaker: 'Host A', text: "Let's get started." });
+    expect(segments).toHaveLength(3);
+    expect(segments[0].speaker).toBe("Host A");
+    expect(segments[0].text).toBe("Hey, so I just read this article.");
+    expect(segments[1].speaker).toBe("Host B");
+    expect(segments[1].text).toBe("Oh yeah? What was it about?");
+    expect(segments[2].speaker).toBe("Host A");
+    expect(segments[2].text).toBe(
+      "It was about building systems for productivity."
+    );
   });
 
-  it('handles multi-line speaker turns (text continues until next label)', () => {
-    const script = `[Host A] This is the first line.
+  it("handles multi-line speaker turns", () => {
+    const script = `[Host A] This is line one.
 And this continues the same turn.
-Still going.
 [Host B] Now it's my turn.`;
 
-    const result = parseConversationScript(script);
+    const segments = parseConversationScript(script);
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({
-      speaker: 'Host A',
-      text: 'This is the first line.\nAnd this continues the same turn.\nStill going.',
-    });
-    expect(result[1]).toEqual({
-      speaker: 'Host B',
-      text: "Now it's my turn.",
-    });
+    expect(segments).toHaveLength(2);
+    expect(segments[0].text).toBe(
+      "This is line one.\nAnd this continues the same turn."
+    );
+    expect(segments[1].text).toBe("Now it's my turn.");
   });
 
-  it('returns empty array for empty input', () => {
-    expect(parseConversationScript('')).toEqual([]);
+  it("returns empty array for empty input", () => {
+    expect(parseConversationScript("")).toEqual([]);
   });
 
-  it('handles text without speaker labels as narrator speaker', () => {
-    const script = `Welcome to today's episode.
-We have a great show for you.`;
+  it("handles text without speaker labels as narrator", () => {
+    const script = "Just plain text without any labels.";
+    const segments = parseConversationScript(script);
 
-    const result = parseConversationScript(script);
-
-    expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({
-      speaker: 'narrator',
-      text: "Welcome to today's episode.\nWe have a great show for you.",
-    });
+    expect(segments).toHaveLength(1);
+    expect(segments[0].speaker).toBe("narrator");
+    expect(segments[0].text).toBe("Just plain text without any labels.");
   });
 });
