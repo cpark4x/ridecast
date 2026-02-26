@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = new OpenAITTSProvider(apiKey);
+    const provider = new OpenAITTSProvider();
 
     let audioBuffer: Buffer;
     let voices: string[];

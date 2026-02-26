@@ -1,23 +1,23 @@
-import OpenAI from 'openai';
-import type { TTSProvider, VoiceConfig } from './types';
-
-type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+import OpenAI from "openai";
+import { TTSProvider, VoiceConfig } from "./types";
 
 export class OpenAITTSProvider implements TTSProvider {
   private client: OpenAI;
 
-  constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+  constructor() {
+    this.client = new OpenAI();
   }
 
   async generateSpeech(text: string, voice: VoiceConfig): Promise<Buffer> {
     const response = await this.client.audio.speech.create({
-      model: 'gpt-4o-mini-tts',
-      voice: voice.voice as TTSVoice,
+      model: "gpt-4o-mini-tts",
+      voice: voice.voice as "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer",
       input: text,
       instructions: voice.instructions,
-      response_format: 'mp3',
+      response_format: "mp3",
     });
-    return Buffer.from(await response.arrayBuffer());
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
   }
 }

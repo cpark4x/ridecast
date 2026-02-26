@@ -1,38 +1,38 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { OpenAITTSProvider } from './openai';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { OpenAITTSProvider } from "./openai";
 
-const mockCreate = vi.fn();
-
-vi.mock('openai', () => ({
-  default: class MockOpenAI {
-    audio = {
-      speech: {
-        create: mockCreate,
+vi.mock("openai", () => ({
+  default: vi.fn().mockImplementation(function () {
+    return {
+      audio: {
+        speech: {
+          create: vi.fn().mockResolvedValue({
+            arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          }),
+        },
       },
     };
-  },
+  }),
 }));
 
-describe('OpenAITTSProvider', () => {
+describe("OpenAITTSProvider", () => {
   let provider: OpenAITTSProvider;
 
   beforeEach(() => {
-    mockCreate.mockReset();
-    provider = new OpenAITTSProvider('test-api-key');
+    vi.clearAllMocks();
+    provider = new OpenAITTSProvider();
   });
 
-  it('generates speech from text and returns a Buffer with length > 0', async () => {
-    const fakeArrayBuffer = new ArrayBuffer(100);
-    mockCreate.mockResolvedValue({
-      arrayBuffer: () => Promise.resolve(fakeArrayBuffer),
-    });
+  it("generates speech from text and returns a Buffer", async () => {
+    const result = await provider.generateSpeech(
+      "Hello, this is a test of the text to speech system.",
+      {
+        voice: "alloy",
+        instructions: "Speak clearly and warmly.",
+      }
+    );
 
-    const result = await provider.generateSpeech('Hello world', {
-      voice: 'alloy',
-      instructions: 'Speak clearly',
-    });
-
-    expect(Buffer.isBuffer(result)).toBe(true);
+    expect(result).toBeInstanceOf(Buffer);
     expect(result.length).toBeGreaterThan(0);
   });
 });
