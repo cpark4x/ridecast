@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-    const ai = new ClaudeProvider(process.env.ANTHROPIC_API_KEY);
+    const ai = new ClaudeProvider();
     const analysis = await ai.analyze(content.rawText);
 
     // Step 2: Generate script using analysis results

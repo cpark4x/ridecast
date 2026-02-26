@@ -14,7 +14,7 @@ describe('ClaudeProvider', () => {
 
   beforeEach(() => {
     mockCreate.mockReset();
-    provider = new ClaudeProvider('test-api-key');
+    provider = new ClaudeProvider();
   });
 
   describe('analyze()', () => {

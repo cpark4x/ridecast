@@ -4,7 +4,6 @@ import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from 
 const MODEL = 'claude-sonnet-4-20250514';
 const WORDS_PER_MINUTE = 150;
 const ANALYSIS_MAX_TOKENS = 1024;
-const SCRIPT_MAX_TOKENS = 4096;
 const MAX_ANALYSIS_CHARS = 3000;
 
 const CONTENT_TYPES = [
@@ -31,8 +30,8 @@ function isContentAnalysis(value: unknown): value is ContentAnalysis {
 export class ClaudeProvider implements AIProvider {
   private client: Anthropic;
 
-  constructor(apiKey: string) {
-    this.client = new Anthropic({ apiKey });
+  constructor() {
+    this.client = new Anthropic();
   }
 
   async analyze(text: string): Promise<ContentAnalysis> {
@@ -108,7 +107,7 @@ ${text}`;
 
     const response = await this.client.messages.create({
       model: MODEL,
-      max_tokens: SCRIPT_MAX_TOKENS,
+      max_tokens: targetWords * 2,
       messages: [
         {
           role: 'user',
