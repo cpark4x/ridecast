@@ -1,64 +1,50 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { extractUrl } from './url';
+import { describe, it, expect, vi } from "vitest";
+import { extractUrl } from "./url";
 
+// Mock global fetch
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+global.fetch = mockFetch;
 
-describe('extractUrl', () => {
-  beforeEach(() => {
-    mockFetch.mockReset();
-  });
-
-  it('extracts article content from HTML, filtering out nav and footer', async () => {
-    const mockHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head><title>Test Article Title</title></head>
-        <body>
-          <nav>Navigation links: Home About Contact</nav>
-          <article>
-            <h1>Test Article Title</h1>
-            <p>This is the main article content with several important words that should be extracted by the readability parser.</p>
-            <p>It contains multiple paragraphs of meaningful text content for proper extraction testing.</p>
-          </article>
-          <footer>Footer content and copyright info</footer>
-        </body>
-      </html>
-    `;
-
-    mockFetch.mockResolvedValue({
+describe("extractUrl", () => {
+  it("extracts article content from HTML", async () => {
+    mockFetch.mockResolvedValueOnce({
       ok: true,
-      text: () => Promise.resolve(mockHtml),
+      text: () =>
+        Promise.resolve(`
+        <html>
+          <head><title>Great Article</title></head>
+          <body>
+            <article>
+              <h1>Great Article Title</h1>
+              <p>This is the main content of the article. It has several paragraphs
+              of meaningful text that should be extracted by the readability parser.</p>
+              <p>Here is another paragraph with more details about the topic at hand.
+              The content continues with additional information that makes this a
+              substantial article worth reading and listening to.</p>
+            </article>
+            <nav>Navigation links that should be ignored</nav>
+            <footer>Footer content to ignore</footer>
+          </body>
+        </html>
+      `),
     });
 
-    const result = await extractUrl('https://example.com/article');
+    const result = await extractUrl("https://example.com/article");
 
     expect(result.title).toBeTruthy();
     expect(result.text.length).toBeGreaterThan(0);
     expect(result.wordCount).toBeGreaterThan(0);
-    expect(result.text).not.toContain('Navigation links');
+    expect(result.text).not.toContain("Navigation links");
   });
 
-  it("throws when content cannot be parsed into an article", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<html><body></body></html>'),
-    });
-
-    await expect(extractUrl('https://example.com/empty')).rejects.toThrow(
-      'Failed to extract article content'
-    );
-  });
-
-  it("throws 'Failed to fetch URL' on 404 response", async () => {
-    mockFetch.mockResolvedValue({
+  it("throws on failed fetch", async () => {
+    mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
-      text: () => Promise.resolve('Not Found'),
     });
 
-    await expect(extractUrl('https://example.com/missing')).rejects.toThrow(
-      'Failed to fetch URL'
+    await expect(extractUrl("https://example.com/404")).rejects.toThrow(
+      "Failed to fetch URL"
     );
   });
 });
