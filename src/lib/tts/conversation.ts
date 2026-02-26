@@ -1,20 +1,22 @@
 import type { TTSProvider, VoiceConfig } from './types';
-import { parseConversationScript } from '../utils/script-parser';
+import { parseConversationScript } from '@/lib/utils/script-parser';
 
 const VOICE_MAP: Record<string, VoiceConfig> = {
   'Host A': {
     voice: 'echo',
-    instructions: 'A curious, energetic co-host',
+    instructions:
+      'Curious, energetic co-host. Speak with enthusiasm and natural curiosity. Ask follow-up questions naturally.',
   },
   'Host B': {
     voice: 'nova',
-    instructions: 'A thoughtful, knowledgeable expert',
+    instructions:
+      'Thoughtful, knowledgeable expert. Speak with confidence and warmth. Explain concepts clearly with good pacing.',
   },
 };
 
 const DEFAULT_VOICE: VoiceConfig = {
   voice: 'alloy',
-  instructions: 'A neutral narrator',
+  instructions: 'Clear, natural speaking voice.',
 };
 
 export interface ConversationAudioResult {
