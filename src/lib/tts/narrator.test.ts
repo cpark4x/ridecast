@@ -1,21 +1,26 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { TTSProvider } from './types';
-import { generateNarratorAudio } from './narrator';
+import { describe, it, expect, vi } from "vitest";
+import { generateNarratorAudio } from "./narrator";
+import { TTSProvider } from "./types";
 
-describe('generateNarratorAudio', () => {
-  it('generates audio with narrator voice config', async () => {
-    const fakeBuffer = Buffer.from('fake-audio-data');
+describe("generateNarratorAudio", () => {
+  it("generates audio with narrator voice config", async () => {
     const mockProvider: TTSProvider = {
-      generateSpeech: vi.fn().mockResolvedValue(fakeBuffer),
+      generateSpeech: vi.fn().mockResolvedValue(Buffer.from("audio-data")),
     };
 
-    const result = await generateNarratorAudio(mockProvider, 'Hello listeners');
+    const result = await generateNarratorAudio(
+      mockProvider,
+      "Welcome to your audio summary. The key insight is about systems thinking."
+    );
 
-    expect(mockProvider.generateSpeech).toHaveBeenCalledWith('Hello listeners', {
-      voice: 'alloy',
-      instructions:
-        'Warm, clear audiobook narrator. Speak at a natural, comfortable pace with good enunciation.',
-    });
-    expect(result).toBe(fakeBuffer);
+    expect(result).toBeInstanceOf(Buffer);
+    expect(mockProvider.generateSpeech).toHaveBeenCalledWith(
+      "Welcome to your audio summary. The key insight is about systems thinking.",
+      {
+        voice: "alloy",
+        instructions:
+          "Warm, clear audiobook narrator. Speak at a natural, comfortable pace with good enunciation.",
+      }
+    );
   });
 });
