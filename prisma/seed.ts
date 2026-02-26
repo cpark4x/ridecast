@@ -1,6 +1,6 @@
-import { PrismaClient } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { fileURLToPath } from 'node:url';
+import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { fileURLToPath } from "node:url";
 
 function createClient(): PrismaClient {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -11,138 +11,149 @@ export async function seed(injectedPrisma?: PrismaClient) {
   const prisma = injectedPrisma ?? createClient();
 
   try {
-    // 1. Upsert default user
+    // Create default user (no auth for v1)
     const user = await prisma.user.upsert({
-      where: { id: 'default-user' },
-      update: { name: 'Default User' },
-      create: { id: 'default-user', name: 'Default User' },
+      where: { id: "default-user" },
+      update: {},
+      create: {
+        id: "default-user",
+        name: "Default User",
+      },
     });
+
     console.log(`Seeded user: ${user.id}`);
 
-    // 2. Upsert 3 content items (using contentHash for uniqueness)
+    // Create sample content
     const content1 = await prisma.content.upsert({
-      where: { contentHash: 'hash-second-brain' },
-      update: {}, // No-op update: preserve existing data on re-seed
+      where: { contentHash: "seed-hash-001" },
+      update: {},
       create: {
         userId: user.id,
-        title: 'How to Build a Second Brain',
-        author: 'Tiago Forte',
-        rawText: 'Sample raw text for How to Build a Second Brain...',
+        title: "How to Build a Second Brain",
+        author: "Tiago Forte",
+        rawText:
+          "This is a placeholder for the full text of the book. In production this would be thousands of words extracted from the original PDF or EPUB file.",
         wordCount: 8420,
-        sourceType: 'epub',
-        contentHash: 'hash-second-brain',
+        sourceType: "epub",
+        contentHash: "seed-hash-001",
       },
     });
 
     const content2 = await prisma.content.upsert({
-      where: { contentHash: 'hash-paul-graham-dttds' },
-      update: {}, // No-op update: preserve existing data on re-seed
+      where: { contentHash: "seed-hash-002" },
+      update: {},
       create: {
         userId: user.id,
         title: "Paul Graham: Do Things That Don't Scale",
-        author: 'Paul Graham',
-        rawText: "Sample raw text for Do Things That Don't Scale...",
+        author: "Paul Graham",
+        rawText:
+          "This is a placeholder for the full essay. In production this would be the complete article text extracted from the URL.",
         wordCount: 4200,
-        sourceType: 'url',
-        sourceUrl: 'https://paulgraham.com/ds.html',
-        contentHash: 'hash-paul-graham-dttds',
+        sourceType: "url",
+        sourceUrl: "https://paulgraham.com/ds.html",
+        contentHash: "seed-hash-002",
       },
     });
 
     const content3 = await prisma.content.upsert({
-      where: { contentHash: 'hash-stripe-annual-2024' },
-      update: {}, // No-op update: preserve existing data on re-seed
+      where: { contentHash: "seed-hash-003" },
+      update: {},
       create: {
         userId: user.id,
-        title: 'Stripe Annual Letter 2024',
-        author: 'Patrick Collison',
-        rawText: 'Sample raw text for Stripe Annual Letter 2024...',
+        title: "Stripe Annual Letter 2024",
+        author: "Patrick Collison",
+        rawText:
+          "This is a placeholder for the full annual letter. In production this would be the complete document text.",
         wordCount: 12000,
-        sourceType: 'pdf',
-        contentHash: 'hash-stripe-annual-2024',
+        sourceType: "pdf",
+        contentHash: "seed-hash-003",
       },
     });
 
-    console.log(`Seeded 3 content items: ${content1.title}, ${content2.title}, ${content3.title}`);
-
-    // 3. Create scripts (delete existing first for idempotency, then recreate)
-    // Clean up existing scripts/audio/playback for these content items
+    // Clean up existing scripts/audio/playback for idempotent re-seeding
+    const contentIds = [content1.id, content2.id, content3.id];
     await prisma.playbackState.deleteMany({ where: { userId: user.id } });
     await prisma.audio.deleteMany({
-      where: { script: { contentId: { in: [content1.id, content2.id, content3.id] } } },
+      where: { script: { contentId: { in: contentIds } } },
     });
     await prisma.script.deleteMany({
-      where: { contentId: { in: [content1.id, content2.id, content3.id] } },
+      where: { contentId: { in: contentIds } },
     });
 
+    // Create scripts for content
     const script1 = await prisma.script.create({
       data: {
         contentId: content1.id,
-        format: 'narrator',
+        format: "narrator",
         targetDuration: 15,
         actualWordCount: 1920,
         compressionRatio: 0.23,
-        scriptText: 'Sample narrator script for How to Build a Second Brain...',
-        themes: ['productivity', 'knowledge-management'],
+        scriptText:
+          "Welcome to your audio summary of How to Build a Second Brain by Tiago Forte. The core idea is simple but powerful...",
+        contentType: "business_book",
+        themes: ["productivity", "knowledge management", "note-taking"],
       },
     });
 
     const script2 = await prisma.script.create({
       data: {
         contentId: content2.id,
-        format: 'conversation',
+        format: "conversation",
         targetDuration: 8,
         actualWordCount: 1200,
         compressionRatio: 0.29,
-        scriptText: "Sample conversation script for Do Things That Don't Scale...",
-        themes: ['startups', 'growth'],
+        scriptText: `[Host A] So I just read this classic Paul Graham essay about doing things that don't scale. Have you read it?\n[Host B] Oh yeah, it's one of the most important essays for startup founders. The key insight is counterintuitive.\n[Host A] Right, he argues that in the early days you should deliberately do things that won't scale.\n[Host B] Exactly. Like Airbnb's founders personally going door to door taking photos of listings.`,
+        contentType: "essay",
+        themes: ["startups", "growth", "strategy"],
       },
     });
 
     const script3 = await prisma.script.create({
       data: {
         contentId: content3.id,
-        format: 'narrator',
+        format: "narrator",
         targetDuration: 22,
         actualWordCount: 3300,
         compressionRatio: 0.28,
-        scriptText: 'Sample narrator script for Stripe Annual Letter 2024...',
-        themes: ['fintech', 'business'],
+        scriptText:
+          "Stripe's 2024 annual letter reveals several key trends shaping the future of internet commerce...",
+        contentType: "business_report",
+        themes: ["fintech", "payments", "commerce"],
       },
     });
 
-    // 4. Create audio records
+    // Create audio for completed scripts
     const audio1 = await prisma.audio.create({
       data: {
         scriptId: script1.id,
-        filePath: '/audio/second-brain-narrator.mp3',
+        filePath: "/audio/seed-audio-001.mp3",
         durationSecs: 768,
-        voices: ['alloy'],
-        ttsProvider: 'openai',
+        voices: ["alloy"],
+        ttsProvider: "openai",
       },
     });
 
-    await prisma.audio.create({
+    const audio2 = await prisma.audio.create({
       data: {
         scriptId: script2.id,
-        filePath: '/audio/paul-graham-dttds-conversation.mp3',
+        filePath: "/audio/seed-audio-002.mp3",
         durationSecs: 495,
-        voices: ['alloy', 'echo'],
-        ttsProvider: 'openai',
+        voices: ["echo", "nova"],
+        ttsProvider: "openai",
       },
     });
 
-    await prisma.audio.create({
+    const audio3 = await prisma.audio.create({
       data: {
         scriptId: script3.id,
-        filePath: '/audio/stripe-annual-2024-narrator.mp3',
+        filePath: "/audio/seed-audio-003.mp3",
         durationSecs: 1350,
-        voices: ['nova'],
-        ttsProvider: 'openai',
+        voices: ["alloy"],
+        ttsProvider: "openai",
       },
     });
 
-    // 5. Create playback state (partially listened)
+    // Create playback state (partially listened)
     await prisma.playbackState.create({
       data: {
         userId: user.id,
@@ -153,7 +164,9 @@ export async function seed(injectedPrisma?: PrismaClient) {
       },
     });
 
-    console.log('Seeded 3 scripts, 3 audio records, 1 playback state');
+    console.log(
+      "Seeded 3 content items, 3 scripts, 3 audio records, 1 playback state."
+    );
   } finally {
     if (!injectedPrisma) {
       await prisma.$disconnect();
@@ -163,7 +176,7 @@ export async function seed(injectedPrisma?: PrismaClient) {
 
 // Run when executed directly (npx tsx prisma/seed.ts)
 const isDirectExecution =
-  typeof process !== 'undefined' &&
+  typeof process !== "undefined" &&
   process.argv[1] &&
   process.argv[1] === fileURLToPath(import.meta.url);
 
