@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BottomNav } from "./BottomNav";
+import { UploadScreen } from "./UploadScreen";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState("upload");
@@ -10,18 +11,10 @@ export function AppShell() {
     <div className="max-w-[430px] w-full mx-auto h-[100dvh] relative overflow-hidden bg-[#0a0a0f] border-l border-r border-white/[0.08]">
       {/* Upload Screen */}
       <div className={`absolute inset-0 bottom-16 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "upload" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
-        <div className="p-6">
-          <div className="text-center pt-4 mb-8">
-            <div className="flex items-center justify-center gap-2.5 mb-2">
-              <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><circle cx="12" cy="12" r="9" opacity="0.3" /><polygon points="10,8 16,12 10,16" /></svg>
-              </div>
-              <span className="text-[22px] font-extrabold tracking-tight bg-gradient-to-br from-white to-white/55 bg-clip-text text-transparent">Ridecast 2</span>
-            </div>
-            <p className="text-sm text-white/55">Turn anything into audio for your commute</p>
-          </div>
-          <p className="text-white/30 text-center">Upload screen content will go here</p>
-        </div>
+        <UploadScreen onProcess={(contentId, targetMinutes) => {
+          console.log("Process:", contentId, targetMinutes);
+          setActiveTab("library");
+        }} />
       </div>
 
       {/* Library Screen */}
