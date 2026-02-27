@@ -1,7 +1,5 @@
+import { AppShell } from "@/components/AppShell";
+
 export default function Home() {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <h1 className="text-2xl font-bold">Ridecast 2</h1>
-    </div>
-  );
+  return <AppShell />;
 }
