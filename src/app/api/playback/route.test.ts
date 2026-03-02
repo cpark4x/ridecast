@@ -1,0 +1,61 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    playbackState: {
+      upsert: vi.fn().mockImplementation((args) =>
+        Promise.resolve({
+          id: "ps-1",
+          ...args.create,
+          updatedAt: new Date(),
+        })
+      ),
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
+import { POST, GET } from "./route";
+import { prisma } from "@/lib/db";
+
+describe("Playback state API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("saves playback position and speed", async () => {
+    const request = new Request("http://localhost:3000/api/playback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audioId: "audio-1", position: 120.5, speed: 1.5 }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+
+    expect(prisma.playbackState.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId_audioId: { userId: "default-user", audioId: "audio-1" } },
+        update: { position: 120.5, speed: 1.5 },
+        create: expect.objectContaining({ audioId: "audio-1", position: 120.5, speed: 1.5 }),
+      })
+    );
+  });
+
+  it("retrieves playback state", async () => {
+    (prisma.playbackState.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: "ps-1",
+      position: 250,
+      speed: 1.25,
+      completed: false,
+    });
+
+    const request = new Request("http://localhost:3000/api/playback?audioId=audio-1");
+    const response = await GET(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.position).toBe(250);
+    expect(body.speed).toBe(1.25);
+  });
+});
