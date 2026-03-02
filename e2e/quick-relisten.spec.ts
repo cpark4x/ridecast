@@ -1,0 +1,46 @@
+import { test, expect } from "@playwright/test";
+
+test.describe("Scenario 5: Quick Re-listen", () => {
+  test("resume from saved position with saved speed", async ({ page }) => {
+    await page.goto("/");
+
+    // Navigate to library
+    await page.getByText("Library").click();
+    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
+
+    // Play first item
+    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+    await expect(page.locator(".absolute.bottom-16").first()).toBeVisible({ timeout: 3000 });
+
+    // Expand player
+    await page.locator(".absolute.bottom-16").first().click();
+    await expect(page.getByText("Now Playing")).toBeVisible();
+
+    // Change speed to 1.5x
+    await page.getByText("1x").click(); // -> 1.25x
+    await page.getByText("1.25x").click(); // -> 1.5x
+
+    // Verify speed changed
+    await expect(page.getByText("1.5x")).toBeVisible();
+
+    // Skip forward to simulate listening
+    await page.getByText("30s").last().click();
+
+    // Close player
+    await page.locator('button:has(polyline[points="6 9 12 15 18 9"])').click();
+
+    // Navigate away and come back
+    await page.getByText("Upload").click();
+    await page.getByText("Library").click();
+
+    // Re-open the same item
+    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+
+    // Expand player
+    await page.locator(".absolute.bottom-16").first().click();
+    await expect(page.getByText("Now Playing")).toBeVisible();
+
+    // Speed should still be 1.5x (persisted in context)
+    await expect(page.getByText("1.5x")).toBeVisible();
+  });
+});
