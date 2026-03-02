@@ -8,6 +8,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "Ridecast 2",
   description: "Turn anything into audio for your commute",
+  manifest: "/manifest.json",
+  themeColor: "#6366f1",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
