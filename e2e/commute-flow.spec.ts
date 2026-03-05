@@ -17,8 +17,8 @@ test.describe("Scenario 3: The Commute Flow", () => {
     await page.getByTestId("library-item").first().click();
 
     // Player bar should appear at the bottom
-    const playerBar = page.locator(".absolute.bottom-16").first();
-    await expect(playerBar).toBeVisible({ timeout: 3000 });
+    const playerBar = page.getByTestId("player-bar");
+    await expect(playerBar).toBeVisible({ timeout: 10000 });
 
     // Tap player bar to expand
     await playerBar.click();

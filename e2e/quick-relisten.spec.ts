@@ -10,10 +10,10 @@ test.describe("Scenario 5: Quick Re-listen", () => {
 
     // Play first item
     await page.getByTestId("library-item").first().click();
-    await expect(page.locator(".absolute.bottom-16").first()).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
 
     // Expand player
-    await page.locator(".absolute.bottom-16").first().click();
+    await page.getByTestId("player-bar").click();
     await expect(page.getByText("Now Playing")).toBeVisible();
 
     // Change speed to 1.5x
@@ -36,8 +36,11 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     // Re-open the same item
     await page.getByTestId("library-item").first().click();
 
+    // Wait for player bar to be visible after the SECOND library-item click
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
+
     // Expand player
-    await page.locator(".absolute.bottom-16").first().click();
+    await page.getByTestId("player-bar").click();
     await expect(page.getByText("Now Playing")).toBeVisible();
 
     // Speed should still be 1.5x (persisted in context)

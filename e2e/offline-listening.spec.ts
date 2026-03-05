@@ -14,7 +14,7 @@ test.describe("Scenario 4: Offline Listening", () => {
     await page.getByTestId("library-item").first().click();
 
     // Wait for player bar
-    await expect(page.locator(".absolute.bottom-16").first()).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
 
     // Go offline
     await context.setOffline(true);

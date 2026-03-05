@@ -17,6 +17,7 @@ export function PlayerBar({ onExpand }: PlayerBarProps) {
   return (
     <div
       onClick={onExpand}
+      data-testid="player-bar"
       className="absolute bottom-16 left-2 right-2 h-[58px] flex items-center gap-3 px-3 z-[60] cursor-pointer rounded-[14px] border border-indigo-500/20 transition-all"
       style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))", backdropFilter: "blur(24px)" }}
     >

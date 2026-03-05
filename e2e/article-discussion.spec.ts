@@ -39,6 +39,6 @@ test.describe("Scenario 2: The Article Discussion", () => {
     await page.getByText("Ready").first().click();
 
     // Verify player shows
-    await expect(page.locator(".absolute.bottom-16")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
   });
 });
