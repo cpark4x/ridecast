@@ -56,7 +56,11 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      # ── Quality gates (mirror dev-machine verify) ─────────────────────────
+      # ─── Database setup (before tests) ──────────────────────────────────────────────────────
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      # ─── Quality gates (mirror dev-machine verify) ───────────────────────────────────────────
       - name: Lint
         run: npm run lint
 
@@ -66,11 +70,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      # ── Database ──────────────────────────────────────────────────────────────
-      # Migrate after build so the schema is always in sync before E2E.
-      - name: Run database migrations
-        run: npx prisma migrate deploy
-
+      # ─── Database seeding (before E2E) ─────────────────────────────────────────────────────
       - name: Seed database
         # E2E tests expect ready library items; seeding ensures test data exists
         run: npx prisma db seed
