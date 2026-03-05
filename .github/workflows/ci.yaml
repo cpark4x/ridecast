@@ -1,0 +1,104 @@
+# Ridecast CI — lint · unit tests · build · E2E
+#
+# Deterministic: AI/TTS routes are intercepted by Playwright's api-mocks.ts,
+# so no ANTHROPIC_API_KEY or OPENAI_API_KEY are needed.
+#
+# Trigger strategy:
+#   push → main only (covers merged commits without double-running PRs)
+#   pull_request → all branches (runs on every PR)
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  ci:
+    name: Lint · Test · Build · E2E
+    runs-on: ubuntu-latest
+
+    # ── Postgres service ───────────────────────────────────────────────────────
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ridecast
+          POSTGRES_DB: ridecast
+          # POSTGRES_USER defaults to "postgres" — matches DATABASE_URL below
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # ── Job-level env ──────────────────────────────────────────────────────────
+    env:
+      DATABASE_URL: postgresql://postgres:ridecast@localhost:5432/ridecast
+      NEXT_TELEMETRY_DISABLED: 1   # silence Next.js telemetry in CI
+
+    # ── Steps ──────────────────────────────────────────────────────────────────
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── Dependencies ─────────────────────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # ── Quality gates (mirror dev-machine verify) ─────────────────────────
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # ── Database ──────────────────────────────────────────────────────────────
+      # Migrate after build so the schema is always in sync before E2E.
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed database
+        # E2E tests expect ready library items; seeding ensures test data exists
+        run: npx prisma db seed
+
+      # ── E2E ───────────────────────────────────────────────────────────────────
+      # playwright.config.ts starts "npm run dev" automatically when CI=true.
+      # api-mocks.ts intercepts /api/process and /api/audio/generate so no
+      # real LLM or TTS credentials are required.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+      # ── Artifacts (upload only on failure) ────────────────────────────────────
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
