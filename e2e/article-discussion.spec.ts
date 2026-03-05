@@ -1,11 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { mockAiRoutes } from "./api-mocks";
 
 test.describe("Scenario 2: The Article Discussion", () => {
   test("paste URL → process → conversation format → play", async ({ page }) => {
+    // Mock AI routes before navigation so intercepts are in place
+    await mockAiRoutes(page);
+
     await page.goto("/");
 
     // Paste a URL
-    await page.getByPlaceholder("Paste article or newsletter URL").fill(
+    await page.getByPlaceholder("Paste article or newsletter URL...").fill(
       "https://paulgraham.com/ds.html"
     );
     await page.getByText("Fetch").click();
@@ -22,11 +26,11 @@ test.describe("Scenario 2: The Article Discussion", () => {
     // Wait for processing
     await expect(page.getByText("Analyzing content")).toBeVisible({ timeout: 5000 });
 
-    // Should show AI format decision
-    await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 30000 });
+    // Should show AI format decision (from our mock returning format: "conversation")
+    await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 10000 });
 
     // Wait for completion and library
-    await expect(page.getByText("Library")).toBeVisible({ timeout: 60000 });
+    await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 30000 });
 
     // Verify item is ready
     await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 60000 });

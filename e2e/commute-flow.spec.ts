@@ -8,13 +8,13 @@ test.describe("Scenario 3: The Commute Flow", () => {
 
   test("library → player bar → expanded → car mode → back", async ({ page }) => {
     // Navigate to library
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Library" }).click();
 
     // Wait for items to load
     await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
 
     // Tap first item
-    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+    await page.getByTestId("library-item").first().click();
 
     // Player bar should appear at the bottom
     const playerBar = page.locator(".absolute.bottom-16").first();
@@ -55,6 +55,6 @@ test.describe("Scenario 3: The Commute Flow", () => {
     await page.locator('button:has(polyline[points="6 9 12 15 18 9"])').click();
 
     // Should see library again
-    await expect(page.getByText("Library")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
   });
 });

@@ -71,13 +71,13 @@ health_gates:
 
   - id: "e2e"
     command: "npm run test:e2e"
-    status: "FAIL"
-    exit_code: 1
-    duration: "17.5s"
-    scenarios: "0/5 passing"
+    status: "PASS"
+    exit_code: 0
+    duration: "15.2s"
+    scenarios: "5/5 passing"
     notes: |
-      Playwright (Chromium): two fixable pattern families identified.
-      Artifacts: test-results/ with error-context.md
+      Playwright (Chromium): all scenarios passing.
+      Pattern A (Library selector) and Pattern B (Target Duration) fixed.
 
 # =============================================================================
 # Known Issues (ordered by impact)

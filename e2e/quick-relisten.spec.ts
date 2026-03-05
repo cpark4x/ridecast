@@ -5,11 +5,11 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     await page.goto("/");
 
     // Navigate to library
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Library" }).click();
     await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
 
     // Play first item
-    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+    await page.getByTestId("library-item").first().click();
     await expect(page.locator(".absolute.bottom-16").first()).toBeVisible({ timeout: 3000 });
 
     // Expand player
@@ -30,11 +30,11 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     await page.locator('button:has(polyline[points="6 9 12 15 18 9"])').click();
 
     // Navigate away and come back
-    await page.getByText("Upload").click();
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Upload" }).click();
+    await page.getByRole("button", { name: "Library" }).click();
 
     // Re-open the same item
-    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+    await page.getByTestId("library-item").first().click();
 
     // Expand player
     await page.locator(".absolute.bottom-16").first().click();

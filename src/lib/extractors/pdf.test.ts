@@ -26,7 +26,12 @@ describe('extractPdf', () => {
     const buffer = Buffer.from('fake-pdf-content');
     const result = await extractPdf(buffer, 'fallback-name.pdf');
 
-    expect(mockedPdfParse).toHaveBeenCalledWith(buffer);
+    // extractPdf wraps the Buffer in a fresh Uint8Array to avoid pdf.js
+    // byteOffset issues; verify the call received a Uint8Array with the
+    // same bytes.
+    const calledWith = mockedPdfParse.mock.calls[0][0] as Uint8Array;
+    expect(calledWith).toBeInstanceOf(Uint8Array);
+    expect(Buffer.from(calledWith).equals(buffer)).toBe(true);
     expect(result.title).toBe('Machine Learning Basics');
     expect(result.author).toBe('Jane Smith');
     expect(result.text).toBe(
@@ -48,7 +53,10 @@ describe('extractPdf', () => {
     const buffer = Buffer.from('fake-pdf-content');
     const result = await extractPdf(buffer, 'my-report.pdf');
 
-    expect(mockedPdfParse).toHaveBeenCalledWith(buffer);
+    // extractPdf wraps the Buffer in a fresh Uint8Array; verify same bytes.
+    const calledWith = mockedPdfParse.mock.calls[1][0] as Uint8Array;
+    expect(calledWith).toBeInstanceOf(Uint8Array);
+    expect(Buffer.from(calledWith).equals(buffer)).toBe(true);
     expect(result.title).toBe('my-report');
     expect(result.author).toBeUndefined();
     expect(result.text).toBe('Some simple content.');

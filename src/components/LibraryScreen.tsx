@@ -97,6 +97,7 @@ export function LibraryScreen() {
           {items.map((item, i) => (
             <div
               key={item.id}
+              data-testid="library-item"
               onClick={() => handlePlay(item)}
               className="flex items-center gap-3.5 p-4 mb-2.5 rounded-[14px] bg-white/[0.06] border border-white/[0.08] cursor-pointer transition-all hover:bg-white/10 active:scale-[0.98]"
             >

@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   retries: 0,
   use: {
@@ -13,7 +14,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    port: 3000,
-    reuseExistingServer: true,
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
   },
 });

@@ -5,13 +5,13 @@ test.describe("Scenario 4: Offline Listening", () => {
     await page.goto("/");
 
     // Navigate to library
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Library" }).click();
 
     // Wait for items
     await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
 
     // Play an item (this caches the audio)
-    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+    await page.getByTestId("library-item").first().click();
 
     // Wait for player bar
     await expect(page.locator(".absolute.bottom-16").first()).toBeVisible({ timeout: 3000 });
@@ -20,7 +20,7 @@ test.describe("Scenario 4: Offline Listening", () => {
     await context.setOffline(true);
 
     // Navigate back to library
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Library" }).click();
 
     // Items should still show from cache/state
     // Note: library data needs to be cached for full offline support
@@ -30,7 +30,7 @@ test.describe("Scenario 4: Offline Listening", () => {
     await context.setOffline(false);
 
     // Verify app recovers
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Library" }).click();
     await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
   });
 });
