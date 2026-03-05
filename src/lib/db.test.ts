@@ -1,7 +1,12 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { prisma } from './db';
 
-describe('Prisma client', () => {
+// Run `docker compose up -d db` to start the database and enable these tests.
+const dbAvailable = await prisma.$queryRaw`SELECT 1`
+  .then(() => true)
+  .catch(() => false);
+
+describe.skipIf(!dbAvailable)('Prisma client', () => {
   const createdUserIds: string[] = [];
 
   afterAll(async () => {

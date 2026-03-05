@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from './db';
 
+// Run `docker compose up -d db` to start the database and enable these tests.
+const dbAvailable = await prisma.$queryRaw`SELECT 1`
+  .then(() => true)
+  .catch(() => false);
+
 // Seed IDs used in the seed script - must match seed.ts
 const DEFAULT_USER_ID = 'default-user';
 
@@ -16,7 +21,7 @@ async function cleanSeedData() {
   await prisma.user.deleteMany({ where: { id: DEFAULT_USER_ID } });
 }
 
-describe('Seed script', () => {
+describe.skipIf(!dbAvailable)('Seed script', () => {
   beforeAll(async () => {
     await cleanSeedData();
 
