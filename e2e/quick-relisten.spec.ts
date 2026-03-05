@@ -35,9 +35,9 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     await page.getByRole("button", { name: "Library" }).click();
 
     // Re-open the same item
-    const readyItem = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
-    await expect(readyItem).toBeVisible({ timeout: 10000 });
-    await readyItem.click();
+    const readyItemAgain = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItemAgain).toBeVisible({ timeout: 10000 });
+    await readyItemAgain.click();
 
     // Wait for player bar to be visible after the SECOND library-item click
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
