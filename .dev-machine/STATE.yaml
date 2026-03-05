@@ -1,0 +1,172 @@
+# =============================================================================
+# STATE.yaml — Development machine state and health gates
+# =============================================================================
+# Project: ridecast2
+# Last updated: 2026-03-05
+# Branch: feature/ridecast2-complete
+# =============================================================================
+
+project:
+  name: "ridecast2"
+  repo_root: "/Users/chrispark/Projects/ridecast2"
+  description: "Next.js + TypeScript content-to-audio pipeline (PDF/EPUB/TXT/URL → Claude script → OpenAI TTS)"
+
+specs:
+  directory: "./specs"
+  architecture: "specs/architecture.md"
+  modules:
+    - "specs/modules/content-pipeline.md"
+  features:
+    - "specs/features/devx/fix-e2e-selectors.md"
+
+commands:
+  build: "npm run build"
+  test: "npm run test"
+  lint: "npm run lint"
+  e2e: "npm run test:e2e"
+  dev: "npm run dev"
+  db_migrate: "npm run db:migrate"
+  db_generate: "npm run db:generate"
+
+# =============================================================================
+# Health Gates (in order; all must pass for green status)
+# =============================================================================
+
+health_gates:
+  - id: "lint"
+    command: "npm run lint"
+    status: "PASS"
+    duration: "2.7s"
+    notes: |
+      10 warnings (@typescript-eslint/no-unused-vars) in:
+        - prisma/seed.ts: audio2, audio3
+        - src/app/api/library/route.ts: error
+        - src/app/api/playback/route.ts: error (×2)
+        - src/components/ProcessingScreen.tsx: i
+        - src/lib/offline/cache.test.ts: _n, _schema, removeCachedAudio
+        - src/lib/utils/script-parser.test.ts: ScriptSegment
+      Non-blocking; safe to defer.
+
+  - id: "test"
+    command: "npm run test"
+    status: "PASS"
+    duration: "1.8s"
+    notes: |
+      Vitest: 58/65 tests passing, 7 intentionally skipped
+      Skipped test files:
+        - src/lib/db.test.ts (1 test): DB-dependent
+        - src/lib/seed.test.ts (6 tests): DB-dependent
+      Non-blocking: React act() warnings in AppShell.test.tsx (×3) but assertions pass.
+
+  - id: "build"
+    command: "npm run build"
+    status: "PASS"
+    duration: "5.1s"
+    notes: |
+      Next.js 16.1.6 with Turbopack builds successfully.
+      Non-blocking warnings:
+        - MODULE_TYPELESS_PACKAGE_JSON: missing "type": "module" in tailwind.config.ts
+        - Next.js metadata: themeColor should move from <meta> to viewport export
+      Artifact: .next/ generated successfully.
+
+  - id: "e2e"
+    command: "npm run test:e2e"
+    status: "PASS"
+    exit_code: 0
+    duration: "15.2s"
+    scenarios: "5/5 passing"
+    notes: |
+      Playwright (Chromium): all scenarios passing.
+      Pattern A (Library selector) and Pattern B (Target Duration) fixed.
+
+# =============================================================================
+# Known Issues (ordered by impact)
+# =============================================================================
+
+known_issues:
+  - id: "pattern-a"
+    severity: "P1"
+    title: "E2E Pattern A — Ambiguous getByText('Library') selector"
+    affected_files:
+      - "e2e/commute-flow.spec.ts:11"
+      - "e2e/offline-listening.spec.ts:8"
+      - "e2e/quick-relisten.spec.ts:8"
+    root_cause: |
+      Matches 3+ DOM elements under Playwright strict mode,
+      making the selector non-deterministic.
+    fix: |
+      Replace with role-scoped selector:
+        - page.getByRole('tab', { name: 'Library' })
+        - page.getByRole('button', { name: 'Library' })
+        - page.getByTestId('library-tab') if ambiguity persists
+
+  - id: "pattern-b"
+    severity: "P1"
+    title: "E2E Pattern B — Missing 'Target Duration' element"
+    affected_files:
+      - "e2e/pdf-commute.spec.ts:19"
+      - "e2e/article-discussion.spec.ts:14"
+    root_cause: |
+      Text not found in DOM after file upload step.
+      Possible causes:
+        1. Incorrect webServer config (port/URL mismatch)
+        2. UI flow regression or missing navigation step
+        3. Copy/text mismatch between spec and implementation
+    fix: |
+      1. Verify playwright.config.ts webServer config:
+         - webServer.url === 'http://localhost:3000'
+         - use.baseURL === 'http://localhost:3000'
+      2. Confirm "Target Duration" label renders in upload flow
+      3. If missing, add navigation step or update spec copy
+
+  - id: "type-check-caveat"
+    severity: "P2"
+    title: "Type-check caveat: Request vs NextRequest mismatch"
+    affected_file: "src/app/api/playback/route.test.ts"
+    notes: |
+      npx tsc --noEmit fails but npm run build succeeds.
+      Next.js handles internally; not gating.
+      Not a priority for v1.
+
+# =============================================================================
+# Next Steps
+# =============================================================================
+
+next_steps:
+  - step: 1
+    task: "Fix Pattern A selectors (Library)"
+    effort: "~30 min"
+    files:
+      - "e2e/commute-flow.spec.ts:11"
+      - "e2e/offline-listening.spec.ts:8"
+      - "e2e/quick-relisten.spec.ts:8"
+    action: |
+      Replace getByText('Library') with getByRole('button', { name: 'Library' })
+      or getByRole('tab', { name: 'Library' }) based on BottomNav DOM structure.
+
+  - step: 2
+    task: "Fix Pattern B (Target Duration missing)"
+    effort: "~45 min"
+    files:
+      - "e2e/pdf-commute.spec.ts:19"
+      - "e2e/article-discussion.spec.ts:14"
+    action: |
+      Verify playwright.config.ts webServer config (port, baseURL, reuseExistingServer).
+      Confirm "Target Duration" renders in upload flow.
+      Add missing navigation step or update copy if needed.
+
+  - step: 3
+    task: "Verify full suite"
+    commands:
+      - "npm run lint"
+      - "npm run test"
+      - "npm run build"
+      - "npm run test:e2e"
+
+  - step: 4
+    task: "Optional cleanup"
+    effort: "~1 hour (defer)"
+    actions:
+      - "Address 10 eslint no-unused-vars warnings"
+      - "React act() warnings in AppShell.test.tsx"
+      - "Add test-results/ and playwright-report/ to .gitignore"

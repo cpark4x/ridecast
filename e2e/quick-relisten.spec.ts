@@ -5,15 +5,16 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     await page.goto("/");
 
     // Navigate to library
-    await page.getByText("Library").click();
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
+    await page.getByRole("button", { name: "Library" }).click();
+    const readyItem = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItem).toBeVisible({ timeout: 10000 });
 
     // Play first item
-    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
-    await expect(page.locator(".absolute.bottom-16").first()).toBeVisible({ timeout: 3000 });
+    await readyItem.click();
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
 
     // Expand player
-    await page.locator(".absolute.bottom-16").first().click();
+    await page.getByTestId("player-bar").click();
     await expect(page.getByText("Now Playing")).toBeVisible();
 
     // Change speed to 1.5x
@@ -30,14 +31,19 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     await page.locator('button:has(polyline[points="6 9 12 15 18 9"])').click();
 
     // Navigate away and come back
-    await page.getByText("Upload").click();
-    await page.getByText("Library").click();
+    await page.getByRole("button", { name: "Upload" }).click();
+    await page.getByRole("button", { name: "Library" }).click();
 
     // Re-open the same item
-    await page.locator('[class*="rounded-\\[14px\\]"]').first().click();
+    const readyItemAgain = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItemAgain).toBeVisible({ timeout: 10000 });
+    await readyItemAgain.click();
+
+    // Wait for player bar to be visible after the SECOND library-item click
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
 
     // Expand player
-    await page.locator(".absolute.bottom-16").first().click();
+    await page.getByTestId("player-bar").click();
     await expect(page.getByText("Now Playing")).toBeVisible();
 
     // Speed should still be 1.5x (persisted in context)

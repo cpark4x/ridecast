@@ -1,28 +1,79 @@
-// Run: npx tsx scripts/create-test-pdf.ts
 import { writeFileSync } from "fs";
+import path from "path";
 
-// Minimal valid PDF with text
-const pdf = `%PDF-1.4
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
-4 0 obj<</Length 44>>stream
-BT /F1 12 Tf 100 700 Td (Hello World) Tj ET
-endstream
-endobj
-5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000266 00000 n 
-0000000360 00000 n 
-trailer<</Size 6/Root 1 0 R>>
-startxref
-431
-%%EOF`;
+function buildPdf(): Buffer {
+  const parts: Buffer[] = [];
+  const offsets: Record<number, number> = {};
+  let pos = 0;
 
-writeFileSync("test-fixtures/sample.pdf", pdf);
-console.log("Created test-fixtures/sample.pdf");
+  function w(s: string): void {
+    const b = Buffer.from(s, "latin1");
+    parts.push(b);
+    pos += b.length;
+  }
+
+  function markObj(n: number): void {
+    offsets[n] = pos;
+  }
+
+  function pad10(n: number): string {
+    return String(n).padStart(10, "0");
+  }
+
+  w("%PDF-1.4\n");
+
+  markObj(1);
+  w("1 0 obj\n<</Type /Catalog /Pages 2 0 R>>\nendobj\n");
+
+  markObj(2);
+  w("2 0 obj\n<</Type /Pages /Kids [3 0 R] /Count 1>>\nendobj\n");
+
+  markObj(3);
+  w(
+    "3 0 obj\n" +
+      "<</Type /Page /MediaBox [0 0 612 792] /Parent 2 0 R" +
+      " /Contents 4 0 R /Resources <</Font <</F1 5 0 R>>>>>>\n" +
+      "endobj\n",
+  );
+
+  const streamData =
+    "BT /F1 12 Tf 72 720 Td " +
+    "(Ridecast E2E test fixture. " +
+    "The quick brown fox jumps over the lazy dog. " +
+    "Pack my box with five dozen liquor jugs. " +
+    "How vexingly quick daft zebras jump.) Tj ET";
+
+  markObj(4);
+  w(
+    `4 0 obj\n<</Length ${Buffer.byteLength(streamData, "latin1")}>>\n` +
+      `stream\n${streamData}\nendstream\nendobj\n`,
+  );
+
+  markObj(5);
+  w(
+    "5 0 obj\n" +
+      "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>\n" +
+      "endobj\n",
+  );
+
+  const xrefPos = pos;
+  w(
+    "xref\n" +
+      "0 6\n" +
+      "0000000000 65535 f \n" +
+      `${pad10(offsets[1])} 00000 n \n` +
+      `${pad10(offsets[2])} 00000 n \n` +
+      `${pad10(offsets[3])} 00000 n \n` +
+      `${pad10(offsets[4])} 00000 n \n` +
+      `${pad10(offsets[5])} 00000 n \n`,
+  );
+
+  w(`trailer\n<</Size 6 /Root 1 0 R>>\nstartxref\n${xrefPos}\n%%EOF\n`);
+
+  return Buffer.concat(parts);
+}
+
+const outPath = path.resolve(__dirname, "../test-fixtures/sample.pdf");
+const pdf = buildPdf();
+writeFileSync(outPath, pdf);
+console.log(`Created ${outPath} (${pdf.length} bytes)`);

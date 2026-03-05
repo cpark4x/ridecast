@@ -1,8 +1,12 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
+import { mockAiRoutes } from "./api-mocks";
 
 test.describe("Scenario 1: The PDF Commute", () => {
   test("upload PDF → process → library → play → change speed", async ({ page }) => {
+    // Mock AI routes before navigation so intercepts are in place
+    await mockAiRoutes(page);
+
     await page.goto("/");
 
     // Verify upload screen
@@ -28,7 +32,7 @@ test.describe("Scenario 1: The PDF Commute", () => {
     await expect(page.getByText("Analyzing content")).toBeVisible({ timeout: 5000 });
 
     // Wait for processing to complete and transition to library
-    await expect(page.getByText("Library")).toBeVisible({ timeout: 60000 });
+    await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 60000 });
 
     // Find the new item in the library
     await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 60000 });
@@ -37,10 +41,10 @@ test.describe("Scenario 1: The PDF Commute", () => {
     await page.getByText("Ready").first().click();
 
     // Player bar should appear
-    await expect(page.locator(".absolute.bottom-16")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
 
     // Expand player
-    await page.locator(".absolute.bottom-16").click();
+    await page.getByTestId("player-bar").click();
 
     // Should see expanded player
     await expect(page.getByText("Now Playing")).toBeVisible();

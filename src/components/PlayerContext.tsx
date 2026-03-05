@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 
 export interface PlayableItem {
   id: string;
@@ -33,23 +33,46 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [speed, setSpeedState] = useState(1.0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Sync position as audio plays
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setPositionState(audio.currentTime);
+    const onEnded = () => setIsPlaying(false);
+    const onError = (e: Event) => console.error("Audio error:", (e.target as HTMLAudioElement).error);
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+    };
+  }, []);
+
   const play = useCallback((item: PlayableItem) => {
     setCurrentItem(item);
     setIsPlaying(true);
     setPositionState(0);
-    if (audioRef.current) {
-      audioRef.current.src = item.audioUrl;
-      audioRef.current.playbackRate = speed;
-      audioRef.current.play().catch(() => {});
+    const audio = audioRef.current;
+    if (audio) {
+      audio.src = item.audioUrl;
+      audio.playbackRate = speed;
+      audio.currentTime = 0;
+      audio.play().catch(console.error);
     }
   }, [speed]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => {
       const next = !prev;
-      if (audioRef.current) {
-        if (next) audioRef.current.play().catch(() => {});
-        else audioRef.current.pause();
+      const audio = audioRef.current;
+      if (audio) {
+        if (next) audio.play().catch(console.error);
+        else audio.pause();
       }
       return next;
     });
@@ -70,16 +93,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const skipForward = useCallback((seconds: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime += seconds;
-      setPositionState(audioRef.current.currentTime);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + seconds);
+      setPositionState(audio.currentTime);
     }
   }, []);
 
   const skipBack = useCallback((seconds: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - seconds);
-      setPositionState(audioRef.current.currentTime);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = Math.max(0, audio.currentTime - seconds);
+      setPositionState(audio.currentTime);
     }
   }, []);
 
