@@ -6,10 +6,11 @@ test.describe("Scenario 5: Quick Re-listen", () => {
 
     // Navigate to library
     await page.getByRole("button", { name: "Library" }).click();
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
+    const readyItem = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItem).toBeVisible({ timeout: 10000 });
 
     // Play first item
-    await page.getByTestId("library-item").first().click();
+    await readyItem.click();
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
 
     // Expand player
@@ -34,7 +35,9 @@ test.describe("Scenario 5: Quick Re-listen", () => {
     await page.getByRole("button", { name: "Library" }).click();
 
     // Re-open the same item
-    await page.getByTestId("library-item").first().click();
+    const readyItem = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItem).toBeVisible({ timeout: 10000 });
+    await readyItem.click();
 
     // Wait for player bar to be visible after the SECOND library-item click
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });

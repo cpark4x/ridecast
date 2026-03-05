@@ -8,10 +8,11 @@ test.describe("Scenario 4: Offline Listening", () => {
     await page.getByRole("button", { name: "Library" }).click();
 
     // Wait for items
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
+    const readyItem = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItem).toBeVisible({ timeout: 10000 });
 
     // Play an item (this caches the audio)
-    await page.getByTestId("library-item").first().click();
+    await readyItem.click();
 
     // Wait for player bar
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });

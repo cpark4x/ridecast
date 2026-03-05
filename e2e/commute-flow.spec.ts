@@ -11,10 +11,11 @@ test.describe("Scenario 3: The Commute Flow", () => {
     await page.getByRole("button", { name: "Library" }).click();
 
     // Wait for items to load
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 10000 });
+    const readyItem = page.getByTestId("library-item").filter({ hasText: "Ready" }).first();
+    await expect(readyItem).toBeVisible({ timeout: 10000 });
 
     // Tap first item
-    await page.getByTestId("library-item").first().click();
+    await readyItem.click();
 
     // Player bar should appear at the bottom
     const playerBar = page.getByTestId("player-bar");
