@@ -4,13 +4,12 @@
 # so no ANTHROPIC_API_KEY or OPENAI_API_KEY are needed.
 #
 # Trigger strategy:
-#   push → main only (covers merged commits without double-running PRs)
+#   push → all branches (allows workflow runs on PR branches before merge)
 #   pull_request → all branches (runs on every PR)
 name: CI
 
 on:
-  push:
-    branches: ["main"]
+  push:  # allows workflow runs on PR branches before merge
   pull_request:
 
 jobs:
