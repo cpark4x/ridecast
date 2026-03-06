@@ -133,6 +133,92 @@ describe('POST /api/process', () => {
     expect(data.error).toContain('Missing required fields');
   });
 
+  it('includes durationAdvisory when generated word count is outside ±15% tolerance', async () => {
+    // targetMinutes=5 → targetWords=750, ±15% → min=638
+    // wordCount=600 is ~80% of target → advisory should say "shorter"
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some text.',
+      wordCount: 5000,
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: 'A tech essay.',
+    });
+
+    const shortText = Array(600).fill('word').join(' ');
+    mockGenerateScript.mockResolvedValue({
+      text: shortText,
+      wordCount: 600,
+      format: 'narrator',
+    });
+
+    const savedScript = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      targetDuration: 5,
+      actualWordCount: 600,
+      compressionRatio: 0.12,
+      scriptText: shortText,
+      contentType: 'essay',
+      themes: ['tech'],
+    };
+    mockScriptCreate.mockResolvedValue(savedScript);
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.durationAdvisory).toBeTruthy();
+    expect(data.durationAdvisory).toContain('shorter');
+  });
+
+  it('does not include durationAdvisory when word count is within ±15%', async () => {
+    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000 };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: 'A tech essay.',
+    });
+
+    // 720 words for 5-min target (750 words): 720/750 = 96% — within ±15%
+    const normalText = Array(720).fill('word').join(' ');
+    mockGenerateScript.mockResolvedValue({
+      text: normalText,
+      wordCount: 720,
+      format: 'narrator',
+    });
+
+    const savedScript = {
+      id: 'script-2',
+      contentId: 'content-1',
+      format: 'narrator',
+      targetDuration: 5,
+      actualWordCount: 720,
+      compressionRatio: 720 / 5000,
+      scriptText: normalText,
+      contentType: 'essay',
+      themes: ['tech'],
+    };
+    mockScriptCreate.mockResolvedValue(savedScript);
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.durationAdvisory).toBeNull();
+  });
+
   it('returns 500 when API key is not configured', async () => {
     delete process.env.ANTHROPIC_API_KEY;
 

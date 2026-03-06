@@ -89,6 +89,85 @@ describe('ClaudeProvider', () => {
     });
   });
 
+  describe('generateScript() — duration accuracy', () => {
+    it('retries when first result is below ±15% tolerance', async () => {
+      // targetMinutes=5 → targetWords=750, min=638, max=863
+      // 637 words is below the ±15% floor (638) but above the old ±30% floor (525)
+      // — so this test only passes with the tightened tolerance
+      const shortText = Array(637).fill('word').join(' ');
+      const inRangeText = Array(700).fill('word').join(' ');
+
+      mockCreate
+        .mockResolvedValueOnce({ content: [{ type: 'text', text: shortText }] })
+        .mockResolvedValueOnce({ content: [{ type: 'text', text: inRangeText }] });
+
+      const result = await provider.generateScript('source text', {
+        format: 'narrator',
+        targetMinutes: 5,
+        contentType: 'business_book',
+        themes: ['productivity'],
+      });
+
+      expect(result.wordCount).toBe(700);
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+    });
+
+    it('performs a second retry with hard constraint when first retry is still out of range', async () => {
+      // 3 calls total: initial + 1st retry + 2nd retry (hard constraint)
+      const shortText = Array(600).fill('word').join(' ');
+      const finalText = Array(640).fill('word').join(' ');
+
+      mockCreate
+        .mockResolvedValueOnce({ content: [{ type: 'text', text: shortText }] })
+        .mockResolvedValueOnce({ content: [{ type: 'text', text: shortText }] })
+        .mockResolvedValueOnce({ content: [{ type: 'text', text: finalText }] });
+
+      const result = await provider.generateScript('source text', {
+        format: 'narrator',
+        targetMinutes: 5,
+        contentType: 'business_book',
+        themes: ['productivity'],
+      });
+
+      expect(mockCreate).toHaveBeenCalledTimes(3);
+      expect(result.wordCount).toBe(640);
+    });
+
+    it('returns best effort after all retries miss and does not throw', async () => {
+      const shortText = Array(500).fill('word').join(' ');
+
+      mockCreate.mockResolvedValue({ content: [{ type: 'text', text: shortText }] });
+
+      const result = await provider.generateScript('source text', {
+        format: 'narrator',
+        targetMinutes: 5,
+        contentType: 'business_book',
+        themes: ['productivity'],
+      });
+
+      expect(mockCreate).toHaveBeenCalledTimes(3);
+      expect(result.wordCount).toBe(500);
+      expect(result.text).toBeTruthy();
+    });
+
+    it('raises max_tokens floor to 2048 for short targets', async () => {
+      // targetMinutes=5 → targetWords=750, targetWords*2=1500 < 2048
+      // New code: max_tokens = Math.max(750*2, 2048) = 2048
+      const text = Array(750).fill('word').join(' ');
+      mockCreate.mockResolvedValue({ content: [{ type: 'text', text }] });
+
+      await provider.generateScript('source text', {
+        format: 'narrator',
+        targetMinutes: 5,
+        contentType: 'business_book',
+        themes: ['productivity'],
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0] as { max_tokens: number };
+      expect(callArgs.max_tokens).toBe(2048);
+    });
+  });
+
   describe('error handling', () => {
     it('throws on empty content array from analyze()', async () => {
       mockCreate.mockResolvedValue({ content: [] });

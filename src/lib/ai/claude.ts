@@ -88,8 +88,8 @@ ${truncated}`,
 
   async generateScript(text: string, config: ScriptConfig): Promise<GeneratedScript> {
     const targetWords = config.targetMinutes * WORDS_PER_MINUTE;
-    const minWords = Math.round(targetWords * 0.7);
-    const maxWords = Math.round(targetWords * 1.3);
+    const minWords = Math.round(targetWords * 0.85);
+    const maxWords = Math.round(targetWords * 1.15);
 
     // Truncate to stay within Claude's context window. For very large
     // documents the beginning is usually enough for a good summary.
@@ -101,8 +101,9 @@ ${truncated}`,
 
     let result = await this.callGenerateScript(prompt, targetWords);
 
-    // Validate word count. If outside ±30% tolerance, retry once with
-    // explicit correction. One retry only — LLMs are stochastic.
+    // Validate word count. If outside ±15% tolerance, retry with explicit
+    // correction. First retry uses soft guidance; second retry uses a hard
+    // constraint. Two retries maximum — LLMs are stochastic.
     if (result.wordCount < minWords || result.wordCount > maxWords) {
       const direction = result.wordCount < minWords ? 'short' : 'long';
       const guidance = direction === 'short'
@@ -121,10 +122,28 @@ IMPORTANT CORRECTION: Your script must be between ${minWords} and ${maxWords} wo
       result = await this.callGenerateScript(correctionPrompt, targetWords);
 
       if (result.wordCount < minWords || result.wordCount > maxWords) {
-        console.warn(
-          `[duration] Script still ${result.wordCount < minWords ? 'short' : 'long'} after retry: ` +
-          `${result.wordCount} words vs ${targetWords} target. Proceeding with best effort.`
+        console.log(
+          `[duration] Script still ${result.wordCount < minWords ? 'short' : 'long'} after first retry: ` +
+          `${result.wordCount} words vs ${targetWords} target. Applying hard constraint.`
         );
+
+        // Second retry: hard constraint with explicit word count requirement.
+        const hardConstraintPrompt = `${prompt}
+
+HARD CONSTRAINT — DO NOT EXCEED OR FALL SHORT: Your script must contain between ${minWords} and ${maxWords} words. Count your words carefully before finishing. The target is EXACTLY ${targetWords} words.`;
+
+        result = await this.callGenerateScript(hardConstraintPrompt, targetWords);
+
+        if (result.wordCount < minWords || result.wordCount > maxWords) {
+          console.warn(
+            `[duration] Script still ${result.wordCount < minWords ? 'short' : 'long'} after all retries: ` +
+            `${result.wordCount} words vs ${targetWords} target. Proceeding with best effort.`
+          );
+        } else {
+          console.log(
+            `[duration] Hard constraint retry succeeded: ${result.wordCount} words (target: ${targetWords}).`
+          );
+        }
       } else {
         console.log(
           `[duration] Retry succeeded: ${result.wordCount} words (target: ${targetWords}).`
@@ -144,8 +163,8 @@ IMPORTANT CORRECTION: Your script must be between ${minWords} and ${maxWords} wo
     targetWords: number,
     sourceText: string,
   ): string {
-    const minWords = Math.round(targetWords * 0.7);
-    const maxWords = Math.round(targetWords * 1.3);
+    const minWords = Math.round(targetWords * 0.85);
+    const maxWords = Math.round(targetWords * 1.15);
 
     return config.format === 'narrator'
       ? `Create a spoken-word podcast script summarizing the following content.
@@ -181,7 +200,7 @@ ${sourceText}`;
   ): Promise<{ text: string; wordCount: number }> {
     const response = await this.client.messages.create({
       model: MODEL,
-      max_tokens: targetWords * 2,
+      max_tokens: Math.max(targetWords * 2, 2048),
       messages: [
         {
           role: 'user',

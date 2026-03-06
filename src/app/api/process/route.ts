@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ClaudeProvider } from '@/lib/ai/claude';
+import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 
 export async function POST(request: Request) {
   let contentId: string | undefined;
@@ -62,7 +63,15 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(script);
+    // Surface advisory when generated word count misses ±15% tolerance.
+    // Never blocks playback — advisory only.
+    const targetWords = targetMinutes * WORDS_PER_MINUTE;
+    const deviation = Math.abs(generated.wordCount - targetWords) / targetWords;
+    const durationAdvisory = deviation > 0.15
+      ? `Note: Script is ${generated.wordCount < targetWords ? 'shorter' : 'longer'} than your ${targetMinutes}-minute target.`
+      : null;
+
+    return NextResponse.json({ ...script, durationAdvisory });
   } catch (error) {
     console.error('Process error:', { contentId, error });
 
