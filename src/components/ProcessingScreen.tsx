@@ -16,6 +16,10 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
   const [format, setFormat] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [errorStage, setErrorStage] = useState<"processing" | "audio" | null>(null);
+  const [scriptId, setScriptId] = useState<string | null>(null);
+  const [durationAdvisory, setDurationAdvisory] = useState<string | null>(null);
+  const [retryingAudio, setRetryingAudio] = useState(false);
 
   // Ref-guard prevents React Strict Mode from double-firing the pipeline.
   // Without this, two /api/process calls are made (creating duplicate scripts).
@@ -28,6 +32,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
 
     const abort = new AbortController();
     setError(null);
+    setErrorStage(null);
 
     async function run() {
       try {
@@ -44,7 +49,13 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
         const processData = await processRes.json();
 
         if (abort.signal.aborted) return;
-        if (!processRes.ok) throw new Error(processData.error);
+        if (!processRes.ok) {
+          setErrorStage("processing");
+          throw new Error(processData.error || "Script generation failed. Please try again.");
+        }
+
+        setScriptId(processData.id);
+        if (processData.durationAdvisory) setDurationAdvisory(processData.durationAdvisory);
 
         setStage("compressing");
         setProgress(40);
@@ -67,7 +78,10 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
         const audioData = await audioRes.json();
 
         if (abort.signal.aborted) return;
-        if (!audioRes.ok) throw new Error(audioData.error);
+        if (!audioRes.ok) {
+          setErrorStage("audio");
+          throw new Error(audioData.error || "Audio generation failed. Please try again.");
+        }
 
         setProgress(100);
         setStage("done");
@@ -89,6 +103,37 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
     run();
     return () => { abort.abort(); runningRef.current = false; };
   }, [contentId, targetMinutes, onComplete, attempt]);
+
+  async function handleRetryAudio() {
+    if (!scriptId || retryingAudio) return;
+    setRetryingAudio(true);
+    setError(null);
+    setErrorStage(null);
+    setProgress(60);
+    setStage("generating");
+    try {
+      const audioRes = await fetch("/api/audio/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scriptId }),
+      });
+      const audioData = await audioRes.json();
+      if (!audioRes.ok) {
+        setErrorStage("audio");
+        setError(audioData.error || "Audio generation failed. Please try again.");
+        return;
+      }
+      setProgress(100);
+      setStage("done");
+      await new Promise((r) => setTimeout(r, 600));
+      onComplete(scriptId);
+    } catch (err) {
+      setErrorStage("audio");
+      setError(err instanceof Error ? err.message : "Audio generation failed. Please try again.");
+    } finally {
+      setRetryingAudio(false);
+    }
+  }
 
   const stages: { id: Stage; label: string }[] = [
     { id: "analyzing", label: "Analyzing content..." },
@@ -154,19 +199,37 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
       {error && (
         <div className="w-full max-w-[280px] mb-6 text-center">
           <p className="text-red-400 text-sm mb-4">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              setStage("analyzing");
-              setProgress(0);
-              setFormat(null);
-              setAttempt((a) => a + 1);
-            }}
-            className="px-5 py-2 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
-          >
-            Try Again
-          </button>
+          <div className="flex flex-col gap-2">
+            {errorStage === "audio" && scriptId ? (
+              <button
+                onClick={handleRetryAudio}
+                disabled={retryingAudio}
+                className="px-5 py-2 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-50"
+              >
+                {retryingAudio ? "Retrying..." : "Retry Audio Generation"}
+              </button>
+            ) : null}
+            <button
+              onClick={() => {
+                setError(null);
+                setErrorStage(null);
+                setStage("analyzing");
+                setProgress(0);
+                setFormat(null);
+                setDurationAdvisory(null);
+                setAttempt((a) => a + 1);
+              }}
+              className="px-5 py-2 rounded-full text-sm font-semibold bg-white/10 text-white/60 hover:bg-white/15 transition-colors"
+            >
+              Start Over
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Duration Advisory */}
+      {durationAdvisory && !error && (
+        <div className="text-xs text-amber-400/80 text-center mt-2">{durationAdvisory}</div>
       )}
 
       {/* Format Badge */}

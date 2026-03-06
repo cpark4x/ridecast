@@ -7,6 +7,7 @@ interface ContentPreview {
   title: string;
   wordCount: number;
   readTime: number;
+  truncationWarning?: string | null;
 }
 
 interface UploadScreenProps {
@@ -55,6 +56,7 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
         title: data.title,
         wordCount: data.wordCount,
         readTime: Math.round(data.wordCount / 250),
+        truncationWarning: data.truncationWarning ?? null,
       });
     } catch {
       setError("Upload failed. Please try again.");
@@ -172,6 +174,12 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
               </div>
             </div>
           </div>
+
+          {preview.truncationWarning && (
+            <div className="text-xs text-amber-400/80 mt-2 leading-snug">
+              ⚠ {preview.truncationWarning}
+            </div>
+          )}
 
           <div className="h-px bg-white/[0.08] my-3.5" />
 

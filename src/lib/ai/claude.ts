@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from './types';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
+import { retryWithBackoff } from '@/lib/utils/retry';
 
 const MODEL = 'claude-sonnet-4-20250514';
 const ANALYSIS_MAX_TOKENS = 1024;
@@ -40,7 +41,7 @@ export class ClaudeProvider implements AIProvider {
   async analyze(text: string): Promise<ContentAnalysis> {
     const truncated = text.slice(0, MAX_ANALYSIS_CHARS);
 
-    const response = await this.client.messages.create({
+    const response = await retryWithBackoff(() => this.client.messages.create({
       model: MODEL,
       max_tokens: ANALYSIS_MAX_TOKENS,
       messages: [
@@ -58,7 +59,7 @@ Text:
 ${truncated}`,
         },
       ],
-    });
+    }));
 
     const content = response.content[0];
     if (!content || content.type !== 'text') {
@@ -198,7 +199,7 @@ ${sourceText}`;
     prompt: string,
     targetWords: number,
   ): Promise<{ text: string; wordCount: number }> {
-    const response = await this.client.messages.create({
+    const response = await retryWithBackoff(() => this.client.messages.create({
       model: MODEL,
       max_tokens: Math.max(targetWords * 2, 2048),
       messages: [
@@ -207,7 +208,7 @@ ${sourceText}`;
           content: prompt,
         },
       ],
-    });
+    }));
 
     const content = response.content[0];
     if (!content || content.type !== 'text') {

@@ -5,6 +5,9 @@ import { contentHash } from '@/lib/utils/hash';
 
 const DEFAULT_USER_ID = 'default-user';
 
+// Max chars sent to Claude for script generation (~600K = ~150K words / ~500 pages)
+const TRUNCATION_WARNING_CHARS = 400_000; // warn above ~100K words / ~330 pages
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -79,7 +82,11 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(record);
+    const truncationWarning = text.length > TRUNCATION_WARNING_CHARS
+      ? `This document is very long (${Math.round(text.length / 6)} words). Only the first ~100,000 words will be used for audio generation.`
+      : null;
+
+    return NextResponse.json({ ...record, truncationWarning });
   } catch (error) {
     console.error('Upload error:', error);
 

@@ -63,6 +63,22 @@ describe('extractPdf', () => {
     expect(result.wordCount).toBe(3);
   });
 
+  it('throws a "password-protected" message for encrypted PDFs', async () => {
+    mockedPdfParse.mockRejectedValue(new Error('PDF is encrypted'));
+
+    await expect(extractPdf(Buffer.from('encrypted'), 'secret.pdf')).rejects.toThrow(
+      'password-protected',
+    );
+  });
+
+  it('throws a generic corrupted-file message for unreadable PDFs', async () => {
+    mockedPdfParse.mockRejectedValue(new Error('bad XRef entry'));
+
+    await expect(extractPdf(Buffer.from('corrupt'), 'bad.pdf')).rejects.toThrow(
+      'corrupted',
+    );
+  });
+
   it('strips .PDF extension case-insensitively for title fallback', async () => {
     mockedPdfParse.mockResolvedValue({
       text: 'Content here.',

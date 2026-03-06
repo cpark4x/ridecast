@@ -8,6 +8,9 @@ import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 
+// 3 minutes — conversation TTS stitches many segments
+export const maxDuration = 180;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

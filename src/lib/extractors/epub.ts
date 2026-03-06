@@ -2,7 +2,12 @@ import JSZip from 'jszip';
 import type { ExtractionResult } from './types';
 
 export async function extractEpub(buffer: Buffer, filename: string): Promise<ExtractionResult> {
-  const zip = await JSZip.loadAsync(buffer);
+  let zip: Awaited<ReturnType<typeof JSZip.loadAsync>>;
+  try {
+    zip = await JSZip.loadAsync(buffer);
+  } catch {
+    throw new Error('Could not read this EPUB. The file may be corrupted or use an unsupported format.');
+  }
 
   // Parse container.xml to find OPF path
   const containerXml = await zip.file('META-INF/container.xml')?.async('string');
