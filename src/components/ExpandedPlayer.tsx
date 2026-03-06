@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { usePlayer } from "./PlayerContext";
 import { formatDuration } from "@/lib/utils/duration";
 
@@ -12,6 +13,15 @@ interface ExpandedPlayerProps {
 
 export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
   const { currentItem, isPlaying, position, speed, togglePlay, setSpeed, setPosition, skipForward, skipBack } = usePlayer();
+  const [undoPosition, setUndoPosition] = useState<number | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up undo timer on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
 
   if (!currentItem) return null;
 
@@ -28,7 +38,32 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
   function seekProgress(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
-    setPosition(Math.max(0, Math.min(duration, pct * duration)));
+    const newPos = Math.max(0, Math.min(duration, pct * duration));
+
+    // Save current position for undo
+    setUndoPosition(position);
+
+    // Clear any existing undo timer
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+    // Auto-dismiss undo after 4 seconds
+    undoTimerRef.current = setTimeout(() => {
+      setUndoPosition(null);
+      undoTimerRef.current = null;
+    }, 4000);
+
+    setPosition(newPos);
+  }
+
+  function handleUndo() {
+    if (undoPosition !== null) {
+      setPosition(undoPosition);
+      setUndoPosition(null);
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = null;
+      }
+    }
   }
 
   return (
@@ -65,9 +100,25 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
 
       {/* Progress */}
       <div className="px-6 mb-6">
-        <div onClick={seekProgress} className="w-full h-1 bg-white/10 rounded-sm cursor-pointer relative group hover:h-1.5 transition-all">
+        <div data-testid="progress-bar" onClick={seekProgress} className="w-full h-1 bg-white/10 rounded-sm cursor-pointer relative group hover:h-1.5 transition-all">
           <div className="h-full rounded-sm relative" style={{ width: `${progress}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }} />
         </div>
+
+        {/* Undo Seek button — appears for 4s after any seek */}
+        {undoPosition !== null && (
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={handleUndo}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-white/70 transition-all"
+            >
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 10h11a5 5 0 0 1 0 10H3" /><polyline points="7 6 3 10 7 14" />
+              </svg>
+              Go Back
+            </button>
+          </div>
+        )}
+
         <div className="flex justify-between mt-2">
           <span className="text-[11px] text-white/55 font-medium tabular-nums">{formatDuration(Math.floor(position))}</span>
           <span className="text-[11px] text-white/55 font-medium tabular-nums">-{formatDuration(Math.floor(remaining))}</span>
