@@ -128,20 +128,26 @@ completed_features: []
 
 features:
   duration-accuracy:
-    status: "ready"
+    status: "done"
     title: "Duration Accuracy — ±15% tolerance, 2nd retry, durationAdvisory"
     spec: "specs/features/phase1/duration-accuracy.md"
     depends_on: []
+    commit: "f1f5775"
+    completed_at: "2026-03-06T14:18:00Z"
   pipeline-error-resilience:
-    status: "ready"
+    status: "done"
     title: "Pipeline Error Resilience — retryWithBackoff, truncation warning, maxDuration"
     spec: "specs/features/phase1/pipeline-error-resilience.md"
     depends_on: []
+    commit: "b158b0d"
+    completed_at: "2026-03-06T14:24:00Z"
   processing-screen-upgrade:
-    status: "ready"
+    status: "done"
     title: "ProcessingScreen 4-Stage UI — Analyzing→Scripting→Generating→Ready"
     spec: "specs/features/phase1/processing-screen-upgrade.md"
     depends_on: []
+    commit: "43bec2a"
+    completed_at: "2026-03-06T14:28:00Z"
   playback-state-persistence:
     status: "ready"
     title: "Playback State Persistence — wire /api/playback into PlayerContext"

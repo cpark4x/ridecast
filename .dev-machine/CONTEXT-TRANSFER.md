@@ -2,7 +2,37 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** All health gates green. 5 Phase 1 specs ready. Dev machine primed for autonomous build.
+**Status:** All health gates green. 3 of 5 Phase 1 specs shipped. 2 remain.
+
+---
+
+### Session 1 Summary — 2026-03-06
+
+**Completed:**
+
+- `duration-accuracy` (commit `f1f5775`) — Tightened ±30% → ±15% tolerance in `claude.ts`; added 2nd retry with hard constraint prompt; raised `max_tokens` floor to `Math.max(targetWords*2, 2048)`; added `durationAdvisory` field to `/api/process` response (shown when actual word count misses ±15%); wired advisory into `ProcessingScreen`. Added 6 new tests (4 in `claude.test.ts`, 2 in `process/route.test.ts`).
+
+- `pipeline-error-resilience` (commit `b158b0d`) — Created `src/lib/utils/retry.ts` with `retryWithBackoff` (2 retries max, 3× backoff, rate-limit only); wrapped Claude `messages.create` and OpenAI TTS `audio.speech.create` calls; added `truncationWarning` field to upload response (warns above 400K chars); added `truncationWarning` display to `UploadScreen.tsx`; exported `maxDuration = 120` and `maxDuration = 180` from process and audio/generate routes; wrapped PDF/EPUB extraction in try/catch with user-friendly typed error messages; added per-stage `errorStage` state to `ProcessingScreen` with "Retry Audio Generation" button that retries audio-only without re-running Claude. Added 6 new tests in `retry.test.ts`, 2 new tests in `pdf.test.ts`.
+
+- `processing-screen-upgrade` (commit `43bec2a`) — Replaced loading spinner with 4-stage UI (`analyzing → scripting → generating → ready`); added 3-second timer to advance analyzing → scripting; added `STAGE_CONFIG` with icon/label/copy per stage; replaced progress bar with 4-step indicator; added "Ready" episode card with "Play Now" + "Add to Queue" buttons; `onComplete` now called with `audio.id`; `addToQueue` is a console-log stub (future queue feature); `durationAdvisory` shown in ready card. Added 4 new tests in `ProcessingScreen.test.tsx`.
+
+**Health gates:**
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| `npm run lint` | ✅ PASS | 10 warnings (unchanged, all pre-existing no-unused-vars) |
+| `npm run test` | ✅ PASS | 76/83 passing, 7 skipped (DB-dependent) — up from 58/65 |
+| `npm run build` | ✅ PASS | Next.js 16.1.6 + Turbopack, no new errors |
+
+**Next session should start with:** `playback-state-persistence` (priority 4)
+
+**Notes:**
+- `addToQueue` in `ProcessingScreen` is a stub (logs to console). The full queue feature is deferred.
+- `ProcessingScreen.onComplete` signature changed: now passes `audioId` (was `scriptId`). `AppShell.handleProcessComplete` ignores the argument so no breakage.
+- All 18 test files pass; 20 test files total (2 DB-dependent are skipped file-level).
+- `prisma/dev.db` remains untracked — do not commit.
+
+---
 
 ---
 
