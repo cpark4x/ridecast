@@ -21,6 +21,7 @@
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "dexie": "^4.3.0",
+    "elevenlabs": "^1.59.0",
     "jsdom": "^28.1.0",
     "jszip": "^3.10.1",
     "music-metadata": "^11.12.1",
