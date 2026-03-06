@@ -109,20 +109,26 @@ completed_features:
 - commute-duration
 features:
   home-screen-queue-first:
-    status: ready
+    status: done
     title: "Queue-First Home Screen — replaces Upload as default, shows episode queue + commute math"
     spec: specs/features/phase2/home-screen-queue-first.md
     depends_on: [commute-duration]
+    commit: "590644a"
+    completed_at: "2026-03-06T15:41:00Z"
   smart-resume:
-    status: ready
+    status: done
     title: "Smart Resume — auto-rewind 3s after pause > 10s in PlayerContext"
     spec: specs/features/phase2/smart-resume.md
     depends_on: []
+    commit: "5efca83"
+    completed_at: "2026-03-06T15:30:00Z"
   undo-seek:
-    status: ready
+    status: done
     title: "Undo Seek — Go Back button 4s after any progress bar tap in ExpandedPlayer"
     spec: specs/features/phase2/undo-seek.md
     depends_on: []
+    commit: "9d4598d"
+    completed_at: "2026-03-06T15:32:00Z"
   elevenlabs-key-settings:
     status: ready
     title: "ElevenLabs Key Settings — UI to enter key without editing .env, sent as header"
@@ -136,4 +142,4 @@ next_steps:
     \  \u2014 retryWithBackoff, truncation warning, maxDuration\n  3. processing-screen-upgrade.md  \u2014 4-stage Analyzing\u2192\
     Scripting\u2192Generating\u2192Ready\n  4. playback-state-persistence.md \u2014 Wire /api/playback into PlayerContext\n\
     \  5. audio-duration-measurement.md \u2014 Replace buffer-size estimate with real measurement\n"
-last_session: '2026-03-06T23:11:16.588159+00:00'
+last_session: '2026-03-06T15:41:52.000000+00:00'

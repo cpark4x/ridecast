@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** Phase 2 batch 1 complete (9 features total). 4 Phase 2 refinement specs ready. All gates green.
+**Status:** Phase 2 batch 2 complete (12 features total). 1 Phase 2 spec remaining. All gates green.
 
 ---
 
@@ -13,15 +13,30 @@
 | Gate | Status | Notes |
 |------|--------|-------|
 | `npm run lint` | ✅ PASS | 10 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **95 passing**, 7 skipped (DB-dependent) |
+| `npm run test` | ✅ PASS | **110 passing**, 7 skipped (DB-dependent) |
 | `npm run build` | ✅ PASS | |
-| `npm run test:e2e` | ✅ PASS | 5/5 |
+| `npm run test:e2e` | ✅ PASS | 5/5 (last verified session 3) |
 
-### Shipped So Far (9 features, 3 machine sessions)
+### Shipped So Far (12 features, 4 machine sessions)
 
 **Phase 1 (session 1+2):** Duration accuracy · Pipeline resilience · ProcessingScreen 4-stage UI · Playback state persistence · Audio duration measurement
 
 **Phase 2 batch 1 (session 3):** ElevenLabs provider + routing · Episode versioning · Commute duration preference
+
+**Phase 2 batch 2 (session 4):** Smart resume · Undo seek · Queue-first home screen
+
+---
+
+## Session 4 Summary — 2026-03-06
+
+**Completed:**
+- `smart-resume` (commit `5efca83`) — `SMART_RESUME_REWIND_SECS=3`, `SMART_RESUME_THRESHOLD_MS=10_000` exported from PlayerContext. `pausedAtRef` added. `togglePlay` rewinds 3s if paused > 10s. Tests: 4 new tests in PlayerContext.test.tsx using real DOM audio element (not mock constructor).
+- `undo-seek` (commit `9d4598d`) — `undoPosition` state + `undoTimerRef` in ExpandedPlayer. `data-testid="progress-bar"` added to progress div. "Go Back" button appears for 4s after seek, restores previous position. Tests: 5 new tests in ExpandedPlayer.test.tsx (new file). getBoundingClientRect mocked for progress bar click simulation.
+- `home-screen-queue-first` (commit `590644a`) — `HomeScreen.tsx` created with `queue: ReadyEpisode[] | null` (null = loading). `visible` prop controls fetch. BottomNav has new "Home" tab icon. AppShell default tab is now `"home"`. AppShell tests updated to mock fetch and expect Home tab. Key design decision: used `null` as loading sentinel (not separate `loading` state) to avoid `react-hooks/set-state-in-effect` lint error.
+
+**Health gates:** lint ✅ (0 errors, 10 pre-existing warnings) · test ✅ (110 passing, +15 new) · build ✅
+
+**Next session should start with:** `elevenlabs-key-settings`
 
 ---
 
@@ -35,24 +50,13 @@ Full context: `VISION.md`, `ROADMAP.md`
 
 ---
 
-## Phase 2 Refinement Specs — Ready to Build
-
-4 specs in `specs/features/phase2/`. Build in this order (respect depends_on):
+## Remaining Phase 2 Spec
 
 | Priority | Feature | Spec | Effort | Depends on |
 |----------|---------|------|--------|------------|
-| 1 | smart-resume | `smart-resume.md` | Small | — |
-| 2 | undo-seek | `undo-seek.md` | Small | — |
-| 3 | home-screen-queue-first | `home-screen-queue-first.md` | Medium | commute-duration (already built) |
-| 4 | elevenlabs-key-settings | `elevenlabs-key-settings.md` | Medium | elevenlabs-provider + routing (already built) |
+| 1 | elevenlabs-key-settings | `elevenlabs-key-settings.md` | Medium | elevenlabs-provider + routing (already built) |
 
-### Key context for each spec
-
-**smart-resume:** Add `pausedAtRef = useRef<number | null>(null)` to PlayerContext. In `togglePlay`, record `Date.now()` on pause; on resume, rewind 3s if paused > 10s. Export `SMART_RESUME_REWIND_SECS = 3` and `SMART_RESUME_THRESHOLD_MS = 10_000` as module constants for tests. Only file: `src/components/PlayerContext.tsx`.
-
-**undo-seek:** Add `undoPosition` state + `undoTimerRef` to ExpandedPlayer. In `seekProgress`, save current `position` to `undoPosition` before seeking, start 4s auto-dismiss timer. Show "↩ Go Back" button below progress bar while `undoPosition !== null`. Only file: `src/components/ExpandedPlayer.tsx`.
-
-**home-screen-queue-first:** New `HomeScreen.tsx` that fetches `/api/library`, flattens ready versions into a queue, shows commute math using `useCommuteDuration()`. AppShell default tab changes from `"upload"` → `"home"`. Add Home tab to BottomNav. Files: HomeScreen.tsx (new), AppShell.tsx, BottomNav.tsx.
+### Key context for elevenlabs-key-settings
 
 **elevenlabs-key-settings:** Update `createTTSProvider(key?)` to accept optional key param. Route reads `request.headers.get("x-elevenlabs-key")`. New `SettingsScreen.tsx` with password input + `useElevenLabsKey()` hook (localStorage). AppShell adds gear icon + renders settings overlay. ProcessingScreen sends key header on audio generation. Files: provider.ts, elevenlabs.ts, audio/generate/route.ts, SettingsScreen.tsx (new), AppShell.tsx, ProcessingScreen.tsx.
 
