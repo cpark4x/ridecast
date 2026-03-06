@@ -52,7 +52,7 @@ export function AppShell() {
       {/* Library Screen */}
       <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "library" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
         style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        <LibraryScreen />
+        <LibraryScreen visible={activeTab === "library"} />
       </div>
 
       {/* Player Tab (empty state) */}

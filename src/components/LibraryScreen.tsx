@@ -30,7 +30,12 @@ const sourceIcons: Record<string, string> = {
   txt: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
 };
 
-export function LibraryScreen() {
+interface LibraryScreenProps {
+  /** When true the screen is the active tab — triggers a data refresh. */
+  visible?: boolean;
+}
+
+export function LibraryScreen({ visible }: LibraryScreenProps) {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { play } = usePlayer();
@@ -47,9 +52,10 @@ export function LibraryScreen() {
     }
   }, []);
 
+  // Fetch on mount and re-fetch whenever the tab becomes visible.
   useEffect(() => {
     loadLibrary();
-  }, [loadLibrary]);
+  }, [loadLibrary, visible]);
 
   function handlePlay(item: LibraryItem) {
     if (item.status !== "ready" || !item.audioUrl || !item.audioId) return;

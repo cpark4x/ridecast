@@ -65,8 +65,21 @@ export async function POST(request: Request) {
     return NextResponse.json(script);
   } catch (error) {
     console.error('Process error:', { contentId, error });
+
+    // Surface actionable messages instead of generic 500.
+    let message = 'Something went wrong while processing your content.';
+    if (error instanceof Error) {
+      if (error.message.includes('prompt is too long')) {
+        message = 'This document is too large to process. Try a shorter file or select a shorter duration.';
+      } else if (error.message.includes('rate limit') || error.message.includes('429')) {
+        message = 'AI service is busy. Please wait a moment and try again.';
+      } else if (error.message.includes('authentication') || error.message.includes('401')) {
+        message = 'AI service is not configured properly. Check your API keys.';
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message },
       { status: 500 },
     );
   }

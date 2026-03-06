@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ProcessingScreenProps {
   contentId: string;
@@ -14,9 +14,20 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
   const [stage, setStage] = useState<Stage>("analyzing");
   const [progress, setProgress] = useState(0);
   const [format, setFormat] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  // Ref-guard prevents React Strict Mode from double-firing the pipeline.
+  // Without this, two /api/process calls are made (creating duplicate scripts).
+  const runningRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    // Skip if already running (Strict Mode re-mount).
+    if (runningRef.current) return;
+    runningRef.current = true;
+
+    const abort = new AbortController();
+    setError(null);
 
     async function run() {
       try {
@@ -28,10 +39,11 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ contentId, targetMinutes }),
+          signal: abort.signal,
         });
         const processData = await processRes.json();
 
-        if (cancelled) return;
+        if (abort.signal.aborted) return;
         if (!processRes.ok) throw new Error(processData.error);
 
         setStage("compressing");
@@ -40,7 +52,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
 
         // Small delay for UX
         await new Promise((r) => setTimeout(r, 800));
-        if (cancelled) return;
+        if (abort.signal.aborted) return;
 
         setProgress(60);
         setStage("generating");
@@ -50,27 +62,33 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scriptId: processData.id }),
+          signal: abort.signal,
         });
         const audioData = await audioRes.json();
 
-        if (cancelled) return;
+        if (abort.signal.aborted) return;
         if (!audioRes.ok) throw new Error(audioData.error);
 
         setProgress(100);
         setStage("done");
 
         await new Promise((r) => setTimeout(r, 600));
-        if (cancelled) return;
+        if (abort.signal.aborted) return;
 
         onComplete(processData.id);
-      } catch (error) {
-        console.error("Processing failed:", error);
+      } catch (err) {
+        // Ignore abort errors (normal cleanup).
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (!abort.signal.aborted) {
+          console.error("Processing failed:", err);
+          setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        }
       }
     }
 
     run();
-    return () => { cancelled = true; };
-  }, [contentId, targetMinutes, onComplete]);
+    return () => { abort.abort(); runningRef.current = false; };
+  }, [contentId, targetMinutes, onComplete, attempt]);
 
   const stages: { id: Stage; label: string }[] = [
     { id: "analyzing", label: "Analyzing content..." },
@@ -131,6 +149,25 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           style={{ width: `${progress}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }}
         />
       </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="w-full max-w-[280px] mb-6 text-center">
+          <p className="text-red-400 text-sm mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setStage("analyzing");
+              setProgress(0);
+              setFormat(null);
+              setAttempt((a) => a + 1);
+            }}
+            className="px-5 py-2 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
       {/* Format Badge */}
       {format && (

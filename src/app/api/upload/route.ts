@@ -56,16 +56,14 @@ export async function POST(request: Request) {
 
     const hash = contentHash(text);
 
-    // Check for duplicate
+    // If the same content was uploaded before, reuse it — the user may
+    // want a different duration or format this time.
     const existing = await prisma.content.findUnique({
       where: { contentHash: hash },
     });
 
     if (existing) {
-      return NextResponse.json(
-        { error: 'Duplicate content', existingId: existing.id },
-        { status: 409 },
-      );
+      return NextResponse.json(existing);
     }
 
     const record = await prisma.content.create({
@@ -84,8 +82,20 @@ export async function POST(request: Request) {
     return NextResponse.json(record);
   } catch (error) {
     console.error('Upload error:', error);
+
+    let message = 'Something went wrong processing your upload.';
+    if (error instanceof Error) {
+      if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+        message = 'Could not reach that URL. Please check the address and try again.';
+      } else if (error.message.includes('Invalid URL') || error.message.includes('ERR_INVALID_URL')) {
+        message = 'That doesn\u2019t look like a valid URL.';
+      } else if (error.message.includes('Unsupported') || error.message.includes('extract')) {
+        message = 'Could not extract text from this content. Try a different file or URL.';
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message },
       { status: 500 },
     );
   }
