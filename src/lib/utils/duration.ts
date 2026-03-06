@@ -1,4 +1,4 @@
-const WORDS_PER_MINUTE = 150;
+export const WORDS_PER_MINUTE = 150;
 
 export function minutesToWords(minutes: number): number {
   return minutes * WORDS_PER_MINUTE;

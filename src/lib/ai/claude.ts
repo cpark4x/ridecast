@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from './types';
+import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 
 const MODEL = 'claude-sonnet-4-20250514';
-const WORDS_PER_MINUTE = 150;
 const ANALYSIS_MAX_TOKENS = 1024;
 const MAX_ANALYSIS_CHARS = 3000;
 // Claude's context window is 200K tokens (~800K chars). Reserve space for
@@ -88,6 +88,8 @@ ${truncated}`,
 
   async generateScript(text: string, config: ScriptConfig): Promise<GeneratedScript> {
     const targetWords = config.targetMinutes * WORDS_PER_MINUTE;
+    const minWords = Math.round(targetWords * 0.7);
+    const maxWords = Math.round(targetWords * 1.3);
 
     // Truncate to stay within Claude's context window. For very large
     // documents the beginning is usually enough for a good summary.
@@ -95,11 +97,60 @@ ${truncated}`,
       ? text.slice(0, MAX_SCRIPT_SOURCE_CHARS) + '\n\n[Content truncated for length]'
       : text;
 
-    const prompt =
-      config.format === 'narrator'
-        ? `Create a spoken-word podcast script summarizing the following content.
+    const prompt = this.buildScriptPrompt(config, targetWords, sourceText);
 
-Length: The listener expects about ${config.targetMinutes} minutes of audio. At 150 words per minute, aim for around ${targetWords} words. It's fine to be somewhat over or under, but don't be dramatically shorter — a 4-minute script for a 15-minute target leaves the listener with nothing for most of their commute. Develop ideas fully, use examples, and give key points room to breathe.
+    let result = await this.callGenerateScript(prompt, targetWords);
+
+    // Validate word count. If outside ±30% tolerance, retry once with
+    // explicit correction. One retry only — LLMs are stochastic.
+    if (result.wordCount < minWords || result.wordCount > maxWords) {
+      const direction = result.wordCount < minWords ? 'short' : 'long';
+      const guidance = direction === 'short'
+        ? 'Expand ideas further, add more examples, and develop each point in greater depth.'
+        : 'Compress more aggressively. Focus only on the most important points and cut secondary details.';
+
+      console.log(
+        `[duration] Script ${direction}: ${result.wordCount} words vs ${targetWords} target ` +
+        `(${config.targetMinutes} min). Retrying with correction.`
+      );
+
+      const correctionPrompt = `${prompt}
+
+IMPORTANT CORRECTION: Your script must be between ${minWords} and ${maxWords} words. The target is ${targetWords} words (${config.targetMinutes} minutes at ${WORDS_PER_MINUTE} words per minute). ${guidance}`;
+
+      result = await this.callGenerateScript(correctionPrompt, targetWords);
+
+      if (result.wordCount < minWords || result.wordCount > maxWords) {
+        console.warn(
+          `[duration] Script still ${result.wordCount < minWords ? 'short' : 'long'} after retry: ` +
+          `${result.wordCount} words vs ${targetWords} target. Proceeding with best effort.`
+        );
+      } else {
+        console.log(
+          `[duration] Retry succeeded: ${result.wordCount} words (target: ${targetWords}).`
+        );
+      }
+    }
+
+    return {
+      text: result.text,
+      wordCount: result.wordCount,
+      format: config.format,
+    };
+  }
+
+  private buildScriptPrompt(
+    config: ScriptConfig,
+    targetWords: number,
+    sourceText: string,
+  ): string {
+    const minWords = Math.round(targetWords * 0.7);
+    const maxWords = Math.round(targetWords * 1.3);
+
+    return config.format === 'narrator'
+      ? `Create a spoken-word podcast script summarizing the following content.
+
+Length: The listener expects about ${config.targetMinutes} minutes of audio. At ${WORDS_PER_MINUTE} words per minute, write between ${minWords} and ${maxWords} words (target: ${targetWords}). Don't be dramatically shorter — a 4-minute script for a 15-minute target leaves the listener with nothing for most of their commute. Develop ideas fully, use examples, and give key points room to breathe.
 
 Style:
 - Natural, engaging narrator voice
@@ -109,9 +160,9 @@ Style:
 
 Source text:
 ${sourceText}`
-        : `Create a two-speaker podcast conversation script about the following content.
+      : `Create a two-speaker podcast conversation script about the following content.
 
-Length: The listener expects about ${config.targetMinutes} minutes of audio. At 150 words per minute, aim for around ${targetWords} words. It's fine to be somewhat over or under, but don't be dramatically shorter — a 4-minute script for a 15-minute target leaves the listener with nothing for most of their commute. Let the conversation develop naturally, explore tangents, and give ideas room to breathe.
+Length: The listener expects about ${config.targetMinutes} minutes of audio. At ${WORDS_PER_MINUTE} words per minute, write between ${minWords} and ${maxWords} words (target: ${targetWords}). Don't be dramatically shorter — a 4-minute script for a 15-minute target leaves the listener with nothing for most of their commute. Let the conversation develop naturally, explore tangents, and give ideas room to breathe.
 
 Style:
 - Use exactly two speakers labeled [Host A] and [Host B]
@@ -122,7 +173,12 @@ Style:
 
 Source text:
 ${sourceText}`;
+  }
 
+  private async callGenerateScript(
+    prompt: string,
+    targetWords: number,
+  ): Promise<{ text: string; wordCount: number }> {
     const response = await this.client.messages.create({
       model: MODEL,
       max_tokens: targetWords * 2,
@@ -139,13 +195,9 @@ ${sourceText}`;
       throw new Error('Unexpected response type from Claude');
     }
 
-    const scriptText = content.text.trim();
-    const wordCount = scriptText.split(/\s+/).filter(Boolean).length;
+    const text = content.text.trim();
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
 
-    return {
-      text: scriptText,
-      wordCount,
-      format: config.format,
-    };
+    return { text, wordCount };
   }
 }

@@ -6,8 +6,7 @@ import { prisma } from '@/lib/db';
 import { OpenAITTSProvider } from '@/lib/tts/openai';
 import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
-
-const WORDS_PER_MINUTE = 150;
+import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 
 export async function POST(request: Request) {
   try {
@@ -69,6 +68,16 @@ export async function POST(request: Request) {
     const wordCount = script.scriptText.split(/\s+/).length;
     const durationFromWords = (wordCount / WORDS_PER_MINUTE) * 60;
     const durationSecs = durationFromFile > 10 ? Math.round(durationFromFile) : Math.round(durationFromWords);
+
+    // Log duration accuracy for calibration
+    const targetSecs = script.targetDuration * 60;
+    const deltaSecs = durationSecs - targetSecs;
+    const deltaPct = Math.round((deltaSecs / targetSecs) * 100);
+    console.log(
+      `[duration] Audio generated: ${durationSecs}s actual vs ${targetSecs}s target ` +
+      `(${deltaSecs > 0 ? '+' : ''}${deltaSecs}s / ${deltaPct > 0 ? '+' : ''}${deltaPct}%). ` +
+      `Script: ${wordCount} words at ${WORDS_PER_MINUTE} WPM assumption.`
+    );
 
     // Create Audio record in DB
     const audio = await prisma.audio.create({
