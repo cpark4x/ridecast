@@ -110,9 +110,10 @@ completed_features:
 - home-screen-queue-first
 - smart-resume
 - undo-seek
+- elevenlabs-key-settings
 features:
   elevenlabs-key-settings:
-    status: in-progress
+    status: done
     title: "ElevenLabs Key Settings \u2014 UI to enter key without editing .env, sent as header"
     spec: specs/features/phase2/elevenlabs-key-settings.md
     depends_on:
