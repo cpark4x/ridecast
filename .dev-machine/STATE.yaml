@@ -2,8 +2,8 @@
 # STATE.yaml — Development machine state and health gates
 # =============================================================================
 # Project: ridecast2
-# Last updated: 2026-03-05
-# Branch: feature/ridecast2-complete
+# Last updated: 2026-03-06
+# Branch: fix/upload-screen-reset
 # =============================================================================
 
 project:
@@ -77,7 +77,8 @@ health_gates:
     scenarios: "5/5 passing"
     notes: |
       Playwright (Chromium): all scenarios passing.
-      Pattern A (Library selector) and Pattern B (Target Duration) fixed.
+      Pattern A (Library selector) fixed: replaced getByText('Library') with getByRole('button').
+      Pattern B (Target Duration) fixed: added waitForResponse('**/api/upload') before interaction.
 
 # =============================================================================
 # Known Issues (ordered by impact)
