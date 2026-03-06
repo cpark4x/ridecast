@@ -1,176 +1,124 @@
-# =============================================================================
-# STATE.yaml — Development machine state and health gates
-# =============================================================================
-# Project: ridecast2
-# Last updated: 2026-03-06
-# Branch: main
-# =============================================================================
-
 project:
-  name: "ridecast2"
-  repo_root: "/Users/chrispark/Projects/ridecast2"
-  description: |
-    iOS app — AI content-to-audio transformation engine.
-    "Turn anything you want to read into audio worth listening to."
-    Any content (PDF/EPUB/TXT/URL) → Claude script → OpenAI TTS → enjoyable episode.
-    Shipping as iOS app with free catalog + paid bring-your-own-content tier.
-
+  name: ridecast2
+  repo_root: /Users/chrispark/Projects/ridecast2
+  description: "iOS app \u2014 AI content-to-audio transformation engine.\n\"Turn anything you want to read into audio worth\
+    \ listening to.\"\nAny content (PDF/EPUB/TXT/URL) \u2192 Claude script \u2192 OpenAI TTS \u2192 enjoyable episode.\nShipping\
+    \ as iOS app with free catalog + paid bring-your-own-content tier.\n"
 specs:
-  directory: "./specs"
-  architecture: "specs/architecture.md"
+  directory: ./specs
+  architecture: specs/architecture.md
   modules:
-    - "specs/modules/content-pipeline.md"
+  - specs/modules/content-pipeline.md
   features:
-    - "specs/features/phase1/duration-accuracy.md"
-    - "specs/features/phase1/pipeline-error-resilience.md"
-    - "specs/features/phase1/processing-screen-upgrade.md"
-    - "specs/features/phase1/playback-state-persistence.md"
-    - "specs/features/phase1/audio-duration-measurement.md"
-
+  - specs/features/phase1/duration-accuracy.md
+  - specs/features/phase1/pipeline-error-resilience.md
+  - specs/features/phase1/processing-screen-upgrade.md
+  - specs/features/phase1/playback-state-persistence.md
+  - specs/features/phase1/audio-duration-measurement.md
 commands:
-  build: "npm run build"
-  test: "npm run test"
-  lint: "npm run lint"
-  e2e: "npm run test:e2e"
-  dev: "npm run dev"
-  db_migrate: "npm run db:migrate"
-  db_generate: "npm run db:generate"
-
-# =============================================================================
-# Health Gates (in order; all must pass for green status)
-# =============================================================================
-
+  build: npm run build
+  test: npm run test
+  lint: npm run lint
+  e2e: npm run test:e2e
+  dev: npm run dev
+  db_migrate: npm run db:migrate
+  db_generate: npm run db:generate
 health_gates:
-  - id: "lint"
-    command: "npm run lint"
-    status: "PASS"
-    duration: "2.7s"
-    notes: |
-      10 warnings (@typescript-eslint/no-unused-vars) across seed, route handlers,
-      and tests. Non-blocking; safe to defer.
+- id: lint
+  command: npm run lint
+  status: PASS
+  duration: 2.7s
+  notes: '10 warnings (@typescript-eslint/no-unused-vars) across seed, route handlers,
 
-  - id: "test"
-    command: "npm run test"
-    status: "PASS"
-    duration: "1.86s"
-    notes: |
-      Vitest: 58/65 tests passing, 7 intentionally skipped (DB-dependent).
-      Non-blocking: React act() warnings in AppShell.test.tsx (×3) but assertions pass.
-      All tests green as of PR #17 (duplicate 409 regression fix, merged 2026-03-06).
+    and tests. Non-blocking; safe to defer.
 
-  - id: "build"
-    command: "npm run build"
-    status: "PASS"
-    duration: "5.1s"
-    notes: |
-      Next.js 16.1.6 with Turbopack builds successfully.
-      Non-blocking: MODULE_TYPELESS_PACKAGE_JSON (tailwind), themeColor metadata.
+    '
+- id: test
+  command: npm run test
+  status: PASS
+  duration: 1.86s
+  notes: "Vitest: 58/65 tests passing, 7 intentionally skipped (DB-dependent).\nNon-blocking: React act() warnings in AppShell.test.tsx\
+    \ (\xD73) but assertions pass.\nAll tests green as of PR #17 (duplicate 409 regression fix, merged 2026-03-06).\n"
+- id: build
+  command: npm run build
+  status: PASS
+  duration: 5.1s
+  notes: 'Next.js 16.1.6 with Turbopack builds successfully.
 
-  - id: "e2e"
-    command: "npm run test:e2e"
-    status: "PASS"
-    exit_code: 0
-    duration: "15.2s"
-    scenarios: "5/5 passing"
-    notes: |
-      All scenarios passing as of PR #16 (merged 2026-03-06).
-      Pattern A (Library selector) fixed. Pattern B (Target Duration race) fixed.
+    Non-blocking: MODULE_TYPELESS_PACKAGE_JSON (tailwind), themeColor metadata.
 
-# =============================================================================
-# Known Issues
-# =============================================================================
+    '
+- id: e2e
+  command: npm run test:e2e
+  status: PASS
+  exit_code: 0
+  duration: 15.2s
+  scenarios: 5/5 passing
+  notes: 'All scenarios passing as of PR #16 (merged 2026-03-06).
 
+    Pattern A (Library selector) fixed. Pattern B (Target Duration race) fixed.
+
+    '
 known_issues:
-  - id: "type-check-caveat"
-    severity: "P2"
-    title: "Type-check caveat: Request vs NextRequest mismatch"
-    affected_file: "src/app/api/playback/route.test.ts"
-    notes: |
-      npx tsc --noEmit fails but npm run build succeeds.
-      Next.js handles Request/NextRequest internally. Not gating.
+- id: type-check-caveat
+  severity: P2
+  title: 'Type-check caveat: Request vs NextRequest mismatch'
+  affected_file: src/app/api/playback/route.test.ts
+  notes: 'npx tsc --noEmit fails but npm run build succeeds.
 
-  - id: "lint-warnings"
-    severity: "P3"
-    title: "10 no-unused-vars warnings across seed, routes, tests"
-    notes: |
-      Non-blocking. Deferred. Address in a cleanup pass.
+    Next.js handles Request/NextRequest internally. Not gating.
 
-# =============================================================================
-# Recently Shipped
-# =============================================================================
+    '
+- id: lint-warnings
+  severity: P3
+  title: 10 no-unused-vars warnings across seed, routes, tests
+  notes: 'Non-blocking. Deferred. Address in a cleanup pass.
 
+    '
 recently_shipped:
-  - pr: "#17"
-    merged: "2026-03-06"
-    title: "fix: restore 409 status for duplicate-content upload response"
-    notes: Regression from PR #15. One-line fix.
+- pr: '#17'
+  merged: '2026-03-06'
+  title: 'fix: restore 409 status for duplicate-content upload response'
+  notes: Regression from PR
+- pr: '#16'
+  merged: '2026-03-06'
+  title: 'fix: reset upload form state and fix E2E race conditions'
+  notes: 'Upload form resets after audio generation (#4 closed).
 
-  - pr: "#16"
-    merged: "2026-03-06"
-    title: "fix: reset upload form state and fix E2E race conditions"
-    notes: |
-      Upload form resets after audio generation (#4 closed).
-      E2E Pattern A + B fixed. 5/5 scenarios passing.
-      Phase 1 specs written: duration-accuracy.md, pipeline-error-resilience.md.
-      Competitive analysis + mobile UI research docs added.
-      ROADMAP.md + VISION.md updated to reflect iOS strategy.
+    E2E Pattern A + B fixed. 5/5 scenarios passing.
 
-# =============================================================================
-# Features — machine-readable work queue
-# =============================================================================
+    Phase 1 specs written: duration-accuracy.md, pipeline-error-resilience.md.
 
+    Competitive analysis + mobile UI research docs added.
+
+    ROADMAP.md + VISION.md updated to reflect iOS strategy.
+
+    '
 phase: 1
-phase_name: "phase-1-foundation"
-epoch: 0
-next_action: "implement Phase 1 feature specs in order"
-
-completed_features: []
-
+phase_name: phase-1-foundation
+epoch: 1
+next_action: implement Phase 1 feature specs in order
+completed_features:
+- duration-accuracy
+- pipeline-error-resilience
+- processing-screen-upgrade
 features:
-  duration-accuracy:
-    status: "done"
-    title: "Duration Accuracy — ±15% tolerance, 2nd retry, durationAdvisory"
-    spec: "specs/features/phase1/duration-accuracy.md"
-    depends_on: []
-    commit: "f1f5775"
-    completed_at: "2026-03-06T14:18:00Z"
-  pipeline-error-resilience:
-    status: "done"
-    title: "Pipeline Error Resilience — retryWithBackoff, truncation warning, maxDuration"
-    spec: "specs/features/phase1/pipeline-error-resilience.md"
-    depends_on: []
-    commit: "b158b0d"
-    completed_at: "2026-03-06T14:24:00Z"
-  processing-screen-upgrade:
-    status: "done"
-    title: "ProcessingScreen 4-Stage UI — Analyzing→Scripting→Generating→Ready"
-    spec: "specs/features/phase1/processing-screen-upgrade.md"
-    depends_on: []
-    commit: "43bec2a"
-    completed_at: "2026-03-06T14:28:00Z"
   playback-state-persistence:
-    status: "ready"
-    title: "Playback State Persistence — wire /api/playback into PlayerContext"
-    spec: "specs/features/phase1/playback-state-persistence.md"
+    status: ready
+    title: "Playback State Persistence \u2014 wire /api/playback into PlayerContext"
+    spec: specs/features/phase1/playback-state-persistence.md
     depends_on: []
   audio-duration-measurement:
-    status: "ready"
-    title: "True Audio Duration Measurement — music-metadata library"
-    spec: "specs/features/phase1/audio-duration-measurement.md"
+    status: ready
+    title: "True Audio Duration Measurement \u2014 music-metadata library"
+    spec: specs/features/phase1/audio-duration-measurement.md
     depends_on: []
-
-# =============================================================================
-# Next Steps — Phase 1 Feature Build
-# =============================================================================
-
 next_steps:
-  - step: 1
-    task: "Run dev machine build loop on Phase 1 feature specs"
-    action: |
-      Execute: amplifier recipe execute .dev-machine/recipes/build.yaml
-      5 specs ready in specs/features/phase1/:
-        1. duration-accuracy.md          — Tighten ±15%, 2nd retry, durationAdvisory
-        2. pipeline-error-resilience.md  — retryWithBackoff, truncation warning, maxDuration
-        3. processing-screen-upgrade.md  — 4-stage Analyzing→Scripting→Generating→Ready
-        4. playback-state-persistence.md — Wire /api/playback into PlayerContext
-        5. audio-duration-measurement.md — Replace buffer-size estimate with real measurement
+- step: 1
+  task: Run dev machine build loop on Phase 1 feature specs
+  action: "Execute: amplifier recipe execute .dev-machine/recipes/build.yaml\n5 specs ready in specs/features/phase1/:\n \
+    \ 1. duration-accuracy.md          \u2014 Tighten \xB115%, 2nd retry, durationAdvisory\n  2. pipeline-error-resilience.md\
+    \  \u2014 retryWithBackoff, truncation warning, maxDuration\n  3. processing-screen-upgrade.md  \u2014 4-stage Analyzing\u2192\
+    Scripting\u2192Generating\u2192Ready\n  4. playback-state-persistence.md \u2014 Wire /api/playback into PlayerContext\n\
+    \  5. audio-duration-measurement.md \u2014 Replace buffer-size estimate with real measurement\n"
+last_session: '2026-03-06T22:29:25.814299+00:00'

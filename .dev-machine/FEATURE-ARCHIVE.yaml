@@ -1,0 +1,25 @@
+description: Completed feature archive.
+features:
+  duration-accuracy:
+    status: done
+    title: "Duration Accuracy \u2014 \xB115% tolerance, 2nd retry, durationAdvisory"
+    spec: specs/features/phase1/duration-accuracy.md
+    depends_on: []
+    commit: f1f5775
+    completed_at: '2026-03-06T14:18:00Z'
+  pipeline-error-resilience:
+    status: done
+    title: "Pipeline Error Resilience \u2014 retryWithBackoff, truncation warning,\
+      \ maxDuration"
+    spec: specs/features/phase1/pipeline-error-resilience.md
+    depends_on: []
+    commit: b158b0d
+    completed_at: '2026-03-06T14:24:00Z'
+  processing-screen-upgrade:
+    status: done
+    title: "ProcessingScreen 4-Stage UI \u2014 Analyzing\u2192Scripting\u2192Generating\u2192\
+      Ready"
+    spec: specs/features/phase1/processing-screen-upgrade.md
+    depends_on: []
+    commit: 43bec2a
+    completed_at: '2026-03-06T14:28:00Z'

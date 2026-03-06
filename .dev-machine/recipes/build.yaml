@@ -87,7 +87,7 @@ steps:
   # ---------------------------------------------------------------------------
   - id: "work-loop"
     type: "recipe"
-    recipe: "./.dev-machine/recipes/iteration.yaml"
+    recipe: "iteration.yaml"
     context:
       state_file: ".dev-machine/STATE.yaml"
       context_file: ".dev-machine/CONTEXT-TRANSFER.md"
@@ -101,8 +101,8 @@ steps:
     max_while_iterations: 10
     break_when: "{{status}} != 'healthy'"
     update_context:
-      status: "{{iteration_result.status}}"
-      session_count: "{{iteration_result.session_count}}"
+      status: "{{iteration_result.iteration_result.status}}"
+      session_count: "{{iteration_result.iteration_result.session_count}}"
 
   # ---------------------------------------------------------------------------
   # Step 5: Final summary
