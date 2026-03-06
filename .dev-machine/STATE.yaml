@@ -112,10 +112,12 @@ features:
     commit: "1ba268f"
     completed_at: "2026-03-06T15:01:35Z"
   elevenlabs-routing:
-    status: in-progress
+    status: done
     title: "ElevenLabs Routing — auto-select provider by API key"
     spec: specs/features/phase2/elevenlabs-routing.md
     depends_on: [elevenlabs-provider]
+    commit: "0738f2f"
+    completed_at: "2026-03-06T15:03:00Z"
   episode-versioning:
     status: in-progress
     title: "Episode Versioning — all audio versions per content in API + UI"
