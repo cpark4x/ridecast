@@ -75,3 +75,11 @@ features:
     depends_on: []
     commit: 9d4598d
     completed_at: '2026-03-06T15:32:00Z'
+  elevenlabs-key-settings:
+    status: done
+    title: "ElevenLabs Key Settings \u2014 UI to enter key without editing .env, sent\
+      \ as header"
+    spec: specs/features/phase2/elevenlabs-key-settings.md
+    depends_on:
+    - elevenlabs-provider
+    - elevenlabs-routing
