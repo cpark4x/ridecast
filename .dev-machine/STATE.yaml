@@ -95,43 +95,19 @@ recently_shipped:
     '
 phase: 2
 phase_name: phase-2-quality-and-acquisition
-epoch: 0
-next_action: "implement Phase 2 feature specs in order"
+epoch: 1
+next_action: implement Phase 2 feature specs in order
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
 - processing-screen-upgrade
 - playback-state-persistence
 - audio-duration-measurement
-features:
-  elevenlabs-provider:
-    status: done
-    title: "ElevenLabs TTS Provider — ElevenLabsTTSProvider class"
-    spec: specs/features/phase2/elevenlabs-provider.md
-    depends_on: []
-    commit: "1ba268f"
-    completed_at: "2026-03-06T15:01:35Z"
-  elevenlabs-routing:
-    status: done
-    title: "ElevenLabs Routing — auto-select provider by API key"
-    spec: specs/features/phase2/elevenlabs-routing.md
-    depends_on: [elevenlabs-provider]
-    commit: "0738f2f"
-    completed_at: "2026-03-06T15:03:00Z"
-  episode-versioning:
-    status: done
-    title: "Episode Versioning — all audio versions per content in API + UI"
-    spec: specs/features/phase2/episode-versioning.md
-    depends_on: []
-    commit: "3c55a2e"
-    completed_at: "2026-03-06T15:06:20Z"
-  commute-duration:
-    status: done
-    title: "Commute Duration Preference — localStorage hook"
-    spec: specs/features/phase2/commute-duration.md
-    depends_on: []
-    commit: "1252d1f"
-    completed_at: "2026-03-06T15:09:50Z"
+- elevenlabs-provider
+- elevenlabs-routing
+- episode-versioning
+- commute-duration
+features: {}
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs
@@ -140,4 +116,4 @@ next_steps:
     \  \u2014 retryWithBackoff, truncation warning, maxDuration\n  3. processing-screen-upgrade.md  \u2014 4-stage Analyzing\u2192\
     Scripting\u2192Generating\u2192Ready\n  4. playback-state-persistence.md \u2014 Wire /api/playback into PlayerContext\n\
     \  5. audio-duration-measurement.md \u2014 Replace buffer-size estimate with real measurement\n"
-last_session: '2026-03-06T14:39:00Z'
+last_session: '2026-03-06T23:11:16.588159+00:00'

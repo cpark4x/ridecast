@@ -23,3 +23,32 @@ features:
     depends_on: []
     commit: 43bec2a
     completed_at: '2026-03-06T14:28:00Z'
+  elevenlabs-provider:
+    status: done
+    title: "ElevenLabs TTS Provider \u2014 ElevenLabsTTSProvider class"
+    spec: specs/features/phase2/elevenlabs-provider.md
+    depends_on: []
+    commit: 1ba268f
+    completed_at: '2026-03-06T15:01:35Z'
+  elevenlabs-routing:
+    status: done
+    title: "ElevenLabs Routing \u2014 auto-select provider by API key"
+    spec: specs/features/phase2/elevenlabs-routing.md
+    depends_on:
+    - elevenlabs-provider
+    commit: 0738f2f
+    completed_at: '2026-03-06T15:03:00Z'
+  episode-versioning:
+    status: done
+    title: "Episode Versioning \u2014 all audio versions per content in API + UI"
+    spec: specs/features/phase2/episode-versioning.md
+    depends_on: []
+    commit: 3c55a2e
+    completed_at: '2026-03-06T15:06:20Z'
+  commute-duration:
+    status: done
+    title: "Commute Duration Preference \u2014 localStorage hook"
+    spec: specs/features/phase2/commute-duration.md
+    depends_on: []
+    commit: 1252d1f
+    completed_at: '2026-03-06T15:09:50Z'
