@@ -10,10 +10,10 @@ specs:
   modules:
   - specs/modules/content-pipeline.md
   features:
-  - specs/features/phase2/elevenlabs-provider.md
-  - specs/features/phase2/elevenlabs-routing.md
-  - specs/features/phase2/episode-versioning.md
-  - specs/features/phase2/commute-duration.md
+  - specs/features/phase2/home-screen-queue-first.md
+  - specs/features/phase2/smart-resume.md
+  - specs/features/phase2/undo-seek.md
+  - specs/features/phase2/elevenlabs-key-settings.md
 commands:
   build: npm run build
   test: npm run test
@@ -96,7 +96,7 @@ recently_shipped:
 phase: 2
 phase_name: phase-2-quality-and-acquisition
 epoch: 1
-next_action: implement Phase 2 feature specs in order
+next_action: "implement Phase 2 refinement specs in order"
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -107,7 +107,27 @@ completed_features:
 - elevenlabs-routing
 - episode-versioning
 - commute-duration
-features: {}
+features:
+  home-screen-queue-first:
+    status: ready
+    title: "Queue-First Home Screen — replaces Upload as default, shows episode queue + commute math"
+    spec: specs/features/phase2/home-screen-queue-first.md
+    depends_on: [commute-duration]
+  smart-resume:
+    status: ready
+    title: "Smart Resume — auto-rewind 3s after pause > 10s in PlayerContext"
+    spec: specs/features/phase2/smart-resume.md
+    depends_on: []
+  undo-seek:
+    status: ready
+    title: "Undo Seek — Go Back button 4s after any progress bar tap in ExpandedPlayer"
+    spec: specs/features/phase2/undo-seek.md
+    depends_on: []
+  elevenlabs-key-settings:
+    status: ready
+    title: "ElevenLabs Key Settings — UI to enter key without editing .env, sent as header"
+    spec: specs/features/phase2/elevenlabs-key-settings.md
+    depends_on: [elevenlabs-provider, elevenlabs-routing]
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs

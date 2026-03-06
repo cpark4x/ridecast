@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** Phase 2 complete. All 4 Phase 2 features shipped. All health gates green.
+**Status:** Phase 2 batch 1 complete (9 features total). 4 Phase 2 refinement specs ready. All gates green.
 
 ---
 
@@ -12,21 +12,16 @@
 
 | Gate | Status | Notes |
 |------|--------|-------|
-| `npm run lint` | ✅ PASS | 10 warnings (no-unused-vars, non-blocking) — 0 errors |
-| `npm run test` | ✅ PASS | **95 passing**, 7 skipped (DB-dependent) — up from 81 (machine added 14 more tests) |
-| `npm run build` | ✅ PASS | Next.js 16.1.6 + Turbopack |
-| `npm run test:e2e` | ✅ PASS (last verified 2026-03-06 PR #16) | 5/5 passing |
+| `npm run lint` | ✅ PASS | 10 warnings (non-blocking) |
+| `npm run test` | ✅ PASS | **95 passing**, 7 skipped (DB-dependent) |
+| `npm run build` | ✅ PASS | |
+| `npm run test:e2e` | ✅ PASS | 5/5 |
 
-### Phase 2 — Complete ✅
+### Shipped So Far (9 features, 3 machine sessions)
 
-All 4 Phase 2 features shipped in one machine session:
+**Phase 1 (session 1+2):** Duration accuracy · Pipeline resilience · ProcessingScreen 4-stage UI · Playback state persistence · Audio duration measurement
 
-| Commit | Feature |
-|--------|---------|
-| `1ba268f` | ElevenLabs TTS Provider — `ElevenLabsTTSProvider` class + `elevenlabs` npm dep |
-| `0738f2f` | ElevenLabs Routing — `createTTSProvider()` factory, ElevenLabs voice configs in narrator/conversation |
-| `3c55a2e` | Episode Versioning — `/api/library` returns `versions[]` array; LibraryScreen expandable cards |
-| `1252d1f` | Commute Duration Preference — `useCommuteDuration()` hook; UploadScreen remembers slider setting |
+**Phase 2 batch 1 (session 3):** ElevenLabs provider + routing · Episode versioning · Commute duration preference
 
 ---
 
@@ -34,60 +29,65 @@ All 4 Phase 2 features shipped in one machine session:
 
 **Vision:** "Turn anything you want to read into audio worth listening to."
 
-**Platform:** iOS app (consumer) with:
-- Free catalog (pre-generated episodes from public domain/Wikipedia/arXiv)
-- Paid own-content tier (user uploads any PDF/EPUB/TXT/URL)
-- Freemium model (BYOK remains for advanced users)
+**Platform:** iOS app — free catalog + paid own-content tier. BYOK for advanced users.
 
-Full context: `VISION.md`, `ROADMAP.md`, `docs/plans/2026-03-06-competitive-brief.md`
+Full context: `VISION.md`, `ROADMAP.md`
 
 ---
 
-## Session 3 Summary — 2026-03-06
+## Phase 2 Refinement Specs — Ready to Build
 
-**Completed:**
-- `elevenlabs-provider` — `ElevenLabsTTSProvider` implementing `TTSProvider` interface; `elevenlabs` npm package installed; `ELEVENLABS_API_KEY` added to `.env.example`; test uses `vi.fn().mockImplementation(function() {...})` (not arrow fn) for constructor mocking
-- `elevenlabs-routing` — `createTTSProvider()` factory in `src/lib/tts/provider.ts`; checks `ELEVENLABS_API_KEY` env var to pick provider; narrator/conversation voice configs updated with ElevenLabs Rachel/Adam voice IDs; audio generate route updated to use factory
-- `episode-versioning` — `/api/library` now returns `versions: AudioVersion[]` per content item (sorted by targetDuration ascending); items with no audio show `status: "generating"`; LibraryScreen updated with expandable card UI (chevron for multi-version items, inline version rows with duration/format/status badges)
-- `commute-duration` — `useCommuteDuration()` hook in `src/hooks/`; uses **lazy state initializer** (not useEffect) to avoid React compiler lint error about "cascading renders"; UploadScreen slider defaults to stored value, persists on change
+4 specs in `specs/features/phase2/`. Build in this order (respect depends_on):
 
-**Key decisions:**
-- ElevenLabs `ElevenLabsClient` mock: must use `function()` not arrow fn in `mockImplementation` so it can be used as constructor with `new`
-- `createTTSProvider()` reads env var at call time (not module load time) — dynamic env-checking is correct
-- Library route TypeScript fix: explicit `(script): AudioVersion[]` return type annotation on `flatMap` callback to satisfy strict compiler
-- `useCommuteDuration` uses lazy `useState(readStoredDuration)` instead of `useEffect(() => setState(...))` to satisfy React compiler no-cascading-renders lint rule — functionally identical but cleaner
+| Priority | Feature | Spec | Effort | Depends on |
+|----------|---------|------|--------|------------|
+| 1 | smart-resume | `smart-resume.md` | Small | — |
+| 2 | undo-seek | `undo-seek.md` | Small | — |
+| 3 | home-screen-queue-first | `home-screen-queue-first.md` | Medium | commute-duration (already built) |
+| 4 | elevenlabs-key-settings | `elevenlabs-key-settings.md` | Medium | elevenlabs-provider + routing (already built) |
 
-**Health gates after session:** lint ✅ (0 errors, 10 warnings) · test ✅ (95 passing, 7 skipped) · build ✅
+### Key context for each spec
 
-**Next session should start with:** Phase 3 specs (none yet written) — the next step is to plan Phase 3 features. Check `ROADMAP.md` and `VISION.md` for direction.
+**smart-resume:** Add `pausedAtRef = useRef<number | null>(null)` to PlayerContext. In `togglePlay`, record `Date.now()` on pause; on resume, rewind 3s if paused > 10s. Export `SMART_RESUME_REWIND_SECS = 3` and `SMART_RESUME_THRESHOLD_MS = 10_000` as module constants for tests. Only file: `src/components/PlayerContext.tsx`.
 
-**Notes:**
-- All Phase 2 STATE.yaml features are `status: done` with commit hashes
-- No schema changes were needed this session
-- ElevenLabs integration is complete but requires `ELEVENLABS_API_KEY` in `.env` to activate — falls back to OpenAI seamlessly without it
-- `src/hooks/` directory created this session (new module location)
-- Test count: 58 (Phase 1 start) → 81 (Phase 1 end) → 95 (Phase 2 end)
+**undo-seek:** Add `undoPosition` state + `undoTimerRef` to ExpandedPlayer. In `seekProgress`, save current `position` to `undoPosition` before seeking, start 4s auto-dismiss timer. Show "↩ Go Back" button below progress bar while `undoPosition !== null`. Only file: `src/components/ExpandedPlayer.tsx`.
+
+**home-screen-queue-first:** New `HomeScreen.tsx` that fetches `/api/library`, flattens ready versions into a queue, shows commute math using `useCommuteDuration()`. AppShell default tab changes from `"upload"` → `"home"`. Add Home tab to BottomNav. Files: HomeScreen.tsx (new), AppShell.tsx, BottomNav.tsx.
+
+**elevenlabs-key-settings:** Update `createTTSProvider(key?)` to accept optional key param. Route reads `request.headers.get("x-elevenlabs-key")`. New `SettingsScreen.tsx` with password input + `useElevenLabsKey()` hook (localStorage). AppShell adds gear icon + renders settings overlay. ProcessingScreen sends key header on audio generation. Files: provider.ts, elevenlabs.ts, audio/generate/route.ts, SettingsScreen.tsx (new), AppShell.tsx, ProcessingScreen.tsx.
+
+---
+
+## Test Mock Patterns (apply to all new tests)
+
+```typescript
+// PlayerContext mock
+vi.mock("./PlayerContext", () => ({
+  usePlayer: () => ({ currentItem, isPlaying, position, speed, togglePlay, setSpeed, setPosition, skipForward, skipBack }),
+}));
+
+// fetch mock
+global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+
+// localStorage mock
+const lsMock = { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() };
+Object.defineProperty(window, "localStorage", { value: lsMock, writable: true });
+
+// Date.now mock (for smart-resume timing tests)
+vi.spyOn(Date, "now").mockReturnValue(someTimestamp);
+```
 
 ---
 
 ## Development Environment
 
-- **Runtime:** Node.js v24.11.1, npm 11.6.2, macOS arm64
 - **DB:** PostgreSQL 16 via Docker on port 5433 (`docker compose up -d`)
-- **Test mocks:** All Claude/OpenAI/ElevenLabs API calls must be mocked in tests — never real calls
-- **Architecture:** `specs/architecture.md` — always read first in each session
-
----
+- **Architecture:** `specs/architecture.md` — always read first
+- **Tests should NEVER make real API calls** — mock all Claude/OpenAI/ElevenLabs calls
 
 ## Commands
 
 ```bash
-# Verify (run before and after each feature)
-npm run lint && npm run test && npm run build
-
-# Run dev machine
-amplifier recipe execute .dev-machine/recipes/build.yaml
-
-# DB setup (if needed)
-docker compose up -d && npm run db:migrate && npm run db:generate
+npm run lint && npm run test && npm run build   # standard verification
+amplifier recipe execute .dev-machine/recipes/build.yaml   # run dev machine
 ```
