@@ -126,10 +126,12 @@ features:
     commit: "3c55a2e"
     completed_at: "2026-03-06T15:06:20Z"
   commute-duration:
-    status: in-progress
+    status: done
     title: "Commute Duration Preference — localStorage hook"
     spec: specs/features/phase2/commute-duration.md
     depends_on: []
+    commit: "1252d1f"
+    completed_at: "2026-03-06T15:09:50Z"
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs
