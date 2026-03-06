@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 
+export const SMART_RESUME_REWIND_SECS = 3;
+export const SMART_RESUME_THRESHOLD_MS = 10_000;
+
 export interface PlayableItem {
   id: string;
   title: string;
@@ -32,6 +35,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [position, setPositionState] = useState(0);
   const [speed, setSpeedState] = useState(1.0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pausedAtRef = useRef<number | null>(null);
 
   // --- Playback state persistence ---
 
@@ -141,8 +145,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const next = !prev;
       const audio = audioRef.current;
       if (audio) {
-        if (next) audio.play().catch(console.error);
-        else audio.pause();
+        if (next) {
+          // Smart Resume: rewind if paused for > SMART_RESUME_THRESHOLD_MS
+          if (
+            pausedAtRef.current !== null &&
+            Date.now() - pausedAtRef.current > SMART_RESUME_THRESHOLD_MS
+          ) {
+            audio.currentTime = Math.max(0, audio.currentTime - SMART_RESUME_REWIND_SECS);
+          }
+          pausedAtRef.current = null;
+          audio.play().catch(console.error);
+        } else {
+          pausedAtRef.current = Date.now();
+          audio.pause();
+        }
       }
       return next;
     });
