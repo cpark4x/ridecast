@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useElevenLabsKey } from "./SettingsScreen";
 
 interface ProcessingScreenProps {
   contentId: string;
@@ -56,6 +57,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
   const [audioRecord, setAudioRecord] = useState<AudioRecord | null>(null);
   const [durationAdvisory, setDurationAdvisory] = useState<string | null>(null);
   const [retryingAudio, setRetryingAudio] = useState(false);
+  const elevenLabsKey = useElevenLabsKey();
 
   // Ref-guard prevents React Strict Mode from double-firing the pipeline.
   // Without this, two /api/process calls are made (creating duplicate scripts).
@@ -104,9 +106,11 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
         setStage("generating");
 
         // Step 2: Generate audio
+        const generateHeaders: HeadersInit = { "Content-Type": "application/json" };
+        if (elevenLabsKey) generateHeaders["x-elevenlabs-key"] = elevenLabsKey;
         const audioRes = await fetch("/api/audio/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: generateHeaders,
           body: JSON.stringify({ scriptId: processData.id }),
           signal: abort.signal,
         });
@@ -141,9 +145,11 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
     setErrorStage(null);
     setStage("generating");
     try {
+      const retryHeaders: HeadersInit = { "Content-Type": "application/json" };
+      if (elevenLabsKey) retryHeaders["x-elevenlabs-key"] = elevenLabsKey;
       const audioRes = await fetch("/api/audio/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: retryHeaders,
         body: JSON.stringify({ scriptId: scriptRecord.id }),
       });
       const audioData = await audioRes.json();

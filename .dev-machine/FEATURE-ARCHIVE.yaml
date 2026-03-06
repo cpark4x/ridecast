@@ -52,3 +52,26 @@ features:
     depends_on: []
     commit: 1252d1f
     completed_at: '2026-03-06T15:09:50Z'
+  home-screen-queue-first:
+    status: done
+    title: "Queue-First Home Screen \u2014 replaces Upload as default, shows episode\
+      \ queue + commute math"
+    spec: specs/features/phase2/home-screen-queue-first.md
+    depends_on:
+    - commute-duration
+    commit: 590644a
+    completed_at: '2026-03-06T15:41:00Z'
+  smart-resume:
+    status: done
+    title: "Smart Resume \u2014 auto-rewind 3s after pause > 10s in PlayerContext"
+    spec: specs/features/phase2/smart-resume.md
+    depends_on: []
+    commit: 5efca83
+    completed_at: '2026-03-06T15:30:00Z'
+  undo-seek:
+    status: done
+    title: "Undo Seek \u2014 Go Back button 4s after any progress bar tap in ExpandedPlayer"
+    spec: specs/features/phase2/undo-seek.md
+    depends_on: []
+    commit: 9d4598d
+    completed_at: '2026-03-06T15:32:00Z'

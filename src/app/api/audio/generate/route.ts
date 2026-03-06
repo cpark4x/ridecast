@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = createTTSProvider();
+    const userElevenLabsKey = request.headers.get("x-elevenlabs-key") ?? undefined;
+    const provider = createTTSProvider(userElevenLabsKey);
 
     let audioBuffer: Buffer;
     let voices: string[];

@@ -95,8 +95,8 @@ recently_shipped:
     '
 phase: 2
 phase_name: phase-2-quality-and-acquisition
-epoch: 1
-next_action: "implement Phase 2 refinement specs in order"
+epoch: 2
+next_action: implement Phase 2 refinement specs in order
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -107,33 +107,17 @@ completed_features:
 - elevenlabs-routing
 - episode-versioning
 - commute-duration
+- home-screen-queue-first
+- smart-resume
+- undo-seek
 features:
-  home-screen-queue-first:
-    status: done
-    title: "Queue-First Home Screen — replaces Upload as default, shows episode queue + commute math"
-    spec: specs/features/phase2/home-screen-queue-first.md
-    depends_on: [commute-duration]
-    commit: "590644a"
-    completed_at: "2026-03-06T15:41:00Z"
-  smart-resume:
-    status: done
-    title: "Smart Resume — auto-rewind 3s after pause > 10s in PlayerContext"
-    spec: specs/features/phase2/smart-resume.md
-    depends_on: []
-    commit: "5efca83"
-    completed_at: "2026-03-06T15:30:00Z"
-  undo-seek:
-    status: done
-    title: "Undo Seek — Go Back button 4s after any progress bar tap in ExpandedPlayer"
-    spec: specs/features/phase2/undo-seek.md
-    depends_on: []
-    commit: "9d4598d"
-    completed_at: "2026-03-06T15:32:00Z"
   elevenlabs-key-settings:
-    status: ready
-    title: "ElevenLabs Key Settings — UI to enter key without editing .env, sent as header"
+    status: in-progress
+    title: "ElevenLabs Key Settings \u2014 UI to enter key without editing .env, sent as header"
     spec: specs/features/phase2/elevenlabs-key-settings.md
-    depends_on: [elevenlabs-provider, elevenlabs-routing]
+    depends_on:
+    - elevenlabs-provider
+    - elevenlabs-routing
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs
@@ -142,4 +126,4 @@ next_steps:
     \  \u2014 retryWithBackoff, truncation warning, maxDuration\n  3. processing-screen-upgrade.md  \u2014 4-stage Analyzing\u2192\
     Scripting\u2192Generating\u2192Ready\n  4. playback-state-persistence.md \u2014 Wire /api/playback into PlayerContext\n\
     \  5. audio-duration-measurement.md \u2014 Replace buffer-size estimate with real measurement\n"
-last_session: '2026-03-06T15:41:52.000000+00:00'
+last_session: '2026-03-06T23:43:12.108309+00:00'

@@ -5,9 +5,9 @@ import { retryWithBackoff } from "@/lib/utils/retry";
 export class ElevenLabsTTSProvider implements TTSProvider {
   private client: ElevenLabsClient;
 
-  constructor() {
+  constructor(apiKey?: string) {
     this.client = new ElevenLabsClient({
-      apiKey: process.env.ELEVENLABS_API_KEY,
+      apiKey: apiKey || process.env.ELEVENLABS_API_KEY,
     });
   }
 

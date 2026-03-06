@@ -27,11 +27,9 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
-// Mock OpenAITTSProvider
-vi.mock('@/lib/tts/openai', () => ({
-  OpenAITTSProvider: class MockOpenAITTSProvider {
-    generateSpeech = mockGenerateSpeech;
-  },
+// Mock the TTS provider factory so we can inspect what key it's called with
+vi.mock('@/lib/tts/provider', () => ({
+  createTTSProvider: vi.fn().mockReturnValue({ generateSpeech: mockGenerateSpeech }),
 }));
 
 // Mock uuid
@@ -45,6 +43,7 @@ vi.mock('music-metadata', () => ({
 }));
 
 import { prisma } from '@/lib/db';
+import { createTTSProvider } from '@/lib/tts/provider';
 import { POST } from './route';
 
 const mockFindUnique = prisma.script.findUnique as ReturnType<typeof vi.fn>;
@@ -66,6 +65,8 @@ describe('POST /api/audio/generate', () => {
     process.env.OPENAI_API_KEY = 'test-key';
     mockWriteFile.mockResolvedValue(undefined);
     mockMkdir.mockResolvedValue(undefined);
+    // Restore default mock for createTTSProvider after vi.clearAllMocks()
+    vi.mocked(createTTSProvider).mockReturnValue({ generateSpeech: mockGenerateSpeech });
   });
 
   afterEach(() => {
@@ -146,6 +147,32 @@ describe('POST /api/audio/generate', () => {
     // the buffer-size estimate (100 bytes / 16000 ≈ 0 seconds, which would fall back to word-count)
     const createCall = mockAudioCreate.mock.calls[0][0];
     expect(createCall.data.durationSecs).toBe(287);
+  });
+
+  it('passes x-elevenlabs-key header to createTTSProvider', async () => {
+    const scriptRecord = {
+      id: 's1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+    };
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+    mockAudioCreate.mockResolvedValue({ id: 'a1', filePath: 'audio/x.mp3', durationSecs: 60, voices: ['alloy'], ttsProvider: 'openai' });
+
+    const req = new Request('http://localhost/api/audio/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-elevenlabs-key': 'sk_from_header',
+      },
+      body: JSON.stringify({ scriptId: 's1' }),
+    });
+
+    await POST(req);
+    expect(vi.mocked(createTTSProvider)).toHaveBeenCalledWith('sk_from_header');
   });
 
   it('falls back to word-count estimate when parseBuffer fails', async () => {
