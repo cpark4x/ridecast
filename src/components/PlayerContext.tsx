@@ -33,38 +33,108 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [speed, setSpeedState] = useState(1.0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync position as audio plays
+  // --- Playback state persistence ---
+
+  // Refs so savePosition never needs to close over state — stays fully stable
+  const currentItemIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentItemIdRef.current = currentItem?.id ?? null;
+  }, [currentItem?.id]);
+
+  // savePosition is stable (reads from refs only — zero deps)
+  const savePosition = useCallback(async (completed = false) => {
+    if (!currentItemIdRef.current || !audioRef.current) return;
+    await fetch("/api/playback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: "default-user",
+        audioId: currentItemIdRef.current,
+        position: audioRef.current.currentTime,
+        speed: audioRef.current.playbackRate,
+        completed,
+      }),
+    }).catch(() => {}); // silent — don't interrupt playback for save failures
+  }, []);
+
+  // Restore position and speed from the API when a new audio item becomes active
+  useEffect(() => {
+    if (!currentItem?.id) return;
+
+    fetch(`/api/playback?userId=default-user&audioId=${currentItem.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((state) => {
+        if (state?.position && audioRef.current) {
+          audioRef.current.currentTime = state.position;
+        }
+        if (state?.speed && audioRef.current) {
+          audioRef.current.playbackRate = state.speed;
+          setSpeedState(state.speed);
+        }
+      })
+      .catch(() => {}); // silent — position loss is acceptable on network failure
+  }, [currentItem?.id]);
+
+  // Sync position as audio plays; wire save-position events
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const onTimeUpdate = () => setPositionState(audio.currentTime);
-    const onEnded = () => setIsPlaying(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      savePosition(true); // completed = true
+    };
+    const onPause = () => savePosition();
+    const onSeeked = () => savePosition();
     const onError = (e: Event) => console.error("Audio error:", (e.target as HTMLAudioElement).error);
 
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("seeked", onSeeked);
     audio.addEventListener("error", onError);
 
     return () => {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("seeked", onSeeked);
       audio.removeEventListener("error", onError);
     };
-  }, []);
+  }, [savePosition]);
 
-  const play = useCallback((item: PlayableItem) => {
-    setCurrentItem(item);
-    setIsPlaying(true);
-    setPositionState(0);
-    const audio = audioRef.current;
-    if (audio) {
-      audio.src = item.audioUrl;
-      audio.playbackRate = speed;
-      audio.currentTime = 0;
-      audio.play().catch(console.error);
-    }
-  }, [speed]);
+  // Save position every 5 seconds during active playback (handles force-quits/crashes)
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => savePosition(), 5000);
+    return () => clearInterval(interval);
+  }, [isPlaying, savePosition]);
+
+  // Save position on page unload
+  useEffect(() => {
+    const handleUnload = () => savePosition();
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [savePosition]);
+
+  // --- Playback controls ---
+
+  const play = useCallback(
+    (item: PlayableItem) => {
+      setCurrentItem(item);
+      setIsPlaying(true);
+      setPositionState(0);
+      const audio = audioRef.current;
+      if (audio) {
+        audio.src = item.audioUrl;
+        audio.playbackRate = speed;
+        audio.currentTime = 0;
+        audio.play().catch(console.error);
+      }
+    },
+    [speed],
+  );
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => {
