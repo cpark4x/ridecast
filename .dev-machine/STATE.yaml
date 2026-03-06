@@ -105,17 +105,19 @@ completed_features:
 - audio-duration-measurement
 features:
   elevenlabs-provider:
-    status: ready
+    status: done
     title: "ElevenLabs TTS Provider — ElevenLabsTTSProvider class"
     spec: specs/features/phase2/elevenlabs-provider.md
     depends_on: []
+    commit: "1ba268f"
+    completed_at: "2026-03-06T15:01:35Z"
   elevenlabs-routing:
-    status: ready
+    status: in-progress
     title: "ElevenLabs Routing — auto-select provider by API key"
     spec: specs/features/phase2/elevenlabs-routing.md
     depends_on: [elevenlabs-provider]
   episode-versioning:
-    status: ready
+    status: in-progress
     title: "Episode Versioning — all audio versions per content in API + UI"
     spec: specs/features/phase2/episode-versioning.md
     depends_on: []

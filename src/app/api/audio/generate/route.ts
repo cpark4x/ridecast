@@ -4,7 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { parseBuffer } from 'music-metadata';
 import { prisma } from '@/lib/db';
-import { OpenAITTSProvider } from '@/lib/tts/openai';
+import { createTTSProvider } from '@/lib/tts/provider';
 import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = new OpenAITTSProvider();
+    const provider = createTTSProvider();
 
     let audioBuffer: Buffer;
     let voices: string[];

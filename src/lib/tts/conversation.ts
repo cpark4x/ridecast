@@ -1,8 +1,9 @@
 import type { TTSProvider, VoiceConfig } from './types';
+import { ElevenLabsTTSProvider } from './elevenlabs';
 import { parseConversationScript } from '@/lib/utils/script-parser';
 import { chunkText } from './chunk';
 
-const VOICE_MAP: Record<string, VoiceConfig> = {
+const OPENAI_VOICE_MAP: Record<string, VoiceConfig> = {
   'Host A': {
     voice: 'echo',
     instructions:
@@ -15,8 +16,26 @@ const VOICE_MAP: Record<string, VoiceConfig> = {
   },
 };
 
-const DEFAULT_VOICE: VoiceConfig = {
+const ELEVENLABS_VOICE_MAP: Record<string, VoiceConfig> = {
+  'Host A': {
+    voice: 'pNInz6obpgDQGcFmaJgB', // Adam — energetic, curious
+    instructions:
+      'Energetic, curious podcast host. Ask questions with genuine interest.',
+  },
+  'Host B': {
+    voice: '21m00Tcm4TlvDq8ikWAM', // Rachel — thoughtful, expert
+    instructions:
+      'Thoughtful, expert podcast host. Give clear, insightful answers.',
+  },
+};
+
+const OPENAI_DEFAULT_VOICE: VoiceConfig = {
   voice: 'alloy',
+  instructions: 'Clear, natural speaking voice.',
+};
+
+const ELEVENLABS_DEFAULT_VOICE: VoiceConfig = {
+  voice: '21m00Tcm4TlvDq8ikWAM', // Rachel
   instructions: 'Clear, natural speaking voice.',
 };
 
@@ -35,11 +54,15 @@ export async function generateConversationAudio(
     return { audio: Buffer.alloc(0), voices: [] };
   }
 
+  const isElevenLabs = provider instanceof ElevenLabsTTSProvider;
+  const voiceMap = isElevenLabs ? ELEVENLABS_VOICE_MAP : OPENAI_VOICE_MAP;
+  const defaultVoice = isElevenLabs ? ELEVENLABS_DEFAULT_VOICE : OPENAI_DEFAULT_VOICE;
+
   const usedVoices = new Set<string>();
   const chunks: Buffer[] = [];
 
   for (const segment of segments) {
-    const voiceConfig = VOICE_MAP[segment.speaker] ?? DEFAULT_VOICE;
+    const voiceConfig = voiceMap[segment.speaker] ?? defaultVoice;
     usedVoices.add(voiceConfig.voice);
     // Split long speaker segments to stay within TTS input limits.
     for (const part of chunkText(segment.text)) {
