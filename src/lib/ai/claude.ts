@@ -97,12 +97,13 @@ ${truncated}`,
 
     const prompt =
       config.format === 'narrator'
-        ? `Create a clean, spoken-word podcast script summarizing the following content.
+        ? `Create a spoken-word podcast script summarizing the following content.
 
-Requirements:
-- Target approximately ${targetWords} words
-- Write in a natural, engaging narrator voice
-- Do NOT use any speaker labels
+Length: The listener expects about ${config.targetMinutes} minutes of audio. At 150 words per minute, aim for around ${targetWords} words. It's fine to be somewhat over or under, but don't be dramatically shorter — a 4-minute script for a 15-minute target leaves the listener with nothing for most of their commute. Develop ideas fully, use examples, and give key points room to breathe.
+
+Style:
+- Natural, engaging narrator voice
+- No speaker labels
 - Content type: ${config.contentType}
 - Key themes to cover: ${config.themes.join(', ')}
 
@@ -110,8 +111,9 @@ Source text:
 ${sourceText}`
         : `Create a two-speaker podcast conversation script about the following content.
 
-Requirements:
-- Target approximately ${targetWords} words
+Length: The listener expects about ${config.targetMinutes} minutes of audio. At 150 words per minute, aim for around ${targetWords} words. It's fine to be somewhat over or under, but don't be dramatically shorter — a 4-minute script for a 15-minute target leaves the listener with nothing for most of their commute. Let the conversation develop naturally, explore tangents, and give ideas room to breathe.
+
+Style:
 - Use exactly two speakers labeled [Host A] and [Host B]
 - [Host A] is curious and energetic
 - [Host B] is thoughtful and expert
