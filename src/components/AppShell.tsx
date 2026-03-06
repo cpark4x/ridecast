@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { BottomNav } from "./BottomNav";
+import { HomeScreen } from "./HomeScreen";
 import { UploadScreen } from "./UploadScreen";
 import { ProcessingScreen } from "./ProcessingScreen";
 import { LibraryScreen } from "./LibraryScreen";
@@ -11,7 +12,7 @@ import { CarMode } from "./CarMode";
 import { usePlayer } from "./PlayerContext";
 
 export function AppShell() {
-  const [activeTab, setActiveTab] = useState("upload");
+  const [activeTab, setActiveTab] = useState("home");
   const [processing, setProcessing] = useState<{ contentId: string; targetMinutes: number } | null>(null);
   const [showExpandedPlayer, setShowExpandedPlayer] = useState(false);
   const [showCarMode, setShowCarMode] = useState(false);
@@ -31,6 +32,12 @@ export function AppShell() {
 
   return (
     <div className="max-w-[430px] w-full mx-auto h-[100dvh] relative overflow-hidden bg-[#0a0a0f] border-l border-r border-white/[0.08]">
+      {/* Home Screen */}
+      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "home" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
+        style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
+        <HomeScreen visible={activeTab === "home"} onUpload={() => setActiveTab("upload")} />
+      </div>
+
       {/* Upload Screen */}
       <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "upload" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
         style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
