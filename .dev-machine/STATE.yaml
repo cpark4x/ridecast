@@ -10,11 +10,10 @@ specs:
   modules:
   - specs/modules/content-pipeline.md
   features:
-  - specs/features/phase1/duration-accuracy.md
-  - specs/features/phase1/pipeline-error-resilience.md
-  - specs/features/phase1/processing-screen-upgrade.md
-  - specs/features/phase1/playback-state-persistence.md
-  - specs/features/phase1/audio-duration-measurement.md
+  - specs/features/phase2/elevenlabs-provider.md
+  - specs/features/phase2/elevenlabs-routing.md
+  - specs/features/phase2/episode-versioning.md
+  - specs/features/phase2/commute-duration.md
 commands:
   build: npm run build
   test: npm run test
@@ -94,10 +93,10 @@ recently_shipped:
     ROADMAP.md + VISION.md updated to reflect iOS strategy.
 
     '
-phase: 1
-phase_name: phase-1-foundation
-epoch: 1
-next_action: Phase 1 complete — all 5 feature specs shipped. Next: plan Phase 2 (iOS shell, catalog, or queue feature).
+phase: 2
+phase_name: phase-2-quality-and-acquisition
+epoch: 0
+next_action: "implement Phase 2 feature specs in order"
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -105,19 +104,25 @@ completed_features:
 - playback-state-persistence
 - audio-duration-measurement
 features:
-  playback-state-persistence:
-    status: done
-    commit: 90947ea
-    completed_at: '2026-03-06T14:37:00Z'
-    title: "Playback State Persistence \u2014 wire /api/playback into PlayerContext"
-    spec: specs/features/phase1/playback-state-persistence.md
+  elevenlabs-provider:
+    status: ready
+    title: "ElevenLabs TTS Provider — ElevenLabsTTSProvider class"
+    spec: specs/features/phase2/elevenlabs-provider.md
     depends_on: []
-  audio-duration-measurement:
-    status: done
-    commit: f1ba60c
-    completed_at: '2026-03-06T14:39:00Z'
-    title: "True Audio Duration Measurement \u2014 music-metadata library"
-    spec: specs/features/phase1/audio-duration-measurement.md
+  elevenlabs-routing:
+    status: ready
+    title: "ElevenLabs Routing — auto-select provider by API key"
+    spec: specs/features/phase2/elevenlabs-routing.md
+    depends_on: [elevenlabs-provider]
+  episode-versioning:
+    status: ready
+    title: "Episode Versioning — all audio versions per content in API + UI"
+    spec: specs/features/phase2/episode-versioning.md
+    depends_on: []
+  commute-duration:
+    status: ready
+    title: "Commute Duration Preference — localStorage hook"
+    spec: specs/features/phase2/commute-duration.md
     depends_on: []
 next_steps:
 - step: 1
