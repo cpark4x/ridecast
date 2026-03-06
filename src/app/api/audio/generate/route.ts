@@ -62,9 +62,13 @@ export async function POST(request: Request) {
     await mkdir(path.dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, audioBuffer);
 
-    // Estimate duration from word count (150 wpm)
+    // Estimate duration from file size. MP3 at 128kbps mono ≈ 16KB/sec.
+    // Falls back to word-count estimate if file is unexpectedly small.
+    const fileSizeBytes = audioBuffer.length;
+    const durationFromFile = fileSizeBytes / 16000;
     const wordCount = script.scriptText.split(/\s+/).length;
-    const durationSecs = (wordCount / WORDS_PER_MINUTE) * 60;
+    const durationFromWords = (wordCount / WORDS_PER_MINUTE) * 60;
+    const durationSecs = durationFromFile > 10 ? Math.round(durationFromFile) : Math.round(durationFromWords);
 
     // Create Audio record in DB
     const audio = await prisma.audio.create({
@@ -80,8 +84,18 @@ export async function POST(request: Request) {
     return NextResponse.json(audio);
   } catch (error) {
     console.error('Audio generation error:', error);
+
+    let message = 'Something went wrong generating audio.';
+    if (error instanceof Error) {
+      if (error.message.includes('rate limit') || error.message.includes('429')) {
+        message = 'Audio service is busy. Please wait a moment and try again.';
+      } else if (error.message.includes('authentication') || error.message.includes('401')) {
+        message = 'Audio service is not configured properly. Check your API keys.';
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message },
       { status: 500 },
     );
   }

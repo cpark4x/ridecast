@@ -1,4 +1,5 @@
 import { TTSProvider } from "./types";
+import { chunkText } from "./chunk";
 
 const NARRATOR_VOICE = {
   voice: "alloy",
@@ -10,5 +11,12 @@ export async function generateNarratorAudio(
   provider: TTSProvider,
   scriptText: string
 ): Promise<Buffer> {
-  return provider.generateSpeech(scriptText, NARRATOR_VOICE);
+  const chunks = chunkText(scriptText);
+  const buffers: Buffer[] = [];
+
+  for (const chunk of chunks) {
+    buffers.push(await provider.generateSpeech(chunk, NARRATOR_VOICE));
+  }
+
+  return Buffer.concat(buffers);
 }

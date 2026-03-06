@@ -1,5 +1,6 @@
 import type { TTSProvider, VoiceConfig } from './types';
 import { parseConversationScript } from '@/lib/utils/script-parser';
+import { chunkText } from './chunk';
 
 const VOICE_MAP: Record<string, VoiceConfig> = {
   'Host A': {
@@ -40,7 +41,10 @@ export async function generateConversationAudio(
   for (const segment of segments) {
     const voiceConfig = VOICE_MAP[segment.speaker] ?? DEFAULT_VOICE;
     usedVoices.add(voiceConfig.voice);
-    chunks.push(await provider.generateSpeech(segment.text, voiceConfig));
+    // Split long speaker segments to stay within TTS input limits.
+    for (const part of chunkText(segment.text)) {
+      chunks.push(await provider.generateSpeech(part, voiceConfig));
+    }
   }
 
   return { audio: Buffer.concat(chunks), voices: [...usedVoices] };

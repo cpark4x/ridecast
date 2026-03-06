@@ -82,8 +82,20 @@ export async function POST(request: Request) {
     return NextResponse.json(record);
   } catch (error) {
     console.error('Upload error:', error);
+
+    let message = 'Something went wrong processing your upload.';
+    if (error instanceof Error) {
+      if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+        message = 'Could not reach that URL. Please check the address and try again.';
+      } else if (error.message.includes('Invalid URL') || error.message.includes('ERR_INVALID_URL')) {
+        message = 'That doesn\u2019t look like a valid URL.';
+      } else if (error.message.includes('Unsupported') || error.message.includes('extract')) {
+        message = 'Could not extract text from this content. Try a different file or URL.';
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message },
       { status: 500 },
     );
   }
