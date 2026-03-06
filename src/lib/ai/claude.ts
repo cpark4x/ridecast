@@ -5,6 +5,9 @@ const MODEL = 'claude-sonnet-4-20250514';
 const WORDS_PER_MINUTE = 150;
 const ANALYSIS_MAX_TOKENS = 1024;
 const MAX_ANALYSIS_CHARS = 3000;
+// Claude's context window is 200K tokens (~800K chars). Reserve space for
+// the prompt template and the generated output, leaving ~600K for source text.
+const MAX_SCRIPT_SOURCE_CHARS = 600_000;
 
 const CONTENT_TYPES = [
   'business_book',
@@ -86,6 +89,12 @@ ${truncated}`,
   async generateScript(text: string, config: ScriptConfig): Promise<GeneratedScript> {
     const targetWords = config.targetMinutes * WORDS_PER_MINUTE;
 
+    // Truncate to stay within Claude's context window. For very large
+    // documents the beginning is usually enough for a good summary.
+    const sourceText = text.length > MAX_SCRIPT_SOURCE_CHARS
+      ? text.slice(0, MAX_SCRIPT_SOURCE_CHARS) + '\n\n[Content truncated for length]'
+      : text;
+
     const prompt =
       config.format === 'narrator'
         ? `Create a clean, spoken-word podcast script summarizing the following content.
@@ -98,7 +107,7 @@ Requirements:
 - Key themes to cover: ${config.themes.join(', ')}
 
 Source text:
-${text}`
+${sourceText}`
         : `Create a two-speaker podcast conversation script about the following content.
 
 Requirements:
@@ -110,7 +119,7 @@ Requirements:
 - Key themes to cover: ${config.themes.join(', ')}
 
 Source text:
-${text}`;
+${sourceText}`;
 
     const response = await this.client.messages.create({
       model: MODEL,
