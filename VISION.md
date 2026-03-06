@@ -36,6 +36,30 @@ Car mode. Speed controls. Offline playback. Library management. Skip buttons. Bo
 
 AI chooses narrator vs. conversation based on content type. Dense analytical content becomes a two-host discussion (makes it digestible). Narrative content gets a clean narrator delivery. Not just TTS — production.
 
+## Mobile UI Design Principles
+
+*Derived from UI research across Blinkist, Spotify, Overcast, Pocket Casts, Audible, Castro, ElevenReader, and Speechify. Full research: `docs/plans/2026-03-06-mobile-audio-ui-research.md`.*
+
+The gap between 4.5★ audio apps (ElevenReader, Speechify) and 4.8★ apps (Overcast, Pocket Casts, Spotify) is **not a feature gap — it's a reliability gap**. Both 4.5★ apps have most of the right features. They have critical reliability bugs. Feature parity doesn't produce 4.8★ ratings. Reliability does.
+
+### 1. Queue-First Home
+Users who generate their own content don't browse — they play. The home screen is not a discovery feed. It's a queue. *"You have 3 episodes ready. Your commute is 23 min."* One Play button. Blinkist's home is discovery-first because they have a catalog of 6,500 titles users didn't create. Ridecast2's users created every item in their library. Show them what's ready.
+
+### 2. Controls in the Bottom 40%
+Every primary player control lives in the bottom 40% of the screen. 48px+ touch targets. One-handed, eyes-closed operation. The commute is the primary use case. The commute means one hand on a pole, a bag, or a steering wheel. If a control requires two hands or a glance, it fails.
+
+### 3. 3-Second Glanceable Mini Player
+The mini player must communicate three things with no interaction: what's playing, how far in, how much is left. Three seconds. Phone in a cupholder. Design for that context, not for someone sitting at a desk.
+
+### 4. Interruption Recovery Is a Reliability Contract
+Smart Resume — a 3–5 second auto-rewind on every reopen, force-quit, backgrounding, and call interrupt — is not a feature. It is the promise the app makes to every commuter. The commute has 4–8 interruptions. This behavior must be automatic, invisible, and always on. ElevenReader's #1 negative review: position rewinds 30–60 minutes on reopen. That's the anti-target.
+
+### 5. Download-First Is an Architectural Moat
+Never stream audio during active playback. Every episode in the queue must be fully downloaded before the commute begins. Speechify's worst failure mode: voice drops to robotic TTS mid-sentence on connectivity loss. Hands on wheel. Can't troubleshoot. Ridecast2's pre-generated file architecture prevents this structurally. Don't accidentally remove that protection.
+
+### The Generation Pipeline Is the Unique UI Moment
+No competitor has a user-triggered AI generation step. Every other audio app plays back pre-existing content. The ProcessingScreen is Ridecast2's most valuable screen — not a loading state, but a 4-stage designed experience (Analyzing → Scripting → Generating → Ready) that builds user confidence in the AI during the one moment it has their full attention. This is a writing task before it's a development task.
+
 ## Competitive Position
 
 | Capability | Ridecast2 | NotebookLM | Speechify | ElevenReader | NaturalReader | Listening.io |
@@ -107,4 +131,4 @@ The product succeeds when:
 
 ---
 
-*Last updated: 2026-03-06. Competitive analysis refreshed — full research in `docs/plans/2026-03-06-competitive-brief.md`. Competitors: NotebookLM, Speechify, ElevenReader, NaturalReader, Listening.io, Pocket (shutdown July 2025).*
+*Last updated: 2026-03-06. Competitive analysis refreshed — full research in `docs/plans/2026-03-06-competitive-brief.md`. Mobile UI research added — full research in `docs/plans/2026-03-06-mobile-audio-ui-research.md`. Competitors: NotebookLM, Speechify, ElevenReader, NaturalReader, Listening.io, Pocket (shutdown July 2025).*

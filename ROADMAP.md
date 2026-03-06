@@ -44,6 +44,22 @@ PR #2 fixed several crashers (JSON fences, TTS token limits, duplicate content b
 
 The goal: no user-facing crash, ever. Fail with actionable messages.
 
+### 1.4 ProcessingScreen UI Upgrade *(new)*
+**Priority: High** | Label: `P1` | Effort: Small | Ships to: PWA (before native app)
+
+The current ProcessingScreen is a loading state. That's wrong — it's Ridecast2's most valuable UI moment. No competitor has it. Every other audio app plays back pre-existing content. Ridecast2 is the only app where a user submits content and watches it become an episode.
+
+Replace the loading state with a 4-stage designed experience:
+
+| Stage | Display |
+|---|---|
+| **Analyzing** | "Reading your article — extracting key ideas and structure" + source metadata |
+| **Scripting** | Chapter titles emerge in real time; key ideas preview as they're written |
+| **Generating** | Waveform animation + voice name ("Narrated by Aria") |
+| **Ready** | Episode card with "Start Now" or "Add to Queue" CTA |
+
+This is a writing task before it's a development task. Write the per-stage copy first. Each stage must feel like progress, not waiting. This builds user confidence in the AI during the one moment it has their full attention. Ship this to the existing PWA — it gives the team a design reference for the native app's most important screen.
+
 ---
 
 ## Phase 2: Competitive Differentiation
@@ -86,6 +102,32 @@ Sequenced last in Phase 2 deliberately: shipping with ElevenLabs voices, a brows
 
 React Native or Expo recommended — share business logic with the Next.js backend, native player experience on the front.
 
+#### Mobile UI Acceptance Criteria
+
+Research across 9 audio apps (Blinkist, Spotify, Overcast, Pocket Casts, Audible, Castro, ElevenReader, Speechify, Apple Podcasts) identified the following as non-negotiable requirements. Full research: `docs/plans/2026-03-06-mobile-audio-ui-research.md`.
+
+**P0 — Must ship at launch or the app is broken:**
+
+| Item | Requirement | Why |
+|---|---|---|
+| **Smart Resume** | Auto-rewind 3–5s on every reopen, force-quit, backgrounding, and call interrupt. Land between words, not mid-syllable. | A commute product without interruption recovery is broken. Every commute has 4–8 interruptions. |
+| **Position sync ≤3s drift** | Write playback position on every state change: pause, background, lock screen, force-quit. Poll every ≤3s during playback. Test matrix: force-quit → reopen, background 30min → reopen, connectivity loss → reopen, device restart → reopen. | ElevenReader's #1 negative review cause: position rewinds 30–60 min on reopen. This is the exact failure to prevent. |
+| **Download-first — never stream during playback** | Every episode in the queue must be fully cached locally before playback begins. No "stream if not downloaded" fallback. | Speechify's #1 complaint: voice drops to robotic TTS mid-sentence on connectivity loss. Ridecast2's pre-generated file architecture prevents this — don't accidentally remove it. |
+| **Frame-accurate chapter timestamps** | Chapter markers in the player must match actual audio positions within ≤0.5 seconds. Derive timestamps from TTS audio output, not word-count estimates. | Blinkist's documented gap: chapter taps don't land where labeled. Chapter Explorer is broken if timestamps drift. |
+| **Queue-first home screen** | Home screen primary content: queued episodes ready to play + total queue duration matched to user's commute time. One large "Play" CTA. Not a discovery/recommendation feed. | Users generated their content — they don't browse, they play. Blinkist's home is discovery-first; this is the gap to fix. |
+| **All primary player controls in bottom 40%** | Play/pause, skip ±15–30s, speed, chapter navigation — all reachable by one thumb without repositioning grip. 48px+ touch targets. | One-handed operation is the #1 commute constraint. Test: operate the player eyes-closed with one thumb. |
+| **Persistent mini player** | Artwork + title + progress bar + time remaining + play/pause. Visible on every screen. Tap to expand to full player. | Present in every 4.5★+ audio app. Absence produces perception of incompleteness. |
+
+**P1 — Required for 4.8★ target (add in first sprint post-launch if not at launch):**
+
+| Item | Effort | Rationale |
+|---|---|---|
+| **Undo Seek** | Small | Ghost button appears 3–5s after any position jump; tap to undo. Overcast added to a mature 4.8★ app. Cheapest differentiating feature in the category. |
+| **Voice Boost / Commute Audio Profile** | Small–Medium | EQ normalization for noise environments. Can be applied at generation time (ships before native app) or as a client-side audio filter. |
+| **Chapter Explorer** | Medium | Swipe-up panel from player. Shows AI-generated 1-sentence chapter summaries, frame-accurate timestamps, word-level transcript seek (transcript already exists in pipeline). |
+| **Commute time preference** | Small | User-configured commute duration (onboarding). Prerequisite for home screen duration math and "Ready to Commute" notification (#3.7). |
+| **Dynamic color from artwork** | Small | Player background tints to match episode artwork color palette. Present in Spotify, Pocket Casts, Apple Podcasts. Correlates with 4.8★ apps. |
+
 ---
 
 ## Phase 3: Moat Builders
@@ -122,6 +164,23 @@ Let users pick their narrator voice. Depends on 2.1 (ElevenLabs integration). Po
 **Priority: Low** | Label: `P2` | Effort: Medium | Depends on: #13
 
 Deliver Ridecast2 episodes to Spotify, Apple Podcasts, and Pocket Casts via a personal RSS feed — so users receive AI-compressed, duration-controlled audio in the apps they already use every day. Listening.io pioneered this distribution model with verbatim TTS and URL-only input; Ridecast2 executes it correctly. Turns Ridecast2 from a player into a publisher. For users deeply embedded in podcast apps, this removes the need to open a separate app for playback.
+
+### 3.7 "Ready to Commute" Push Notification *(new)*
+**Priority: Medium** | Label: `P2` | Effort: Medium | Depends on: #13 Scheduled Production, commute time preference (onboarding)
+
+When a user's AI episodes are ready before their typical commute time, push a lock screen notification: *"You have 3 episodes ready — 28 min of audio. Your commute starts in 20 min."* One tap → app → auto-plays.
+
+No competitor sends commute-time-aware notifications. Every competitor sends "your episode is ready." This is the only one that says "your commute is ready." The distinction is the product.
+
+### 3.8 Word-Level Transcript Seek *(new)*
+**Priority: Low** | Label: `P2` | Effort: Small–Medium
+
+Tap any word in the episode transcript to jump to that exact position in the audio. Spotify and Apple Podcasts both added this in 2024 — it's rapidly becoming a table-stakes navigation feature for produced audio. Ridecast2 generates a full transcript as a pipeline artifact (it already exists). Surfacing it as a seek surface costs almost nothing in new engineering and adds the deepest navigation capability in the category.
+
+### 3.9 CarPlay Integration *(new)*
+**Priority: Low** | Label: `P3` | Effort: Large | Depends on: #6 Native Mobile App
+
+First-party CarPlay support: episode queue in the dashboard, artwork + title on the car display, steering wheel controls, Siri handoff. The PWA's CarMode screen is the interim — it proves the layout concept. CarPlay is the production version for the primary commute context.
 
 ### 3.6 Pocket Refugee Capture *(new)* ⏰
 **Priority: Medium** | Label: `P2` | Effort: Small-Medium | Time-sensitive
