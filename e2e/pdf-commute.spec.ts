@@ -13,11 +13,20 @@ test.describe("Scenario 1: The PDF Commute", () => {
     await expect(page.getByText("Ridecast 2")).toBeVisible();
     await expect(page.getByText("Drop files here")).toBeVisible();
 
-    // Upload a PDF file
-    const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles(
+    // Upload a PDF file.
+    // setInputFiles() on the raw (hidden) <input> is the most reliable
+    // Playwright pattern: it bypasses visibility, sets files directly on
+    // the element, and dispatches the change event that React's synthetic
+    // onChange handler picks up — no need to open a native file chooser.
+    // Register the response waiter BEFORE triggering the upload so the
+    // promise is in place before the mocked /api/upload response fires.
+    const uploadDone = page.waitForResponse("**/api/upload");
+    await page.locator('input[type="file"]').setInputFiles(
       path.resolve(__dirname, "../test-fixtures/sample.pdf")
     );
+    // Wait for the mocked /api/upload to respond so setPreview() has been
+    // called in React before we assert on the resulting UI.
+    await uploadDone;
 
     // Wait for content preview to appear
     await expect(page.getByText("Target Duration")).toBeVisible({ timeout: 10000 });
