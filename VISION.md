@@ -38,16 +38,20 @@ AI chooses narrator vs. conversation based on content type. Dense analytical con
 
 ## Competitive Position
 
-| Capability | Ridecast2 | NotebookLM | Speechify | ElevenReader |
-|---|---|---|---|---|
-| AI summarization/compression | Yes | Yes | No (verbatim) | No (verbatim) |
-| Duration control | 5-60 min slider | No (format-based) | N/A | N/A |
-| Conversation format | Narrator or conversation | Two-host only | Single voice | Single voice |
-| Mobile app | PWA | Web only | Native | Native |
-| Offline listening | Yes (IndexedDB) | No | Yes | Yes |
-| Car mode | Yes | No | No | No |
-| Voice quality | Good (OpenAI TTS) | Excellent (Gemini) | Excellent (premium) | Best (ElevenLabs) |
-| Price | Free (self-hosted, BYOK) | Free | $29/mo | $11/mo |
+| Capability | Ridecast2 | NotebookLM | Speechify | ElevenReader | NaturalReader | Listening.io |
+|---|---|---|---|---|---|---|
+| AI summarization/compression | ✅ Yes | ✅ Yes | ✅ AI Podcasts (Aug 2025) | ⚠️ Vestigial | ❌ No | ❌ No |
+| Duration control | ✅ 5–60 min slider | ⚠️ 3 crude presets (May 2025) | ⚠️ Rough presets only | ❌ None | ❌ None | ❌ None |
+| EPUB support | ✅ Yes | ❌ No | ❌ No | ✅ Yes | ✅ Yes | ❌ No |
+| PDF support | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
+| BYOK / self-hosted | ✅ Yes | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
+| Mobile app | ⚠️ PWA only | ✅ Native (mid-2025) | ✅ Native | ✅ Native | ✅ Native | ❌ None |
+| Browser extension | ❌ Phase 2 | ❌ No | ✅ Yes | ✅ Yes | ⚠️ 3.6★ | ✅ Yes |
+| Offline listening | ✅ Yes (file-based) | ✅ Yes (download) | ✅ Premium | ✅ 10 files | ✅ MP3 export | ✅ Via podcast app |
+| Car mode | ✅ Yes | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
+| Voice quality | Good (OpenAI TTS) | Excellent (Gemini) | Excellent (premium) | Best (ElevenLabs) | Adequate | Basic |
+| RSS → podcast feed | ❌ Phase 3 | ❌ No | ❌ No | ❌ No | ❌ No | ✅ Yes (URL-only) |
+| Price | Free (BYOK) | Free (3/day cap) | $29/mo | $11/mo | $21–26/mo | $12/mo |
 
 ## Strengths
 
@@ -59,10 +63,11 @@ AI chooses narrator vs. conversation based on content type. Dense analytical con
 
 ## Vulnerabilities
 
-- **NotebookLM is free and Google-backed.** If they add duration control and a mobile app, positioning narrows significantly.
-- **Voice quality is "good enough" but not best-in-class.** Users judge audio products in 3 seconds of listening.
-- **No native mobile app for a commute product is a contradiction.** PWA works technically but isn't discoverable and can't do reliable background audio.
-- **Duration accuracy is unreliable.** The core promise needs to consistently deliver.
+- **NotebookLM is free and Google-backed — and moving fast.** They shipped 5 major features in 12 months: duration presets (May 2025), 4 audio formats (Sept 2025), Video Overviews (Jul 2025), 80+ languages (Aug 2025), mobile app (mid-2025). Their duration presets are crude (3 options) but the trajectory is clear. Window to own this category: 12–18 months.
+- **Voice quality is "good enough" but not best-in-class.** Users judge audio products in 3 seconds of listening. ElevenReader's 56K+ Play Store reviews exist almost entirely because of ElevenLabs voice quality. This is fixable via Phase 2 (#9).
+- **No native mobile app for a commute product is a contradiction.** PWA works technically but isn't discoverable and can't do reliable background audio. Phase 2 (#6).
+- **Duration accuracy is still unreliable.** The core promise needs to consistently deliver. Phase 1 (#5).
+- **ElevenReader is a latent threat that's underrated.** No AI compression or duration control today — but ElevenLabs owns the best voices in the market, has an existing content-to-audio app with 56K+ reviews, and has a vestigial AI podcast feature waiting to be matured. If ElevenLabs invests in that feature, they enter Ridecast2's exact category with a voice quality advantage we cannot match without their infrastructure. Watch their changelog.
 
 ## The Biggest Risk
 
@@ -72,13 +77,15 @@ The defense: be **faster, more opinionated, and more commute-specific** than Goo
 
 ## Market Opportunities
 
-1. **Pocket is dead.** Mozilla is discontinuing Pocket. Millions of read-it-later users need a new home. ElevenReader is positioning for this — but they read verbatim. Ridecast2 offers *summarized* audio.
+1. **Pocket is gone — and its users are still looking.** Mozilla shut Pocket down on July 8, 2025. Millions of loyal read-it-later users — habitual content consumers with established browser-clip habits — are now in Instapaper, ElevenReader, or nothing. They have never experienced AI-compressed audio. Ridecast2 is not a marginal upgrade over Pocket; it's a categorical one. Positioning: *"Do what Pocket should have become."* See ROADMAP Phase 3 (#3.6) for the import flow. Start messaging now.
 
-2. **NotebookLM's gaps are our strengths.** No mobile app, no duration control, no commute UX, no offline. Users who love the audio quality but want it for their commute are underserved.
+2. **NotebookLM's gaps are our strengths.** They have no EPUB support, no minute-precision duration, no BYOK, no commute UX, no Car Mode, and a free tier capped at 3 Audio Overviews per day. Power commuters hit that wall fast. Users who love NotebookLM's audio quality but want it reliably for a 22-minute commute are underserved.
 
-3. **Price gap.** Speechify at $29/mo and ElevenReader at $11/mo leave room. Ridecast2 is free (self-hosted, user provides API keys) — compelling for technical users. A hosted version could undercut both.
+3. **The "AI podcast" category is nascent and duration-first is unclaimed.** Most competitors are TTS readers, not content producers. Among those that do AI compression (NotebookLM, Speechify), none offer minute-precision duration. "The AI that fills exactly your commute time" is a category of one.
 
-4. **The "AI podcast" category is nascent.** Most competitors are TTS readers, not content producers. The gap between "read this aloud" and "produce a podcast episode from this" is the entire value proposition.
+4. **Price gap.** Speechify at $29/mo and ElevenReader at $11/mo leave room. Ridecast2 is free (self-hosted, BYOK) — compelling for technical users who resent paying for a product that processes their content on someone else's servers. A hosted version could undercut both on price while matching ElevenLabs voice quality post-Phase 2.
+
+5. **Listening.io's distribution model is up for grabs.** Listening.io routes audio to Spotify and Apple Podcasts via personal RSS — a smart idea executed poorly (verbatim TTS, URL-only, stagnant product). Ridecast2 can take that distribution model and deliver AI-compressed, duration-controlled audio to the apps 500M+ people already use daily. See ROADMAP Phase 3 (#3.5).
 
 ## What We Don't Do
 
@@ -100,4 +107,4 @@ The product succeeds when:
 
 ---
 
-*Last updated: 2026-03-06. Based on competitive analysis conducted across NotebookLM, Speechify, ElevenReader, NaturalReader, Listening.io, and Pocket.*
+*Last updated: 2026-03-06. Competitive analysis refreshed — full research in `docs/plans/2026-03-06-competitive-brief.md`. Competitors: NotebookLM, Speechify, ElevenReader, NaturalReader, Listening.io, Pocket (shutdown July 2025).*
