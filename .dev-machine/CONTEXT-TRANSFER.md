@@ -2,7 +2,35 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** All health gates green. 3 of 5 Phase 1 specs shipped. 2 remain.
+**Status:** All health gates green. Phase 1 COMPLETE — all 5 specs shipped.
+
+---
+
+### Session 2 Summary — 2026-03-06
+
+**Completed:**
+
+- `playback-state-persistence` (commit `90947ea`) — Wired `/api/playback` GET/POST into `PlayerContext.tsx`. Restores position+speed on new item load (`useEffect` on `currentItem?.id`). Saves position on: `pause` event, `seeked` event, `ended` event (with `completed=true`), every 5 seconds via `setInterval` while `isPlaying`, and on `beforeunload`. Used `currentItemIdRef` pattern (ref stays in sync with latest `currentItem.id`) so `savePosition` has stable `[]` deps and event listeners registered once on mount always call the latest version. Added 3 new tests in `PlayerContext.test.tsx`.
+
+- `audio-duration-measurement` (commit `f1ba60c`) — Installed `music-metadata`. Replaced the `fileSizeBytes / 16000` buffer-size estimate in `/api/audio/generate/route.ts` with `parseBuffer(audioBuffer, { mimeType: 'audio/mpeg' })` which reads real MP3 header duration. Falls back to word-count estimate (not buffer-size) if `parseBuffer` throws or returns no duration. Updated the accuracy log line to say `Source: music-metadata`. Added 2 new tests in `route.test.ts` (real measurement test + fallback test).
+
+**Health gates:**
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| `npm run lint` | ✅ PASS | 10 warnings (unchanged, all pre-existing no-unused-vars) |
+| `npm run test` | ✅ PASS | 81/88 passing, 7 skipped (DB-dependent) — up from 76/83 |
+| `npm run build` | ✅ PASS | Next.js 16.1.6 + Turbopack, no new errors |
+
+**Phase 1 status: COMPLETE.** All 5 feature specs shipped across 2 sessions.
+
+**Next session should start with:** Phase 2 planning. No `ready` features remain in STATE.yaml. Next work requires defining Phase 2 specs or deciding what to tackle next (iOS shell, queue feature, catalog, or another Phase 1 follow-up).
+
+**Key decisions made:**
+- `PlayableItem.id` IS the audio ID (confirmed from LibraryScreen.tsx where `play({ id: item.audioId, ... })`)
+- Used `currentItemIdRef` (ref-based) instead of `useCallback` with state dependency to avoid React compiler "Compilation Skipped" lint error
+- `music-metadata`'s fallback uses word-count estimate (not buffer-size) — more accurate for short/corrupt files
+- Did NOT add `audioId` to `PlayableItem` interface — `id` already serves this role
 
 ---
 
