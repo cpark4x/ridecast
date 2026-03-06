@@ -87,6 +87,12 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
   function handleCreateAudio() {
     if (preview) {
       onProcess(preview.id, sliderValue);
+      // Reset form so it's fresh when the user returns after generation
+      setPreview(null);
+      setUrl("");
+      setError(null);
+      setSelectedPreset(15);
+      setSliderValue(15);
     }
   }
 
