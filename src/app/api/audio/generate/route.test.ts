@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Hoist mock functions so they're available when vi.mock factories run
-const { mockWriteFile, mockMkdir, mockGenerateSpeech } = vi.hoisted(() => ({
+const { mockWriteFile, mockMkdir, mockGenerateSpeech, mockParseBuffer } = vi.hoisted(() => ({
   mockWriteFile: vi.fn(),
   mockMkdir: vi.fn(),
   mockGenerateSpeech: vi.fn(),
+  mockParseBuffer: vi.fn(),
 }));
 
 // Mock fs/promises
@@ -36,6 +37,11 @@ vi.mock('@/lib/tts/openai', () => ({
 // Mock uuid
 vi.mock('uuid', () => ({
   v4: () => 'test-uuid-1234',
+}));
+
+// Mock music-metadata
+vi.mock('music-metadata', () => ({
+  parseBuffer: mockParseBuffer,
 }));
 
 import { prisma } from '@/lib/db';
@@ -76,6 +82,7 @@ describe('POST /api/audio/generate', () => {
 
     mockFindUnique.mockResolvedValue(scriptRecord);
     mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-mp3-data'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 120 } });
 
     const audioRecord = {
       id: 'audio-1',
@@ -106,5 +113,74 @@ describe('POST /api/audio/generate', () => {
 
     expect(response.status).toBe(404);
     expect(data.error).toBe('Script not found');
+  });
+
+  it('uses music-metadata parseBuffer to measure real audio duration', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      format: 'narrator',
+      scriptText: 'Test script content.',
+      targetDuration: 5,
+      actualWordCount: 3,
+    };
+
+    // parseBuffer returns a real duration of 287 seconds
+    mockParseBuffer.mockResolvedValue({ format: { duration: 287.4 } });
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.alloc(100)); // tiny fake buffer
+
+    const audioRecord = {
+      id: 'audio-1',
+      scriptId: 'script-1',
+      filePath: 'audio/test-uuid-1234.mp3',
+      durationSecs: 287,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+    mockAudioCreate.mockResolvedValue(audioRecord);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    await POST(request);
+
+    // The audio record should have been created with the metadata duration (287), NOT
+    // the buffer-size estimate (100 bytes / 16000 ≈ 0 seconds, which would fall back to word-count)
+    const createCall = mockAudioCreate.mock.calls[0][0];
+    expect(createCall.data.durationSecs).toBe(287);
+  });
+
+  it('falls back to word-count estimate when parseBuffer fails', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      format: 'narrator',
+      // 300 words at 150 WPM = 120 seconds
+      scriptText: 'word '.repeat(300),
+      targetDuration: 5,
+      actualWordCount: 300,
+    };
+
+    // parseBuffer throws an error
+    mockParseBuffer.mockRejectedValue(new Error('Could not parse audio metadata'));
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.alloc(100)); // tiny fake buffer
+
+    const audioRecord = {
+      id: 'audio-1',
+      scriptId: 'script-1',
+      filePath: 'audio/test-uuid-1234.mp3',
+      durationSecs: 120,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+    mockAudioCreate.mockResolvedValue(audioRecord);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    // Request must succeed (fallback used, no crash)
+    expect(response.status).toBe(200);
+
+    // Word-count estimate: 300 words / 150 WPM * 60 = 120 seconds
+    const createCall = mockAudioCreate.mock.calls[0][0];
+    expect(createCall.data.durationSecs).toBe(120);
   });
 });

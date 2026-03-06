@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { parseBuffer } from 'music-metadata';
 import { prisma } from '@/lib/db';
 import { OpenAITTSProvider } from '@/lib/tts/openai';
 import { generateNarratorAudio } from '@/lib/tts/narrator';
@@ -64,22 +65,32 @@ export async function POST(request: Request) {
     await mkdir(path.dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, audioBuffer);
 
-    // Estimate duration from file size. MP3 at 128kbps mono ≈ 16KB/sec.
-    // Falls back to word-count estimate if file is unexpectedly small.
-    const fileSizeBytes = audioBuffer.length;
-    const durationFromFile = fileSizeBytes / 16000;
-    const wordCount = script.scriptText.split(/\s+/).length;
-    const durationFromWords = (wordCount / WORDS_PER_MINUTE) * 60;
-    const durationSecs = durationFromFile > 10 ? Math.round(durationFromFile) : Math.round(durationFromWords);
+    // Measure real duration from audio metadata (music-metadata reads MP3 headers).
+    // Falls back to word-count estimate if metadata parse fails.
+    let durationSecs: number;
+    try {
+      const metadata = await parseBuffer(audioBuffer, { mimeType: 'audio/mpeg' });
+      const parsed = metadata.format.duration;
+      if (parsed && parsed > 0) {
+        durationSecs = Math.round(parsed);
+      } else {
+        throw new Error('No duration in metadata');
+      }
+    } catch {
+      // Fallback: word-count estimate (more accurate than buffer-size estimate)
+      const wordCount = script.scriptText.split(/\s+/).length;
+      durationSecs = Math.round((wordCount / WORDS_PER_MINUTE) * 60);
+      console.warn('[duration] music-metadata parse failed; falling back to word-count estimate');
+    }
 
     // Log duration accuracy for calibration
     const targetSecs = script.targetDuration * 60;
     const deltaSecs = durationSecs - targetSecs;
     const deltaPct = Math.round((deltaSecs / targetSecs) * 100);
     console.log(
-      `[duration] Audio generated: ${durationSecs}s actual vs ${targetSecs}s target ` +
+      `[duration] Measured: ${durationSecs}s actual vs ${targetSecs}s target ` +
       `(${deltaSecs > 0 ? '+' : ''}${deltaSecs}s / ${deltaPct > 0 ? '+' : ''}${deltaPct}%). ` +
-      `Script: ${wordCount} words at ${WORDS_PER_MINUTE} WPM assumption.`
+      `Source: music-metadata. Script: ${script.actualWordCount ?? '?'} words.`
     );
 
     // Create Audio record in DB

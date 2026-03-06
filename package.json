@@ -23,6 +23,7 @@
     "dexie": "^4.3.0",
     "jsdom": "^28.1.0",
     "jszip": "^3.10.1",
+    "music-metadata": "^11.12.1",
     "next": "16.1.6",
     "openai": "^6.25.0",
     "pdf-parse": "^1.1.1",
