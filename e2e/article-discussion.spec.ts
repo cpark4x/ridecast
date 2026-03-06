@@ -12,7 +12,14 @@ test.describe("Scenario 2: The Article Discussion", () => {
     await page.getByPlaceholder("Paste article or newsletter URL...").fill(
       "https://paulgraham.com/ds.html"
     );
+    // Set up the response waiter BEFORE clicking so the promise is registered
+    // before the network request fires — avoids a race where the mocked
+    // response resolves before waitForResponse() is attached.
+    const uploadDone = page.waitForResponse("**/api/upload");
     await page.getByText("Fetch").click();
+    // Confirm the mocked /api/upload has responded so setPreview() in React
+    // has already been called before we assert on the resulting UI.
+    await uploadDone;
 
     // Wait for content preview
     await expect(page.getByText("Target Duration")).toBeVisible({ timeout: 15000 });
