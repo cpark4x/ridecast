@@ -56,16 +56,14 @@ export async function POST(request: Request) {
 
     const hash = contentHash(text);
 
-    // Check for duplicate
+    // If the same content was uploaded before, reuse it — the user may
+    // want a different duration or format this time.
     const existing = await prisma.content.findUnique({
       where: { contentHash: hash },
     });
 
     if (existing) {
-      return NextResponse.json(
-        { error: 'Duplicate content', existingId: existing.id },
-        { status: 409 },
-      );
+      return NextResponse.json(existing);
     }
 
     const record = await prisma.content.create({
