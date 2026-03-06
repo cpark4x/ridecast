@@ -1,0 +1,134 @@
+name: "ridecast2-build"
+description: "Outer orchestration loop for the ridecast2 development machine. Reads state, dispatches working sessions, persists progress across context windows."
+version: "1.0.0"
+tags: ["orchestration", "development-machine", "ridecast2"]
+
+context:
+  state_file: ".dev-machine/STATE.yaml"
+  context_file: ".dev-machine/CONTEXT-TRANSFER.md"
+  specs_dir: "./specs"
+  status: "healthy"
+  session_count: "0"
+
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Read STATE.yaml and check for blockers
+  # ---------------------------------------------------------------------------
+  - id: "read-state"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      python3 << 'PYEOF'
+      import json, yaml
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+          blockers = state.get("blockers", [])
+          features = state.get("features", {})
+          ready = sum(1 for f in features.values() if f.get("status") == "ready")
+          done = sum(1 for f in features.values() if f.get("status") in ("done", "completed"))
+          total = len(features)
+          result = {
+              "phase": state.get("phase", 1),
+              "next_action": state.get("next_action", ""),
+              "blocker_count": len(blockers),
+              "blockers": blockers,
+              "ready_count": ready,
+              "done_count": done,
+              "total_features": total,
+              "status": "blocked" if blockers else ("complete" if ready == 0 and total > 0 else "healthy")
+          }
+          print(json.dumps(result))
+      except Exception as e:
+          print(json.dumps({
+              "status": "blocked",
+              "blockers": ["Failed to read STATE.yaml: " + str(e)],
+              "blocker_count": 1,
+              "ready_count": 0,
+              "done_count": 0
+          }))
+      PYEOF
+    output: "initial_state"
+    parse_json: true
+
+  # ---------------------------------------------------------------------------
+  # Step 2: Report initial state
+  # ---------------------------------------------------------------------------
+  - id: "report-state"
+    type: "bash"
+    command: |
+      echo "=================================================="
+      echo "  ridecast2 Dev Machine — Starting"
+      echo "=================================================="
+      echo ""
+      echo "  Features ready:     {{initial_state.ready_count}}"
+      echo "  Features completed: {{initial_state.done_count}}"
+      echo "  Total features:     {{initial_state.total_features}}"
+      echo "  Blockers:           {{initial_state.blocker_count}}"
+      echo "  Status:             {{initial_state.status}}"
+      echo ""
+      echo "  State:   .dev-machine/STATE.yaml"
+      echo "  Context: .dev-machine/CONTEXT-TRANSFER.md"
+      echo "=================================================="
+
+  # ---------------------------------------------------------------------------
+  # Step 3: If blockers exist, print them and fail
+  # ---------------------------------------------------------------------------
+  - id: "check-health"
+    type: "bash"
+    condition: "{{initial_state.status}} == 'blocked'"
+    command: |
+      echo "BLOCKED: Cannot proceed. Resolve blockers in .dev-machine/STATE.yaml and re-run."
+      exit 1
+    on_error: "fail"
+
+  # ---------------------------------------------------------------------------
+  # Step 4: Main work loop
+  # ---------------------------------------------------------------------------
+  - id: "work-loop"
+    type: "recipe"
+    recipe: "./.dev-machine/recipes/iteration.yaml"
+    context:
+      state_file: ".dev-machine/STATE.yaml"
+      context_file: ".dev-machine/CONTEXT-TRANSFER.md"
+      specs_dir: "./specs"
+      session_count: "{{session_count}}"
+    output: "iteration_result"
+    parse_json: true
+    timeout: 4200
+    on_error: "continue"
+    while_condition: "{{status}} == 'healthy'"
+    max_while_iterations: 10
+    break_when: "{{status}} != 'healthy'"
+    update_context:
+      status: "{{iteration_result.status}}"
+      session_count: "{{iteration_result.session_count}}"
+
+  # ---------------------------------------------------------------------------
+  # Step 5: Final summary
+  # ---------------------------------------------------------------------------
+  - id: "final-summary"
+    type: "bash"
+    command: |
+      echo ""
+      echo "=================================================="
+      echo "  ridecast2 Dev Machine — Run Complete"
+      echo "=================================================="
+      echo ""
+      echo "  Sessions completed: {{session_count}}"
+      echo "  Final status:       {{status}}"
+      echo ""
+      if [ "{{status}}" = "blocked" ]; then
+        echo "  Stopped: BLOCKERS detected"
+        echo "  Check .dev-machine/STATE.yaml for details."
+      elif [ "{{status}}" = "complete" ]; then
+        echo "  All features implemented!"
+      else
+        echo "  Stopped: max iterations reached or no more ready work."
+      fi
+      echo ""
+      echo "  Review commits: git log --oneline -20"
+      echo "  State:          .dev-machine/STATE.yaml"
+      echo "  Context:        .dev-machine/CONTEXT-TRANSFER.md"
+      echo "=================================================="
+    output: "summary"

@@ -116,6 +116,44 @@ recently_shipped:
       ROADMAP.md + VISION.md updated to reflect iOS strategy.
 
 # =============================================================================
+# Features — machine-readable work queue
+# =============================================================================
+
+phase: 1
+phase_name: "phase-1-foundation"
+epoch: 0
+next_action: "implement Phase 1 feature specs in order"
+
+completed_features: []
+
+features:
+  duration-accuracy:
+    status: "ready"
+    title: "Duration Accuracy — ±15% tolerance, 2nd retry, durationAdvisory"
+    spec: "specs/features/phase1/duration-accuracy.md"
+    depends_on: []
+  pipeline-error-resilience:
+    status: "ready"
+    title: "Pipeline Error Resilience — retryWithBackoff, truncation warning, maxDuration"
+    spec: "specs/features/phase1/pipeline-error-resilience.md"
+    depends_on: []
+  processing-screen-upgrade:
+    status: "ready"
+    title: "ProcessingScreen 4-Stage UI — Analyzing→Scripting→Generating→Ready"
+    spec: "specs/features/phase1/processing-screen-upgrade.md"
+    depends_on: []
+  playback-state-persistence:
+    status: "ready"
+    title: "Playback State Persistence — wire /api/playback into PlayerContext"
+    spec: "specs/features/phase1/playback-state-persistence.md"
+    depends_on: []
+  audio-duration-measurement:
+    status: "ready"
+    title: "True Audio Duration Measurement — music-metadata library"
+    spec: "specs/features/phase1/audio-duration-measurement.md"
+    depends_on: []
+
+# =============================================================================
 # Next Steps — Phase 1 Feature Build
 # =============================================================================
 

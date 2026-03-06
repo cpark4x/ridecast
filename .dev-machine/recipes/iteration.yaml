@@ -1,0 +1,219 @@
+name: "ridecast2-session-iteration"
+description: "Single iteration of the ridecast2 development machine — orient, work, verify, update state."
+version: "1.0.0"
+tags: ["ridecast2", "iteration", "working-session"]
+
+context:
+  state_file: ".dev-machine/STATE.yaml"
+  context_file: ".dev-machine/CONTEXT-TRANSFER.md"
+  specs_dir: "./specs"
+  session_count: "0"
+
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Orient — read state before dispatching working session
+  # ---------------------------------------------------------------------------
+  - id: "orient"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      python3 << 'PYEOF'
+      import json, yaml
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+          blockers = state.get("blockers", [])
+          features = state.get("features", {})
+          completed_list = set(state.get("completed_features", []))
+          ready = []
+          for fid, fd in features.items():
+              s = fd.get("status", "")
+              if s == "ready":
+                  deps = fd.get("depends_on", [])
+                  if all(d in completed_list or features.get(d, {}).get("status") in ("done", "completed") for d in deps):
+                      ready.append(fid)
+          print(json.dumps({
+              "phase": state.get("phase", 1),
+              "next_action": state.get("next_action", ""),
+              "ready_features": ready,
+              "ready_count": len(ready),
+              "status": "blocked" if blockers else ("complete" if len(ready) == 0 else "healthy")
+          }))
+      except Exception as e:
+          print(json.dumps({"status": "blocked", "error": str(e), "ready_count": 0, "ready_features": []}))
+      PYEOF
+    output: "orient_state"
+    parse_json: true
+
+  # ---------------------------------------------------------------------------
+  # Step 2: Dispatch fresh working session
+  # ---------------------------------------------------------------------------
+  - id: "working-session"
+    agent: "self"
+    prompt: |
+      You are a WORKING SESSION of the ridecast2 development machine.
+      You start with ZERO prior context. Your entire knowledge of this project comes from files.
+
+      PROJECT ROOT: /Users/chrispark/Projects/ridecast2
+
+      ════════════════════════════════════════
+      STEP 0 — READ THESE FILES FIRST (in order)
+      ════════════════════════════════════════
+
+      1. .dev-machine/STATE.yaml           ← current phase, feature queue, health gates
+      2. .dev-machine/CONTEXT-TRANSFER.md  ← recent decisions, handoff notes
+      3. .dev-machine/working-session-instructions.md  ← your full operating procedure
+      4. specs/architecture.md             ← the constitution (always read this)
+      5. specs/modules/content-pipeline.md ← interface contracts
+
+      Then read the spec file for each feature you plan to implement.
+
+      ════════════════════════════════════════
+      YOUR MISSION THIS SESSION
+      ════════════════════════════════════════
+
+      - Find features with status "ready" in STATE.yaml (no unmet depends_on)
+      - Pick the first 3 (top = highest priority)
+      - For each feature, follow the TDD cycle from working-session-instructions.md:
+        RED → GREEN → VERIFY → COMMIT → UPDATE STATE
+
+      Verification after each feature:
+        npm run lint   (warnings ok, errors not ok)
+        npm run test   (58+ passing, 7 skipped is the baseline — don't regress this)
+        npm run build  (must succeed)
+
+      Commit format:
+        feat(<scope>): <description>
+
+        Implements: <spec-filename>
+        Tests: <what was tested>
+
+      After each commit, update .dev-machine/STATE.yaml — mark feature "done" with commit hash.
+
+      ════════════════════════════════════════
+      IMPORTANT PROJECT NOTES
+      ════════════════════════════════════════
+
+      - Stack: Next.js 16 App Router, TypeScript strict, Vitest, Prisma/PostgreSQL
+      - DB runs on port 5433 (Docker). Run `docker compose up -d` if DB errors occur.
+      - Schema changes need: npm run db:migrate && npm run db:generate
+      - Tests should MOCK Claude and OpenAI API calls — never make real API calls in tests
+      - DEFAULT_USER_ID = "default-user" is used throughout — no auth yet
+      - Do NOT git push — committing only
+
+      ════════════════════════════════════════
+      AFTER YOUR BATCH IS DONE
+      ════════════════════════════════════════
+
+      Update .dev-machine/CONTEXT-TRANSFER.md with a session summary:
+      - What you implemented
+      - Key decisions made
+      - Health gate status
+      - What the next session should start with
+
+      IF BLOCKED: add blocker to STATE.yaml blockers list, update CONTEXT-TRANSFER.md, stop.
+      IF DEGRADING (losing coherence, repeating yourself): commit what's done, update state, stop.
+
+      What you don't write down is lost forever.
+    output: "session_result"
+    timeout: 3600
+
+  # ---------------------------------------------------------------------------
+  # Step 3: Build gate — catch anything the session may have missed
+  # ---------------------------------------------------------------------------
+  - id: "build-check"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      echo "=== POST-SESSION BUILD CHECK ==="
+      if npm run build 2>&1; then
+        echo "Build: PASS"
+        echo '{"build_status": "clean"}'
+      else
+        echo "BUILD FAILED — adding blocker to STATE.yaml"
+        python3 -c "
+      import yaml, datetime
+      with open('.dev-machine/STATE.yaml') as f:
+          s = yaml.safe_load(f)
+      b = s.get('blockers') or []
+      b.append({'description': 'npm run build failed after working session', 'since': datetime.datetime.now().isoformat(), 'severity': 'high'})
+      s['blockers'] = b
+      with open('.dev-machine/STATE.yaml', 'w') as f:
+          yaml.dump(s, f, default_flow_style=False, sort_keys=False)
+      "
+        echo '{"build_status": "failed"}'
+      fi
+    output: "build_result"
+    timeout: 120
+
+  # ---------------------------------------------------------------------------
+  # Step 4: Post-session — archive completed features, update state
+  # ---------------------------------------------------------------------------
+  - id: "post-session"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      python3 << 'PYEOF'
+      import json, yaml, os
+      from datetime import datetime, timezone
+
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+
+          session_num = int("{{session_count}}") + 1
+          features = state.get("features", {})
+          completed_list = state.get("completed_features", [])
+
+          # Archive done features
+          newly_done = {fid: fd for fid, fd in features.items()
+                        if fd.get("status") in ("done", "completed")}
+
+          if newly_done:
+              archive_path = ".dev-machine/FEATURE-ARCHIVE.yaml"
+              try:
+                  with open(archive_path) as f:
+                      archive = yaml.safe_load(f) or {}
+              except FileNotFoundError:
+                  archive = {"description": "Completed feature archive.", "features": {}}
+
+              arch_feats = archive.get("features", {})
+              for fid, fd in newly_done.items():
+                  if fid not in completed_list:
+                      completed_list.append(fid)
+                  arch_feats[fid] = fd
+                  del features[fid]
+              archive["features"] = arch_feats
+
+              with open(archive_path, "w") as f:
+                  yaml.dump(archive, f, default_flow_style=False, sort_keys=False)
+
+          state["features"] = features
+          state["completed_features"] = completed_list
+          state["epoch"] = state.get("epoch", 0) + 1
+          state["last_session"] = datetime.now(timezone.utc).isoformat()
+
+          with open(".dev-machine/STATE.yaml", "w") as f:
+              yaml.dump(state, f, default_flow_style=False, sort_keys=False, width=120)
+
+          blockers = state.get("blockers", [])
+          remaining = sum(1 for f in features.values() if f.get("status") not in ("done", "completed"))
+
+          if blockers:
+              status = "blocked"
+          elif remaining == 0 and len(completed_list) > 0:
+              status = "complete"
+          else:
+              status = "healthy"
+
+          print(json.dumps({
+              "status": status,
+              "session_count": str(session_num),
+              "features_remaining": remaining,
+              "features_done": len(completed_list)
+          }))
+      except Exception as e:
+          print(json.dumps({"status": "blocked", "session_count": "{{session_count}}", "error": str(e)}))
+      PYEOF
+    output: "iteration_result"
+    parse_json: true
