@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** Phase 1 complete. 4 Phase 2 specs ready. All health gates green.
+**Status:** Phase 2 complete. All 4 Phase 2 features shipped. All health gates green.
 
 ---
 
@@ -12,24 +12,21 @@
 
 | Gate | Status | Notes |
 |------|--------|-------|
-| `npm run lint` | ✅ PASS | 10 warnings (no-unused-vars, non-blocking) |
-| `npm run test` | ✅ PASS | **81 passing**, 7 skipped (DB-dependent) — up from 58 (machine added 23 tests) |
+| `npm run lint` | ✅ PASS | 10 warnings (no-unused-vars, non-blocking) — 0 errors |
+| `npm run test` | ✅ PASS | **95 passing**, 7 skipped (DB-dependent) — up from 81 (machine added 14 more tests) |
 | `npm run build` | ✅ PASS | Next.js 16.1.6 + Turbopack |
-| `npm run test:e2e` | ✅ PASS | 5/5 passing |
+| `npm run test:e2e` | ✅ PASS (last verified 2026-03-06 PR #16) | 5/5 passing |
 
-### Phase 1 — Complete ✅
+### Phase 2 — Complete ✅
 
-All 5 Phase 1 features shipped autonomously across 2 machine sessions:
+All 4 Phase 2 features shipped in one machine session:
 
 | Commit | Feature |
 |--------|---------|
-| `f1f5775` | Duration accuracy — ±15% tolerance, 2nd retry, durationAdvisory |
-| `b158b0d` | Pipeline error resilience — retryWithBackoff, truncation warning, maxDuration |
-| `43bec2a` | ProcessingScreen — 4-stage Analyzing→Scripting→Generating→Ready UI |
-| `90947ea` | Playback state persistence — PlayerContext ↔ /api/playback (5s polling) |
-| `f1ba60c` | Audio duration measurement — music-metadata library (accurate, not buffer-size estimate) |
-
-Machine also committed `8369785 docs: rewrite README for public portfolio`.
+| `1ba268f` | ElevenLabs TTS Provider — `ElevenLabsTTSProvider` class + `elevenlabs` npm dep |
+| `0738f2f` | ElevenLabs Routing — `createTTSProvider()` factory, ElevenLabs voice configs in narrator/conversation |
+| `3c55a2e` | Episode Versioning — `/api/library` returns `versions[]` array; LibraryScreen expandable cards |
+| `1252d1f` | Commute Duration Preference — `useCommuteDuration()` hook; UploadScreen remembers slider setting |
 
 ---
 
@@ -46,34 +43,30 @@ Full context: `VISION.md`, `ROADMAP.md`, `docs/plans/2026-03-06-competitive-brie
 
 ---
 
-## Phase 2 Feature Specs — Ready to Build
+## Session 3 Summary — 2026-03-06
 
-All 4 specs in `specs/features/phase2/`. Build in this order (respect depends_on):
+**Completed:**
+- `elevenlabs-provider` — `ElevenLabsTTSProvider` implementing `TTSProvider` interface; `elevenlabs` npm package installed; `ELEVENLABS_API_KEY` added to `.env.example`; test uses `vi.fn().mockImplementation(function() {...})` (not arrow fn) for constructor mocking
+- `elevenlabs-routing` — `createTTSProvider()` factory in `src/lib/tts/provider.ts`; checks `ELEVENLABS_API_KEY` env var to pick provider; narrator/conversation voice configs updated with ElevenLabs Rachel/Adam voice IDs; audio generate route updated to use factory
+- `episode-versioning` — `/api/library` now returns `versions: AudioVersion[]` per content item (sorted by targetDuration ascending); items with no audio show `status: "generating"`; LibraryScreen updated with expandable card UI (chevron for multi-version items, inline version rows with duration/format/status badges)
+- `commute-duration` — `useCommuteDuration()` hook in `src/hooks/`; uses **lazy state initializer** (not useEffect) to avoid React compiler lint error about "cascading renders"; UploadScreen slider defaults to stored value, persists on change
 
-| Priority | Feature | Spec | Effort | Note |
-|----------|---------|------|--------|------|
-| 1 | elevenlabs-provider | `elevenlabs-provider.md` | Small | No depends_on — start here |
-| 2 | elevenlabs-routing | `elevenlabs-routing.md` | Small | Depends on elevenlabs-provider |
-| 3 | episode-versioning | `episode-versioning.md` | Small | Independent |
-| 4 | commute-duration | `commute-duration.md` | Small | Independent |
+**Key decisions:**
+- ElevenLabs `ElevenLabsClient` mock: must use `function()` not arrow fn in `mockImplementation` so it can be used as constructor with `new`
+- `createTTSProvider()` reads env var at call time (not module load time) — dynamic env-checking is correct
+- Library route TypeScript fix: explicit `(script): AudioVersion[]` return type annotation on `flatMap` callback to satisfy strict compiler
+- `useCommuteDuration` uses lazy `useState(readStoredDuration)` instead of `useEffect(() => setState(...))` to satisfy React compiler no-cascading-renders lint rule — functionally identical but cleaner
 
-### Key context for Phase 2 specs
+**Health gates after session:** lint ✅ (0 errors, 10 warnings) · test ✅ (95 passing, 7 skipped) · build ✅
 
-**ElevenLabs:**
-- Package: `elevenlabs` (npm)
-- Interface: `TTSProvider.generateSpeech(text, voice): Promise<Buffer>` — identical to OpenAI
-- Rachel voice ID: `21m00Tcm4TlvDq8ikWAM` (narrator), Adam: `pNInz6obpgDQGcFmaJgB` (Host A)
-- Factory pattern: `createTTSProvider()` in `src/lib/tts/provider.ts` — picks by env var
+**Next session should start with:** Phase 3 specs (none yet written) — the next step is to plan Phase 3 features. Check `ROADMAP.md` and `VISION.md` for direction.
 
-**Episode Versioning:**
-- Current `/api/library` returns `latestScript + latestAudio` (one version per content)
-- New shape: `{ ...item, versions: AudioVersion[] }` sorted by targetDuration ascending
-- LibraryScreen needs expandable card when `versions.length > 1`
-
-**Commute Duration:**
-- localStorage key: `ridecast:commute-duration-mins`
-- Hook: `useCommuteDuration()` in `src/hooks/useCommuteDuration.ts`
-- Used in: UploadScreen slider default (replace hardcoded 15)
+**Notes:**
+- All Phase 2 STATE.yaml features are `status: done` with commit hashes
+- No schema changes were needed this session
+- ElevenLabs integration is complete but requires `ELEVENLABS_API_KEY` in `.env` to activate — falls back to OpenAI seamlessly without it
+- `src/hooks/` directory created this session (new module location)
+- Test count: 58 (Phase 1 start) → 81 (Phase 1 end) → 95 (Phase 2 end)
 
 ---
 
@@ -85,12 +78,6 @@ All 4 specs in `specs/features/phase2/`. Build in this order (respect depends_on
 - **Architecture:** `specs/architecture.md` — always read first in each session
 
 ---
-
-## If Interrupted
-
-1. Read `STATE.yaml` — features with `status: ready` are the work queue
-2. Check `specs/features/phase2/` for the spec files
-3. Respect `depends_on` — build elevenlabs-provider before elevenlabs-routing
 
 ## Commands
 
