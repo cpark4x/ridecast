@@ -25,44 +25,53 @@ async function globalSetup() {
     }
   }
 
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
+  // Best-effort DB cleanup — with API mocks in place, tests don't
+  // strictly need this, so a missing DB shouldn't block the suite.
   try {
-    // Must cascade manually: PlaybackState → Audio → Script → Content
-    await client.query(`
-      DELETE FROM "PlaybackState"
-      WHERE "audioId" IN (
-        SELECT a.id FROM "Audio" a
-        JOIN "Script" s ON a."scriptId" = s.id
-        JOIN "Content" c ON s."contentId" = c.id
-        WHERE c.title = 'sample'
-           OR c."sourceUrl" = 'https://paulgraham.com/ds.html'
-      )
-    `);
-    await client.query(`
-      DELETE FROM "Audio"
-      WHERE "scriptId" IN (
-        SELECT s.id FROM "Script" s
-        JOIN "Content" c ON s."contentId" = c.id
-        WHERE c.title = 'sample'
-           OR c."sourceUrl" = 'https://paulgraham.com/ds.html'
-      )
-    `);
-    await client.query(`
-      DELETE FROM "Script"
-      WHERE "contentId" IN (
-        SELECT id FROM "Content"
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    try {
+      // Must cascade manually: PlaybackState → Audio → Script → Content
+      await client.query(`
+        DELETE FROM "PlaybackState"
+        WHERE "audioId" IN (
+          SELECT a.id FROM "Audio" a
+          JOIN "Script" s ON a."scriptId" = s.id
+          JOIN "Content" c ON s."contentId" = c.id
+          WHERE c.title = 'sample'
+             OR c."sourceUrl" = 'https://paulgraham.com/ds.html'
+        )
+      `);
+      await client.query(`
+        DELETE FROM "Audio"
+        WHERE "scriptId" IN (
+          SELECT s.id FROM "Script" s
+          JOIN "Content" c ON s."contentId" = c.id
+          WHERE c.title = 'sample'
+             OR c."sourceUrl" = 'https://paulgraham.com/ds.html'
+        )
+      `);
+      await client.query(`
+        DELETE FROM "Script"
+        WHERE "contentId" IN (
+          SELECT id FROM "Content"
+          WHERE title = 'sample'
+             OR "sourceUrl" = 'https://paulgraham.com/ds.html'
+        )
+      `);
+      await client.query(`
+        DELETE FROM "Content"
         WHERE title = 'sample'
            OR "sourceUrl" = 'https://paulgraham.com/ds.html'
-      )
-    `);
-    await client.query(`
-      DELETE FROM "Content"
-      WHERE title = 'sample'
-         OR "sourceUrl" = 'https://paulgraham.com/ds.html'
-    `);
-  } finally {
-    await client.end();
+      `);
+    } finally {
+      await client.end();
+    }
+  } catch (err) {
+    console.warn(
+      "Global setup DB cleanup skipped:",
+      (err as Error).message,
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import "dotenv/config"; // load DATABASE_URL from .env before creating the Prisma client
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { fileURLToPath } from "node:url";
