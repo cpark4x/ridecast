@@ -62,11 +62,18 @@ ${truncated}`,
       throw new Error('Unexpected response type from Claude');
     }
 
+    // Claude often wraps JSON in markdown fences (```json ... ```) despite
+    // being asked for raw JSON. Strip them before parsing.
+    const cleaned = content.text
+      .replace(/^```(?:json)?\s*\n?/, "")
+      .replace(/\n?```\s*$/, "")
+      .trim();
+
     let parsed: unknown;
     try {
-      parsed = JSON.parse(content.text);
+      parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error(`Failed to parse analysis response: ${content.text.slice(0, 200)}`);
+      throw new Error(`Failed to parse analysis response: ${cleaned.slice(0, 200)}`);
     }
 
     if (!isContentAnalysis(parsed)) {
