@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, DragEvent } from "react";
+import { useCommuteDuration } from "@/hooks/useCommuteDuration";
 
 interface ContentPreview {
   id: string;
@@ -15,12 +16,15 @@ interface UploadScreenProps {
 }
 
 export function UploadScreen({ onProcess }: UploadScreenProps) {
+  const { commuteDuration, setCommuteDuration } = useCommuteDuration();
   const [url, setUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<ContentPreview | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState(15);
-  const [sliderValue, setSliderValue] = useState(15);
+  const [selectedPreset, setSelectedPreset] = useState(() =>
+    [5, 15, 30].includes(commuteDuration) ? commuteDuration : 0
+  );
+  const [sliderValue, setSliderValue] = useState(commuteDuration);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,10 +79,12 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
   function handlePresetClick(minutes: number) {
     setSelectedPreset(minutes);
     setSliderValue(minutes);
+    setCommuteDuration(minutes); // persist
   }
 
   function handleSliderChange(value: number) {
     setSliderValue(value);
+    setCommuteDuration(value); // persist
     if ([5, 15, 30].includes(value)) {
       setSelectedPreset(value);
     } else {
@@ -89,12 +95,12 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
   function handleCreateAudio() {
     if (preview) {
       onProcess(preview.id, sliderValue);
-      // Reset form so it's fresh when the user returns after generation
+      // Reset form — restore to commuteDuration (not hardcoded 15)
       setPreview(null);
       setUrl("");
       setError(null);
-      setSelectedPreset(15);
-      setSliderValue(15);
+      setSelectedPreset([5, 15, 30].includes(commuteDuration) ? commuteDuration : 0);
+      setSliderValue(commuteDuration);
     }
   }
 

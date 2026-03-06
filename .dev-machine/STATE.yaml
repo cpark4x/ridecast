@@ -119,12 +119,14 @@ features:
     commit: "0738f2f"
     completed_at: "2026-03-06T15:03:00Z"
   episode-versioning:
-    status: in-progress
+    status: done
     title: "Episode Versioning — all audio versions per content in API + UI"
     spec: specs/features/phase2/episode-versioning.md
     depends_on: []
+    commit: "3c55a2e"
+    completed_at: "2026-03-06T15:06:20Z"
   commute-duration:
-    status: ready
+    status: in-progress
     title: "Commute Duration Preference — localStorage hook"
     spec: specs/features/phase2/commute-duration.md
     depends_on: []
