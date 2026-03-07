@@ -52,6 +52,21 @@ beforeEach(() => {
 
 afterEach(() => vi.useRealTimers());
 
+describe("ExpandedPlayer scrubber handle", () => {
+  it("renders a slider with correct aria-valuenow", () => {
+    render(<ExpandedPlayer onClose={vi.fn()} onCarMode={vi.fn()} />);
+    const slider = screen.getByRole("slider");
+    expect(slider).toHaveAttribute("aria-valuenow", "60");
+    expect(slider).toHaveAttribute("aria-valuemax", "300");
+  });
+
+  it("renders a scrubber thumb element inside the slider", () => {
+    const { container } = render(<ExpandedPlayer onClose={vi.fn()} onCarMode={vi.fn()} />);
+    const thumb = container.querySelector("[class*='rounded-full'][class*='bg-white'][class*='absolute']");
+    expect(thumb).not.toBeNull();
+  });
+});
+
 describe("Undo Seek", () => {
   it("does not show Go Back button initially", () => {
     const { container } = render(<ExpandedPlayer onClose={vi.fn()} onCarMode={vi.fn()} />);

@@ -100,8 +100,28 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
 
       {/* Progress */}
       <div className="px-6 mb-6">
-        <div data-testid="progress-bar" onClick={seekProgress} className="w-full h-1 bg-white/10 rounded-sm cursor-pointer relative group hover:h-1.5 transition-all">
-          <div className="h-full rounded-sm relative" style={{ width: `${progress}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }} />
+        <div
+          data-testid="progress-bar"
+          onClick={seekProgress}
+          className="w-full h-5 flex items-center cursor-pointer group relative"
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={duration}
+          aria-valuenow={Math.floor(position)}
+        >
+          {/* Track */}
+          <div className="absolute w-full h-1 bg-white/10 rounded-full">
+            {/* Fill */}
+            <div
+              className="absolute h-full rounded-full"
+              style={{ width: `${progress}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }}
+            />
+            {/* Thumb */}
+            <div
+              className="absolute w-3 h-3 bg-white rounded-full shadow-md -translate-y-1/2 -translate-x-1/2 top-1/2 transition-transform group-active:scale-125"
+              style={{ left: `${progress}%` }}
+            />
+          </div>
         </div>
 
         {/* Undo Seek button — appears for 4s after any seek */}
