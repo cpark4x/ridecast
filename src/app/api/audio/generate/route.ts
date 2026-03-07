@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { parseBuffer } from 'music-metadata';
@@ -8,6 +7,7 @@ import { createTTSProvider } from '@/lib/tts/provider';
 import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
+import { uploadAudio, isBlobStorageConfigured } from '@/lib/storage/blob';
 
 // 3 minutes — conversation TTS stitches many segments
 export const maxDuration = 180;
@@ -58,13 +58,23 @@ export async function POST(request: Request) {
       voices = ['alloy'];
     }
 
-    // Save MP3 to filesystem
-    const filename = `${uuidv4()}.mp3`;
-    const filePath = `audio/${filename}`;
-    const absolutePath = path.join(process.cwd(), 'public', filePath);
+    // Save audio — blob storage in production, local filesystem in dev
+    let filePath: string;
 
-    await mkdir(path.dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, audioBuffer);
+    if (isBlobStorageConfigured()) {
+      // Production: upload to Azure Blob Storage
+      const filename = `${uuidv4()}.mp3`;
+      filePath = await uploadAudio(audioBuffer, filename);
+    } else {
+      // Development fallback: local filesystem
+      const { writeFile, mkdir } = await import('fs/promises');
+      const filename = `${uuidv4()}.mp3`;
+      const relativePath = `audio/${filename}`;
+      const absolutePath = path.join(process.cwd(), 'public', relativePath);
+      await mkdir(path.dirname(absolutePath), { recursive: true });
+      await writeFile(absolutePath, audioBuffer);
+      filePath = relativePath;
+    }
 
     // Measure real duration from audio metadata (music-metadata reads MP3 headers).
     // Falls back to word-count estimate if metadata parse fails.

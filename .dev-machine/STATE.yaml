@@ -125,10 +125,12 @@ features:
     commit: de483d0
     completed_at: "2026-03-06T22:08:00Z"
   clerk-auth:
-    status: in-progress
+    status: done
     title: "Clerk Auth — middleware, sign-in/up pages, getCurrentUserId helper"
     spec: specs/features/phase0/clerk-auth.md
     depends_on: []
+    commit: 40c35f7
+    completed_at: "2026-03-06T22:11:00Z"
   azure-blob-storage:
     status: in-progress
     title: "Azure Blob Storage — replace local filesystem for audio files"

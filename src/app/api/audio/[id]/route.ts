@@ -21,6 +21,12 @@ export async function GET(
       );
     }
 
+    // If filePath is a full URL (blob storage), redirect to it
+    if (audio.filePath.startsWith('https://')) {
+      return Response.redirect(audio.filePath, 302);
+    }
+
+    // Otherwise serve from local public/ (development fallback)
     const absolutePath = path.join(process.cwd(), 'public', audio.filePath);
     const fileBuffer = await readFile(absolutePath);
 
