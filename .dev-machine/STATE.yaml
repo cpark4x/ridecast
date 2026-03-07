@@ -96,7 +96,7 @@ recently_shipped:
 phase: 2
 phase_name: phase-2-quality-and-acquisition
 epoch: 3
-next_action: implement Phase 2 refinement specs in order
+next_action: "implement visual fix specs — scrubber handle, mini-player controls, upload polish"
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -111,7 +111,22 @@ completed_features:
 - smart-resume
 - undo-seek
 - elevenlabs-key-settings
-features: {}
+features:
+  fix-scrubber-handle:
+    status: ready
+    title: "Fix progress bar scrubber — add visible drag thumb to ExpandedPlayer"
+    spec: specs/features/phase2/fixes/fix-scrubber-handle.md
+    depends_on: []
+  fix-mini-player-controls:
+    status: ready
+    title: "Fix mini-player — add +30s skip button to PlayerBar"
+    spec: specs/features/phase2/fixes/fix-mini-player-controls.md
+    depends_on: []
+  fix-upload-polish:
+    status: ready
+    title: "Fix upload screen — mobile tap copy + Works With grid to fill dead space"
+    spec: specs/features/phase2/fixes/fix-upload-polish.md
+    depends_on: []
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs

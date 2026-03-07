@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** Phase 2 COMPLETE (13 features total, all specs shipped). All gates green.
+**Status:** Visual pass complete. 3 UI fix specs ready. All gates green.
 
 ---
 
@@ -12,94 +12,85 @@
 
 | Gate | Status | Notes |
 |------|--------|-------|
-| `npm run lint` | ✅ PASS | 11 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **117 passing**, 7 skipped (DB-dependent) |
+| `npm run lint` | ✅ PASS | 10 warnings (non-blocking) |
+| `npm run test` | ✅ PASS | **117 passing**, 7 skipped |
 | `npm run build` | ✅ PASS | |
-| `npm run test:e2e` | ✅ PASS | 5/5 (last verified session 3) |
+| `npm run test:e2e` | ✅ PASS | 5/5 |
 
-### Shipped So Far (13 features, 5 machine sessions)
-
-**Phase 1 (session 1+2):** Duration accuracy · Pipeline resilience · ProcessingScreen 4-stage UI · Playback state persistence · Audio duration measurement
-
-**Phase 2 batch 1 (session 3):** ElevenLabs provider + routing · Episode versioning · Commute duration preference
-
-**Phase 2 batch 2 (session 4):** Smart resume · Undo seek · Queue-first home screen
-
-**Phase 2 batch 3 (session 5):** ElevenLabs key settings
+### Total shipped: 13 features across 5 machine sessions
 
 ---
 
-## Session 5 Summary — 2026-03-06
+## Visual Pass Findings (2026-03-06)
 
-**Completed:**
-- `elevenlabs-key-settings` (commit `75dfd64`) — Full BYOK settings flow: `SettingsScreen.tsx` (new) with password input for ElevenLabs key stored in localStorage, `useElevenLabsKey()` hook, gear icon button in AppShell header, SettingsScreen overlay, ProcessingScreen sends `x-elevenlabs-key` header on generate calls. `createTTSProvider(key?)` accepts optional key param; `ElevenLabsTTSProvider(apiKey?)` constructor updated. Route reads `request.headers.get("x-elevenlabs-key")` and passes to provider. Tests: 7 new tests (SettingsScreen saves/removes key, Cancel calls onClose, Settings heading visible, useElevenLabsKey hook returns null/stored, route forwards header to createTTSProvider). Route test restructured to mock `@/lib/tts/provider` directly instead of `@/lib/tts/openai`.
+A browser visual audit was run at http://localhost:3000. The core UI shell is solid. Three issues need fixing:
 
-**Key design decisions:**
-- Used lazy `useState(() => readStoredKey())` initializer instead of `useEffect` + `setState` to avoid `react-hooks/set-state-in-effect` lint error (same pattern applied to HomeScreen in session 4).
-- Route test refactored: replaced `@/lib/tts/openai` mock with `@/lib/tts/provider` mock so `createTTSProvider` is a `vi.fn()` that can be inspected for call args. `beforeEach` restores default mock return after `vi.clearAllMocks()`.
-- ProcessingScreen: both initial run and retry paths send the key header.
-
-**Health gates:** lint ✅ (0 errors, 11 warnings — 1 new `react-hooks/exhaustive-deps` warning on ProcessingScreen line 139, non-blocking) · test ✅ (117 passing, +7 new) · build ✅
-
-**Next session should start with:** Phase 2 is fully complete. Next step is to define Phase 3 specs or ship what's been built. See `ROADMAP.md` and `VISION.md` for iOS strategy.
+| Issue | Screen | Confirmed in code? |
+|-------|--------|--------------------|
+| No drag thumb on progress bar | ExpandedPlayer | ✅ Yes — `h-1` bar, no thumb element |
+| No skip controls in mini-player | PlayerBar | ✅ Yes — only play/pause button |
+| 370px dead space on Upload screen | UploadScreen | ✅ Yes — nothing below URL input |
 
 ---
 
-## Product Direction
+## Fix Specs — Ready to Build
 
-**Vision:** "Turn anything you want to read into audio worth listening to."
+3 specs in `specs/features/phase2/fixes/`:
 
-**Platform:** iOS app — free catalog + paid own-content tier. BYOK for advanced users.
+| Priority | Feature | Spec | Files |
+|----------|---------|------|-------|
+| 1 | fix-scrubber-handle | `fixes/fix-scrubber-handle.md` | ExpandedPlayer.tsx only |
+| 2 | fix-mini-player-controls | `fixes/fix-mini-player-controls.md` | PlayerBar.tsx only |
+| 3 | fix-upload-polish | `fixes/fix-upload-polish.md` | UploadScreen.tsx only |
 
-Full context: `VISION.md`, `ROADMAP.md`
+### Key implementation notes
+
+**fix-scrubber-handle:**
+- Replace `h-1` progress bar with an `h-5` (20px touch target) wrapper
+- Add `role="slider"` with aria-valuemin/max/now
+- White circle thumb `w-3 h-3` positioned at `left: progress%` via inline style
+- `group-active:scale-125` on thumb for tactile feedback
+- Remove `hover:h-1.5` (desktop-only, mobile users never see it)
+
+**fix-mini-player-controls:**
+- Add `skipForward` from `usePlayer()` — already exists in PlayerContext
+- Add one button: +30s skip with `e.stopPropagation()` to avoid triggering `onExpand`
+- `aria-label="Skip forward 30 seconds"` for accessibility + testability
+- Keep it compact — no background circle, just icon + "30s" label below
+
+**fix-upload-polish:**
+- Change drop zone copy: `"Tap to browse files"` / `"or drag and drop · PDF, EPUB, TXT up to 50MB"`
+- Add `{!preview && (...)}` "Works with" grid below URL input: 2×2 grid of icon+label+desc tiles
+- Content: Articles & URLs 🌐, PDFs 📄, EPUBs 📚, Text files 📝
+- Tiles disappear when preview card is showing (the `!preview` condition handles this)
 
 ---
 
-## Phase 2 — COMPLETE
-
-All 13 features shipped across 5 sessions. No remaining `ready` features in STATE.yaml.
-
-### What's Built
-
-| Feature | Commit | Session |
-|---------|--------|---------|
-| duration-accuracy | — | s1 |
-| pipeline-error-resilience | — | s1 |
-| processing-screen-upgrade | — | s2 |
-| playback-state-persistence | — | s2 |
-| audio-duration-measurement | — | s2 |
-| elevenlabs-provider | — | s3 |
-| elevenlabs-routing | — | s3 |
-| episode-versioning | — | s3 |
-| commute-duration | — | s3 |
-| smart-resume | `5efca83` | s4 |
-| undo-seek | `9d4598d` | s4 |
-| home-screen-queue-first | `590644a` | s4 |
-| elevenlabs-key-settings | `75dfd64` | s5 |
-
----
-
-## Test Mock Patterns (apply to all new tests)
+## Test Mock Patterns
 
 ```typescript
-// PlayerContext mock
+// PlayerContext mock (use for PlayerBar, ExpandedPlayer tests)
 vi.mock("./PlayerContext", () => ({
-  usePlayer: () => ({ currentItem, isPlaying, position, speed, togglePlay, setSpeed, setPosition, skipForward, skipBack }),
+  usePlayer: () => ({
+    currentItem: { id: "a1", title: "Test", duration: 300, format: "narrator", audioUrl: "/a.mp3" },
+    isPlaying: true,
+    position: 150,
+    speed: 1.0,
+    togglePlay: vi.fn(),
+    setSpeed: vi.fn(),
+    setPosition: vi.fn(),
+    skipForward: vi.fn(),
+    skipBack: vi.fn(),
+  }),
 }));
 
-// fetch mock
-global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
-
-// localStorage mock
-const lsMock = { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() };
-Object.defineProperty(window, "localStorage", { value: lsMock, writable: true });
-
-// TTS provider factory mock (for route tests)
-vi.mock('@/lib/tts/provider', () => ({
-  createTTSProvider: vi.fn().mockReturnValue({ generateSpeech: mockGenerateSpeech }),
+// useCommuteDuration mock (use for UploadScreen tests)
+vi.mock("@/hooks/useCommuteDuration", () => ({
+  useCommuteDuration: () => ({ commuteDuration: 15, setCommuteDuration: vi.fn() }),
 }));
-// In beforeEach — restore after vi.clearAllMocks():
-vi.mocked(createTTSProvider).mockReturnValue({ generateSpeech: mockGenerateSpeech });
+
+// Duration utils mock
+vi.mock("@/lib/utils/duration", () => ({ formatDuration: (s: number) => `${s}s` }));
 ```
 
 ---
@@ -107,7 +98,7 @@ vi.mocked(createTTSProvider).mockReturnValue({ generateSpeech: mockGenerateSpeec
 ## Development Environment
 
 - **DB:** PostgreSQL 16 via Docker on port 5433 (`docker compose up -d`)
-- **Architecture:** `specs/architecture.md` — always read first
+- **Architecture:** `specs/architecture.md` — always read first in each session
 - **Tests should NEVER make real API calls** — mock all Claude/OpenAI/ElevenLabs calls
 
 ## Commands
