@@ -1,89 +1,71 @@
-# SCRATCH.md — Ephemeral Notes & Task Checklist
+# SCRATCH.md — Ephemeral Working Notes
 
-**Date Started:** 2026-03-05  
-**Current Focus:** Bringing E2E to green (Pattern A + Pattern B fixes)
-
-## Task Checklist
-
-### Phase 1: E2E Pattern A (Ambiguous `getByText('Library')`)
-- [ ] Read `specs/features/devx/fix-e2e-selectors.md` for detailed spec
-- [ ] Inspect `src/components/BottomNav.tsx` to determine DOM role (tab, button, or link)
-- [ ] Edit `e2e/commute-flow.spec.ts:11` — replace `getByText('Library')` selector
-- [ ] Edit `e2e/offline-listening.spec.ts:8` — replace `getByText('Library')` selector
-- [ ] Edit `e2e/quick-relisten.spec.ts:8` — replace `getByText('Library')` selector
-- [ ] Verify selectors resolve to single element in strict mode
-- [ ] Commit: "fix(e2e): resolve Pattern A ambiguous Library selector"
-
-### Phase 2: E2E Pattern B (Missing "Target Duration" Element)
-- [ ] Verify `playwright.config.ts` webServer config:
-  - [ ] `webServer.command` runs dev server (e.g., `npm run dev`)
-  - [ ] `webServer.url` === `http://localhost:3000`
-  - [ ] `use.baseURL` === `http://localhost:3000`
-  - [ ] `reuseExistingServer: !process.env.CI` (or correct env check)
-- [ ] Inspect upload flow UI component(s) to find "Target Duration" label
-- [ ] Edit `e2e/pdf-commute.spec.ts:19` — add missing navigation or fix selector
-- [ ] Edit `e2e/article-discussion.spec.ts:14` — add missing navigation or fix selector
-- [ ] Verify selectors find element or add missing wait/navigation
-- [ ] Commit: "fix(e2e): resolve Pattern B missing Target Duration element"
-
-### Phase 3: Full Verification
-- [ ] Run `npm run lint` — confirm still passing
-- [ ] Run `npm run test` — confirm still passing
-- [ ] Run `npm run build` — confirm still passing
-- [ ] Run `npm run test:e2e` — confirm all 5 scenarios passing
-- [ ] Commit: "test(e2e): all scenarios green"
-
-### Phase 4: Cleanup (Optional; Defer if Time)
-- [ ] Address 10 eslint `no-unused-vars` warnings
-- [ ] React act() warnings in `AppShell.test.tsx`
-- [ ] Add `test-results/` and `playwright-report/` to `.gitignore`
-
-## Useful Context
-
-### Pattern A Root Cause
-```
-BottomNav renders multiple elements with text "Library" (or similar text nodes in DOM tree).
-Playwright strict mode requires a single match; getByText('Library') is ambiguous.
-Solution: Use role-based query (getByRole) or data-testid to disambiguate.
-```
-
-### Pattern B Root Cause
-```
-After file upload, test expects "Target Duration" label in processing/preview screen.
-Either:
-  1. webServer config points to wrong port (test talks to different instance)
-  2. UI flow missing a navigation step to reach the screen with "Target Duration"
-  3. Label text changed in UI; spec copy is stale
-Solution: Verify config, inspect UI flow, update spec to match current impl.
-```
-
-### Test Files to Read
-- `e2e/commute-flow.spec.ts` — The Library flow scenario (Pattern A)
-- `e2e/offline-listening.spec.ts` — Offline Library flow (Pattern A)
-- `e2e/quick-relisten.spec.ts` — Resume position flow (Pattern A)
-- `e2e/pdf-commute.spec.ts` — PDF upload → processing (Pattern B)
-- `e2e/article-discussion.spec.ts` — Article upload → discussion (Pattern B)
-- `src/components/BottomNav.tsx` — Navigation component (determine role for Pattern A fix)
-
-### Config Files to Check
-- `playwright.config.ts` — webServer config, baseURL, browser settings
-- `src/components/` — Components rendering "Target Duration" label (Pattern B)
-
-## Notes
-
-- **Use fix-e2e.yaml recipe** to automate fixes via agents if manual editing is tedious.
-- **Capture error-context.md** from test-results/ if needed for detailed failure info.
-- **Keep STATE.yaml updated** with latest health gate status after each fix.
-- **Update CONTEXT-TRANSFER.md** with final status before handoff.
+**Last updated:** 2026-03-06
+**Current phase:** Phase 0 — Code complete, not yet deployed
 
 ---
 
-## Log
+## Phase 0 Known Issues (address before Phase 3)
 
-### 2026-03-05 02:25 — Initial State
-- Reviewed `.dev-machine-design.md` and `.dev-machine-assessment.md`
-- Confirmed current status: lint/test/build pass, E2E fail (0/5)
-- Identified two pattern families for fixes
-- Created STATE.yaml, CONTEXT-TRANSFER.md, SCRATCH.md
-- Updated recipe files (verify.yaml, setup.yaml, fix-e2e.yaml)
-- Ready to proceed with Phase 1 (Pattern A fixes)
+### P0 — Must fix
+- [ ] **"test-mode" error noise** — 4 `Processing failed: Error: test-mode — no real API calls` appear in `npm run test` output. Tests pass (151/158) but output is noisy. Investigate which mock is throwing and fix the isolation. Likely in Stripe or Anthropic mocks in Phase 0 specs.
+
+### P1 — Before Phase 3 specs
+- [ ] **Phase 0 integration pass** — manually verify the auth + subscription flow works end-to-end:
+  1. Create a test Clerk app → add `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` to `.env.local`
+  2. Start the app (`npm run dev`) → confirm `/` redirects to `/sign-in` for unauthenticated users
+  3. Sign in → upload a piece of content → confirm User record in DB has real Clerk ID (not "default-user")
+  4. Create a Stripe test product + price → set `STRIPE_PRICE_ID` → confirm `/api/upload` returns 403 for free users
+  5. Complete a Stripe test checkout → confirm `user.subscriptionStatus` → "active"
+  Only write Phase 3 specs after this passes.
+
+- [ ] **Run the Azure deployment** — follow `docs/deployment.md` one-time setup:
+  1. `az login` with Microsoft account
+  2. Create resource group, ACR, PostgreSQL, Storage Account, Container App in East US 2
+  3. Add `AZURE_CREDENTIALS` secret to GitHub → trigger first automated deployment
+  4. Run `npx prisma migrate deploy` in the container
+  5. Set all env vars via `az containerapp secret set`
+
+---
+
+## Dev Machine Workflow Learnings (apply to all future phases)
+
+### Spec quality rules (confirmed through today's session)
+1. **Read the current code before writing the spec** — quote it in the "Current State" section
+2. **Show the full `vi.mock()` pattern** — not just "add a test." Machine matches mock patterns exactly.
+3. **≤5 files per spec** — split larger changes into multiple specs
+4. **Infrastructure specs need "Manual Setup Steps"** — the machine writes code, humans provision services
+5. **"Scope" section is mandatory** — explicitly say what the spec does NOT change
+6. **Add scope guard to specs**: "Do not modify files not listed in Files to Modify"
+
+### Workflow rules (confirmed through today's session)
+1. **Visual pass after every UI-touching batch** — use `browser-tester:visual-documenter` to catch what tests miss
+2. **Set up machine format from day one** — features dict, build.yaml, iteration.yaml, working-session-instructions.md
+3. **Infrastructure ≠ feature for verification** — "tests pass" is sufficient for features; infrastructure needs end-to-end human verification
+4. **Phase transitions need an integration check** — before Phase 3 specs, verify Phase 0 works in real environment
+
+---
+
+## Phase 3 — Waiting on Phase 0 integration pass
+
+Do not write Phase 3 specs until Phase 0 integration pass is complete (see above).
+
+Planned Phase 3 items (from ROADMAP.md):
+- Multi-Source Synthesis (#12)
+- Episode Sharing (#10)
+- Scheduled Production (#13)
+- Voice Selection (#11)
+- RSS/Podcast Feed Output (new)
+- Pocket Refugee Capture (new, time-sensitive)
+- "Ready to Commute" notification (new, depends on #13)
+- Word-level transcript seek (new)
+- CarPlay integration (new)
+
+---
+
+## Notes for Next Session
+
+- All Phase 0 code is committed to `main`
+- `docs/deployment.md` has the Azure setup runbook
+- Phase 0 integration pass should take ~30 minutes with real service credentials
+- After integration pass: update STATE.yaml to Phase 3 and write first batch of specs
