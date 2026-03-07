@@ -10,10 +10,12 @@ specs:
   modules:
   - specs/modules/content-pipeline.md
   features:
-  - specs/features/phase2/home-screen-queue-first.md
-  - specs/features/phase2/smart-resume.md
-  - specs/features/phase2/undo-seek.md
-  - specs/features/phase2/elevenlabs-key-settings.md
+  - specs/features/phase0/google-cloud-tts.md
+  - specs/features/phase0/clerk-auth.md
+  - specs/features/phase0/azure-blob-storage.md
+  - specs/features/phase0/multi-user-schema.md
+  - specs/features/phase0/stripe-subscription.md
+  - specs/features/phase0/azure-deployment.md
 commands:
   build: npm run build
   test: npm run test
@@ -93,10 +95,10 @@ recently_shipped:
     ROADMAP.md + VISION.md updated to reflect iOS strategy.
 
     '
-phase: 2
-phase_name: phase-2-quality-and-acquisition
+phase: 0
+phase_name: phase-0-ios-foundation
 epoch: 4
-next_action: "implement visual fix specs \u2014 scrubber handle, mini-player controls, upload polish"
+next_action: "implement Phase 0 iOS foundation specs — auth, storage, payments, deployment"
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -114,7 +116,37 @@ completed_features:
 - fix-scrubber-handle
 - fix-mini-player-controls
 - fix-upload-polish
-features: {}
+features:
+  google-cloud-tts:
+    status: ready
+    title: "Google Cloud TTS Provider — Studio voices, auto-selected over OpenAI/ElevenLabs"
+    spec: specs/features/phase0/google-cloud-tts.md
+    depends_on: []
+  clerk-auth:
+    status: ready
+    title: "Clerk Auth — middleware, sign-in/up pages, getCurrentUserId helper"
+    spec: specs/features/phase0/clerk-auth.md
+    depends_on: []
+  azure-blob-storage:
+    status: ready
+    title: "Azure Blob Storage — replace local filesystem for audio files"
+    spec: specs/features/phase0/azure-blob-storage.md
+    depends_on: []
+  multi-user-schema:
+    status: ready
+    title: "Multi-User Schema — replace DEFAULT_USER_ID with real Clerk user IDs"
+    spec: specs/features/phase0/multi-user-schema.md
+    depends_on: [clerk-auth]
+  stripe-subscription:
+    status: ready
+    title: "Stripe Freemium — $10/mo subscription gate on own-content upload/process"
+    spec: specs/features/phase0/stripe-subscription.md
+    depends_on: [clerk-auth, multi-user-schema]
+  azure-deployment:
+    status: ready
+    title: "Azure Deployment — Dockerfile, GitHub Actions CI/CD, deployment guide"
+    spec: specs/features/phase0/azure-deployment.md
+    depends_on: []
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs
