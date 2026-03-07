@@ -8,7 +8,7 @@ interface PlayerBarProps {
 }
 
 export function PlayerBar({ onExpand }: PlayerBarProps) {
-  const { currentItem, isPlaying, position, togglePlay } = usePlayer();
+  const { currentItem, isPlaying, position, togglePlay, skipForward } = usePlayer();
 
   if (!currentItem) return null;
 
@@ -40,6 +40,17 @@ export function PlayerBar({ onExpand }: PlayerBarProps) {
         ) : (
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-[#0a0a0f]"><polygon points="9,6 18,12 9,18" /></svg>
         )}
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); skipForward(30); }}
+        aria-label="Skip forward 30 seconds"
+        className="w-[34px] h-[34px] flex flex-col items-center justify-center shrink-0 transition-all active:scale-[0.88] relative"
+      >
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white/70">
+          <path d="M11.5 15.5V8.5L17 12l-5.5 3.5z"/>
+          <rect x="18" y="7" width="2" height="10" rx="0.5"/>
+        </svg>
+        <span className="absolute -bottom-3 text-[8px] font-semibold text-white/30">30s</span>
       </button>
       <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-white/10 rounded-sm overflow-hidden">
         <div className="h-full rounded-sm transition-all duration-300" style={{ width: `${progress}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }} />
