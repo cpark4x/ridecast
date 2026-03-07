@@ -118,10 +118,12 @@ completed_features:
 - fix-upload-polish
 features:
   google-cloud-tts:
-    status: in-progress
+    status: done
     title: "Google Cloud TTS Provider — Studio voices, auto-selected over OpenAI/ElevenLabs"
     spec: specs/features/phase0/google-cloud-tts.md
     depends_on: []
+    commit: de483d0
+    completed_at: "2026-03-06T22:08:00Z"
   clerk-auth:
     status: in-progress
     title: "Clerk Auth — middleware, sign-in/up pages, getCurrentUserId helper"
