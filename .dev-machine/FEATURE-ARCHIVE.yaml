@@ -126,3 +126,28 @@ features:
     depends_on: []
     commit: 41f81e8
     completed_at: '2026-03-06T22:14:00Z'
+  multi-user-schema:
+    status: done
+    title: "Multi-User Schema \u2014 replace DEFAULT_USER_ID with real Clerk user\
+      \ IDs"
+    spec: specs/features/phase0/multi-user-schema.md
+    depends_on:
+    - clerk-auth
+    commit: a476a7b
+    completed_at: '2026-03-06T22:25:00Z'
+  stripe-subscription:
+    status: done
+    title: "Stripe Freemium \u2014 $10/mo subscription gate on own-content upload/process"
+    spec: specs/features/phase0/stripe-subscription.md
+    depends_on:
+    - clerk-auth
+    - multi-user-schema
+    commit: 7750c49
+    completed_at: '2026-03-06T22:33:00Z'
+  azure-deployment:
+    status: done
+    title: "Azure Deployment \u2014 Dockerfile, GitHub Actions CI/CD, deployment guide"
+    spec: specs/features/phase0/azure-deployment.md
+    depends_on: []
+    commit: 3b39547
+    completed_at: '2026-03-06T22:28:00Z'

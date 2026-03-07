@@ -1,15 +1,9 @@
 project:
   name: ridecast2
   repo_root: /Users/chrispark/Projects/ridecast2
-  description: 'iOS app — AI content-to-audio transformation engine.
-
-    "Turn anything you want to read into audio worth listening to."
-
-    Any content (PDF/EPUB/TXT/URL) → Claude script → OpenAI TTS → enjoyable episode.
-
-    Shipping as iOS app with free catalog + paid bring-your-own-content tier.
-
-    '
+  description: "iOS app \u2014 AI content-to-audio transformation engine.\n\"Turn anything you want to read into audio worth\
+    \ listening to.\"\nAny content (PDF/EPUB/TXT/URL) \u2192 Claude script \u2192 OpenAI TTS \u2192 enjoyable episode.\nShipping\
+    \ as iOS app with free catalog + paid bring-your-own-content tier.\n"
 specs:
   directory: ./specs
   architecture: specs/architecture.md
@@ -112,7 +106,7 @@ recently_shipped:
     '
 phase: 0
 phase_name: phase-0-ios-foundation
-epoch: 6
+epoch: 7
 next_action: All Phase 0 features complete. Begin Phase 1 feature implementation.
 completed_features:
 - duration-accuracy
@@ -137,33 +131,9 @@ completed_features:
 - multi-user-schema
 - azure-deployment
 - stripe-subscription
-features:
-  multi-user-schema:
-    status: done
-    title: Multi-User Schema — replace DEFAULT_USER_ID with real Clerk user IDs
-    spec: specs/features/phase0/multi-user-schema.md
-    depends_on:
-    - clerk-auth
-    commit: a476a7b
-    completed_at: '2026-03-06T22:25:00Z'
-  stripe-subscription:
-    status: done
-    title: Stripe Freemium — $10/mo subscription gate on own-content upload/process
-    spec: specs/features/phase0/stripe-subscription.md
-    depends_on:
-    - clerk-auth
-    - multi-user-schema
-    commit: 7750c49
-    completed_at: '2026-03-06T22:33:00Z'
-  azure-deployment:
-    status: done
-    title: Azure Deployment — Dockerfile, GitHub Actions CI/CD, deployment guide
-    spec: specs/features/phase0/azure-deployment.md
-    depends_on: []
-    commit: 3b39547
-    completed_at: '2026-03-06T22:28:00Z'
+features: {}
 next_steps:
 - step: 1
   task: Begin Phase 1 feature implementation
-  action: Run dev machine on specs/features/phase1/ — 5 specs ready
-last_session: '2026-03-07T06:33:58.364395+00:00'
+  action: "Run dev machine on specs/features/phase1/ \u2014 5 specs ready"
+last_session: '2026-03-07T06:35:30.781377+00:00'
