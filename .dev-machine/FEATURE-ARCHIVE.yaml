@@ -83,3 +83,25 @@ features:
     depends_on:
     - elevenlabs-provider
     - elevenlabs-routing
+  fix-scrubber-handle:
+    status: done
+    title: "Fix progress bar scrubber \u2014 add visible drag thumb to ExpandedPlayer"
+    spec: specs/features/phase2/fixes/fix-scrubber-handle.md
+    depends_on: []
+    commit: c5337d9
+    completed_at: '2026-03-06T17:10:00Z'
+  fix-mini-player-controls:
+    status: done
+    title: "Fix mini-player \u2014 add +30s skip button to PlayerBar"
+    spec: specs/features/phase2/fixes/fix-mini-player-controls.md
+    depends_on: []
+    commit: c416844
+    completed_at: '2026-03-06T17:11:00Z'
+  fix-upload-polish:
+    status: done
+    title: "Fix upload screen \u2014 mobile tap copy + Works With grid to fill dead\
+      \ space"
+    spec: specs/features/phase2/fixes/fix-upload-polish.md
+    depends_on: []
+    commit: 77fad80
+    completed_at: '2026-03-06T17:12:00Z'
