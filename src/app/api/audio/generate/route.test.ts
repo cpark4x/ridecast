@@ -13,6 +13,11 @@ vi.mock('@/lib/auth', () => ({
   getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
 }));
 
+// Mock subscription gate — pass-through in route tests (subscription logic tested separately)
+vi.mock('@/lib/subscription', () => ({
+  requireSubscription: vi.fn().mockResolvedValue(null),
+}));
+
 // Mock fs/promises
 vi.mock('fs/promises', () => ({
   default: { writeFile: mockWriteFile, mkdir: mockMkdir },

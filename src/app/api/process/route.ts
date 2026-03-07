@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { ClaudeProvider } from '@/lib/ai/claude';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { getCurrentUserId } from '@/lib/auth';
+import { requireSubscription } from '@/lib/subscription';
 
 // 2 minutes — Claude can be slow on long content
 export const maxDuration = 120;
@@ -10,8 +11,9 @@ export const maxDuration = 120;
 export async function POST(request: Request) {
   let contentId: string | undefined;
   try {
-    // Authenticate — ensures session is valid before doing expensive AI work
-    await getCurrentUserId();
+    const userId = await getCurrentUserId();
+    const gate = await requireSubscription(userId);
+    if (gate) return gate;
 
     const body = await request.json();
     contentId = body.contentId;

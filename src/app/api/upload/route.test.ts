@@ -21,6 +21,11 @@ vi.mock('@/lib/auth', () => ({
   getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
 }));
 
+// Mock subscription gate — pass-through in route tests (subscription logic tested separately)
+vi.mock('@/lib/subscription', () => ({
+  requireSubscription: vi.fn().mockResolvedValue(null),
+}));
+
 import { prisma } from '@/lib/db';
 import { extractContent, extractUrl } from '@/lib/extractors';
 import { getCurrentUserId } from '@/lib/auth';

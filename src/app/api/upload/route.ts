@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { extractContent, extractUrl } from '@/lib/extractors';
 import { contentHash } from '@/lib/utils/hash';
 import { getCurrentUserId } from '@/lib/auth';
+import { requireSubscription } from '@/lib/subscription';
 
 // Max chars sent to Claude for script generation (~600K = ~150K words / ~500 pages)
 const TRUNCATION_WARNING_CHARS = 400_000; // warn above ~100K words / ~330 pages
@@ -10,6 +11,8 @@ const TRUNCATION_WARNING_CHARS = 400_000; // warn above ~100K words / ~330 pages
 export async function POST(request: Request) {
   try {
     const userId = await getCurrentUserId();
+    const gate = await requireSubscription(userId);
+    if (gate) return gate;
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
