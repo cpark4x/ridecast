@@ -118,17 +118,17 @@ completed_features:
 - fix-upload-polish
 features:
   google-cloud-tts:
-    status: ready
+    status: in-progress
     title: "Google Cloud TTS Provider — Studio voices, auto-selected over OpenAI/ElevenLabs"
     spec: specs/features/phase0/google-cloud-tts.md
     depends_on: []
   clerk-auth:
-    status: ready
+    status: in-progress
     title: "Clerk Auth — middleware, sign-in/up pages, getCurrentUserId helper"
     spec: specs/features/phase0/clerk-auth.md
     depends_on: []
   azure-blob-storage:
-    status: ready
+    status: in-progress
     title: "Azure Blob Storage — replace local filesystem for audio files"
     spec: specs/features/phase0/azure-blob-storage.md
     depends_on: []

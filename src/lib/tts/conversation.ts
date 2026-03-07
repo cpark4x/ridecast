@@ -1,5 +1,6 @@
 import type { TTSProvider, VoiceConfig } from './types';
 import { ElevenLabsTTSProvider } from './elevenlabs';
+import { GoogleCloudTTSProvider } from './google';
 import { parseConversationScript } from '@/lib/utils/script-parser';
 import { chunkText } from './chunk';
 
@@ -29,6 +30,11 @@ const ELEVENLABS_VOICE_MAP: Record<string, VoiceConfig> = {
   },
 };
 
+const GOOGLE_VOICE_MAP: Record<string, VoiceConfig> = {
+  'Host A': { voice: 'en-US-Studio-M', instructions: '' }, // male, energetic
+  'Host B': { voice: 'en-US-Studio-O', instructions: '' }, // female, thoughtful
+};
+
 const OPENAI_DEFAULT_VOICE: VoiceConfig = {
   voice: 'alloy',
   instructions: 'Clear, natural speaking voice.',
@@ -37,6 +43,11 @@ const OPENAI_DEFAULT_VOICE: VoiceConfig = {
 const ELEVENLABS_DEFAULT_VOICE: VoiceConfig = {
   voice: '21m00Tcm4TlvDq8ikWAM', // Rachel
   instructions: 'Clear, natural speaking voice.',
+};
+
+const GOOGLE_DEFAULT_VOICE: VoiceConfig = {
+  voice: 'en-US-Studio-O',
+  instructions: '',
 };
 
 export interface ConversationAudioResult {
@@ -54,9 +65,19 @@ export async function generateConversationAudio(
     return { audio: Buffer.alloc(0), voices: [] };
   }
 
+  const isGoogle = provider instanceof GoogleCloudTTSProvider;
   const isElevenLabs = provider instanceof ElevenLabsTTSProvider;
-  const voiceMap = isElevenLabs ? ELEVENLABS_VOICE_MAP : OPENAI_VOICE_MAP;
-  const defaultVoice = isElevenLabs ? ELEVENLABS_DEFAULT_VOICE : OPENAI_DEFAULT_VOICE;
+
+  const voiceMap = isGoogle
+    ? GOOGLE_VOICE_MAP
+    : isElevenLabs
+      ? ELEVENLABS_VOICE_MAP
+      : OPENAI_VOICE_MAP;
+  const defaultVoice = isGoogle
+    ? GOOGLE_DEFAULT_VOICE
+    : isElevenLabs
+      ? ELEVENLABS_DEFAULT_VOICE
+      : OPENAI_DEFAULT_VOICE;
 
   const usedVoices = new Set<string>();
   const chunks: Buffer[] = [];
