@@ -8,6 +8,11 @@ const { mockWriteFile, mockMkdir, mockGenerateSpeech, mockParseBuffer } = vi.hoi
   mockParseBuffer: vi.fn(),
 }));
 
+// Mock auth
+vi.mock('@/lib/auth', () => ({
+  getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
+}));
+
 // Mock fs/promises
 vi.mock('fs/promises', () => ({
   default: { writeFile: mockWriteFile, mkdir: mockMkdir },
@@ -44,6 +49,7 @@ vi.mock('music-metadata', () => ({
 
 import { prisma } from '@/lib/db';
 import { createTTSProvider } from '@/lib/tts/provider';
+import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
 
 const mockFindUnique = prisma.script.findUnique as ReturnType<typeof vi.fn>;
@@ -67,6 +73,7 @@ describe('POST /api/audio/generate', () => {
     mockMkdir.mockResolvedValue(undefined);
     // Restore default mock for createTTSProvider after vi.clearAllMocks()
     vi.mocked(createTTSProvider).mockReturnValue({ generateSpeech: mockGenerateSpeech });
+    vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
   });
 
   afterEach(() => {

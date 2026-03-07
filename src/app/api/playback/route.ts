@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-
-const DEFAULT_USER_ID = "default-user";
+import { getCurrentUserId } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const { audioId, position, speed, completed } = await request.json();
 
     if (!audioId) {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const state = await prisma.playbackState.upsert({
       where: {
-        userId_audioId: { userId: DEFAULT_USER_ID, audioId },
+        userId_audioId: { userId, audioId },
       },
       update: {
         position: position ?? undefined,
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         completed: completed ?? undefined,
       },
       create: {
-        userId: DEFAULT_USER_ID,
+        userId,
         audioId,
         position: position ?? 0,
         speed: speed ?? 1.0,
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
     const audioId = new URL(request.url).searchParams.get("audioId");
     if (!audioId) {
       return NextResponse.json({ error: "audioId is required" }, { status: 400 });
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     const state = await prisma.playbackState.findUnique({
       where: {
-        userId_audioId: { userId: DEFAULT_USER_ID, audioId },
+        userId_audioId: { userId, audioId },
       },
     });
 

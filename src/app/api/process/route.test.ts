@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Mock auth
+vi.mock('@/lib/auth', () => ({
+  getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
+}));
+
 // Mock prisma
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -24,6 +29,7 @@ vi.mock('@/lib/ai/claude', () => ({
 }));
 
 import { prisma } from '@/lib/db';
+import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
 
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
@@ -43,6 +49,7 @@ describe('POST /api/process', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.ANTHROPIC_API_KEY = 'test-key';
+    vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
   });
 
   afterEach(() => {

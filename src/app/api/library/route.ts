@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-
-const DEFAULT_USER_ID = "default-user";
+import { getCurrentUserId } from "@/lib/auth";
 
 interface AudioVersion {
   scriptId: string;
@@ -16,8 +15,10 @@ interface AudioVersion {
 
 export async function GET() {
   try {
+    const userId = await getCurrentUserId();
+
     const items = await prisma.content.findMany({
-      where: { userId: DEFAULT_USER_ID },
+      where: { userId },
       include: {
         scripts: {
           include: {

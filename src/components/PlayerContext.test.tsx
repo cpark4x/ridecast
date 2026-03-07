@@ -51,9 +51,18 @@ describe("PlayerContext — playback state persistence", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve(null),
+    // Default: /api/me returns userId; /api/playback returns no state
+    fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === "string" && url === "/api/me") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ userId: "user_test123" }),
+        });
+      }
+      return Promise.resolve({
+        ok: false,
+        json: () => Promise.resolve(null),
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -64,9 +73,18 @@ describe("PlayerContext — playback state persistence", () => {
   });
 
   it("fetches saved playback state when a new item is played", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ position: 120, speed: 1.5 }),
+    fetchMock.mockImplementation((url: string) => {
+      if (typeof url === "string" && url === "/api/me") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ userId: "user_test123" }),
+        });
+      }
+      // playback state GET
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ position: 120, speed: 1.5 }),
+      });
     });
 
     render(<PlayerProvider><TestComponent /></PlayerProvider>);
@@ -77,7 +95,7 @@ describe("PlayerContext — playback state persistence", () => {
 
     await waitFor(() => {
       const getCall = fetchMock.mock.calls.find(
-        (c) => typeof c[0] === "string" && c[0].includes("/api/playback?userId=default-user&audioId=1")
+        (c) => typeof c[0] === "string" && c[0].includes("/api/playback?audioId=1")
       );
       expect(getCall).toBeDefined();
     });
@@ -86,8 +104,14 @@ describe("PlayerContext — playback state persistence", () => {
   it("saves position with completed=true when the ended event fires", async () => {
     render(<PlayerProvider><TestComponent /></PlayerProvider>);
 
+    // Wait for /api/me to resolve so userIdRef gets populated
     await act(async () => {
       fireEvent.click(screen.getByText("Play"));
+    });
+
+    // Allow /api/me fetch to complete
+    await act(async () => {
+      await Promise.resolve();
     });
 
     const audioEl = document.querySelector("audio")!;
@@ -113,6 +137,12 @@ describe("PlayerContext — playback state persistence", () => {
 
     await act(async () => {
       fireEvent.click(screen.getByText("Play"));
+    });
+
+    // Allow /api/me fetch to complete so userIdRef.current is set
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve(); // double flush for fetch chain
     });
 
     // Count POST calls before advancing time

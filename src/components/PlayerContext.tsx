@@ -37,6 +37,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pausedAtRef = useRef<number | null>(null);
 
+  // --- User ID from /api/me ---
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.userId) {
+          userIdRef.current = data.userId;
+        }
+      })
+      .catch(() => {}); // silent — playback still works without persistence
+  }, []);
+
   // --- Playback state persistence ---
 
   // Refs so savePosition never needs to close over state — stays fully stable
@@ -47,12 +60,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // savePosition is stable (reads from refs only — zero deps)
   const savePosition = useCallback(async (completed = false) => {
-    if (!currentItemIdRef.current || !audioRef.current) return;
+    if (!currentItemIdRef.current || !audioRef.current || !userIdRef.current) return;
     await fetch("/api/playback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: "default-user",
         audioId: currentItemIdRef.current,
         position: audioRef.current.currentTime,
         speed: audioRef.current.playbackRate,
@@ -65,7 +77,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentItem?.id) return;
 
-    fetch(`/api/playback?userId=default-user&audioId=${currentItem.id}`)
+    fetch(`/api/playback?audioId=${currentItem.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((state) => {
         if (state?.position && audioRef.current) {

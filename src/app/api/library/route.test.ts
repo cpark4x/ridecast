@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { GET } from "./route";
 
+// Mock auth
+vi.mock("@/lib/auth", () => ({
+  getCurrentUserId: vi.fn().mockResolvedValue("user_test123"),
+}));
+
 // vi.mock is hoisted — declare mockFindMany with vi.hoisted() so it's available in the factory
 const { mockFindMany } = vi.hoisted(() => ({
   mockFindMany: vi.fn(),

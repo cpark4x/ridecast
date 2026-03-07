@@ -8,12 +8,16 @@ import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { uploadAudio, isBlobStorageConfigured } from '@/lib/storage/blob';
+import { getCurrentUserId } from '@/lib/auth';
 
 // 3 minutes — conversation TTS stitches many segments
 export const maxDuration = 180;
 
 export async function POST(request: Request) {
   try {
+    // Authenticate — ensures session is valid before doing expensive TTS work
+    await getCurrentUserId();
+
     const body = await request.json();
     const { scriptId } = body;
 

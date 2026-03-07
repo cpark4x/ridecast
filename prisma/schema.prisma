@@ -8,10 +8,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String   @default("Default User")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id                       // Clerk provides the ID (no @default)
+  name               String   @default("Ridecast User")
+  stripeCustomerId   String?                            // Set when user first subscribes
+  subscriptionStatus String   @default("free")          // "free" | "active" | "canceled"
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   content       Content[]
   playbackState PlaybackState[]

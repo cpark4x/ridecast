@@ -16,8 +16,14 @@ vi.mock('@/lib/extractors', () => ({
   extractUrl: vi.fn(),
 }));
 
+// Mock auth
+vi.mock('@/lib/auth', () => ({
+  getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
+}));
+
 import { prisma } from '@/lib/db';
 import { extractContent, extractUrl } from '@/lib/extractors';
+import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
 
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
@@ -46,6 +52,7 @@ describe('POST /api/upload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFindUnique.mockResolvedValue(null);
+    vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
   });
 
   it('accepts TXT file upload via FormData, returns content record', async () => {
@@ -118,5 +125,28 @@ describe('POST /api/upload', () => {
     const request = createMockRequest({ file });
     const response = await POST(request);
     expect(response.status).toBe(409);
+  });
+
+  it('associates uploaded content with authenticated user ID', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValueOnce('user_abc');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'test',
+      text: 'some content',
+      wordCount: 2,
+    });
+
+    const mockRecord = { id: 'rec-1', userId: 'user_abc', title: 'test' };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const file = createMockFile('some content', 'test.txt');
+    const request = createMockRequest({ file });
+    await POST(request);
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: 'user_abc' }),
+      })
+    );
   });
 });

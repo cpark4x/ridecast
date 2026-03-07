@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { extractContent, extractUrl } from '@/lib/extractors';
 import { contentHash } from '@/lib/utils/hash';
-
-const DEFAULT_USER_ID = 'default-user';
+import { getCurrentUserId } from '@/lib/auth';
 
 // Max chars sent to Claude for script generation (~600K = ~150K words / ~500 pages)
 const TRUNCATION_WARNING_CHARS = 400_000; // warn above ~100K words / ~330 pages
 
 export async function POST(request: Request) {
   try {
+    const userId = await getCurrentUserId();
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const url = formData.get('url') as string | null;
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
 
     const record = await prisma.content.create({
       data: {
-        userId: DEFAULT_USER_ID,
+        userId,
         title,
         rawText: text,
         wordCount,
