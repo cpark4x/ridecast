@@ -130,8 +130,8 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
         <svg viewBox="0 0 24 24" className="w-10 h-10 stroke-violet-400 fill-none mx-auto mb-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <div className="text-[15px] font-semibold mb-1">Drop files here</div>
-        <div className="text-xs text-white/55">PDF, EPUB, TXT up to 50MB</div>
+        <div className="text-[15px] font-semibold mb-1">Tap to browse files</div>
+        <div className="text-xs text-white/55">or drag and drop · PDF, EPUB, TXT up to 50MB</div>
         <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
       </div>
 
@@ -161,6 +161,29 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
 
       {error && (
         <div className="text-red-400 text-sm mb-4 text-center">{error}</div>
+      )}
+
+      {/* Works with — shown only when no preview is active */}
+      {!preview && (
+        <div className="mt-6">
+          <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Works with</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { icon: "🌐", label: "Articles & URLs", desc: "Any web page" },
+              { icon: "📄", label: "PDFs", desc: "Documents up to 50MB" },
+              { icon: "📚", label: "EPUBs", desc: "Ebooks and long reads" },
+              { icon: "📝", label: "Text files", desc: "TXT, notes, drafts" },
+            ].map(({ icon, label, desc }) => (
+              <div key={label} className="flex items-start gap-2.5 p-3 rounded-[10px] bg-white/[0.04] border border-white/[0.06]">
+                <span className="text-lg leading-none mt-0.5">{icon}</span>
+                <div>
+                  <div className="text-[12px] font-semibold">{label}</div>
+                  <div className="text-[11px] text-white/40">{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Content Preview */}
