@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** Visual pass complete. 3 UI fix specs ready. All gates green.
+**Status:** Visual fix pass complete. 3 UI fixes shipped. All gates green.
 
 ---
 
@@ -12,57 +12,39 @@
 
 | Gate | Status | Notes |
 |------|--------|-------|
-| `npm run lint` | ✅ PASS | 10 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **117 passing**, 7 skipped |
+| `npm run lint` | ✅ PASS | 11 warnings (non-blocking) |
+| `npm run test` | ✅ PASS | **126 passing**, 7 skipped |
 | `npm run build` | ✅ PASS | |
-| `npm run test:e2e` | ✅ PASS | 5/5 |
+| `npm run test:e2e` | ✅ PASS | 5/5 (last verified 2026-03-06) |
 
-### Total shipped: 13 features across 5 machine sessions
-
----
-
-## Visual Pass Findings (2026-03-06)
-
-A browser visual audit was run at http://localhost:3000. The core UI shell is solid. Three issues need fixing:
-
-| Issue | Screen | Confirmed in code? |
-|-------|--------|--------------------|
-| No drag thumb on progress bar | ExpandedPlayer | ✅ Yes — `h-1` bar, no thumb element |
-| No skip controls in mini-player | PlayerBar | ✅ Yes — only play/pause button |
-| 370px dead space on Upload screen | UploadScreen | ✅ Yes — nothing below URL input |
+### Total shipped: 16 features across 6 machine sessions
 
 ---
 
-## Fix Specs — Ready to Build
+## Session 6 Summary — 2026-03-06
 
-3 specs in `specs/features/phase2/fixes/`:
+**Completed:**
 
-| Priority | Feature | Spec | Files |
-|----------|---------|------|-------|
-| 1 | fix-scrubber-handle | `fixes/fix-scrubber-handle.md` | ExpandedPlayer.tsx only |
-| 2 | fix-mini-player-controls | `fixes/fix-mini-player-controls.md` | PlayerBar.tsx only |
-| 3 | fix-upload-polish | `fixes/fix-upload-polish.md` | UploadScreen.tsx only |
+- `fix-scrubber-handle` (c5337d9) — Replaced `h-1` progress bar in ExpandedPlayer with `h-5` touch-target wrapper. Added `role="slider"` with `aria-valuenow`/`aria-valuemax`. White circle thumb `w-3 h-3` positioned at `left: progress%` via inline style. `group-active:scale-125` for tactile feedback. Tests: slider role + aria attrs; thumb element in DOM.
 
-### Key implementation notes
+- `fix-mini-player-controls` (c416844) — Added `skipForward` to `usePlayer()` destructure in PlayerBar. New +30s skip button with `aria-label="Skip forward 30 seconds"`, `e.stopPropagation()` to prevent expand. Created PlayerBar.test.tsx (new file). Tests: button renders; calls skipForward(30); does not trigger onExpand.
 
-**fix-scrubber-handle:**
-- Replace `h-1` progress bar with an `h-5` (20px touch target) wrapper
-- Add `role="slider"` with aria-valuemin/max/now
-- White circle thumb `w-3 h-3` positioned at `left: progress%` via inline style
-- `group-active:scale-125` on thumb for tactile feedback
-- Remove `hover:h-1.5` (desktop-only, mobile users never see it)
+- `fix-upload-polish` (77fad80) — Updated drop zone copy to "Tap to browse files" / "or drag and drop · PDF, EPUB, TXT up to 50MB". Added "Works with" 2×2 grid below URL input (hidden when preview active). Created UploadScreen.test.tsx (new file). Tests: new copy; subtext with drag hint; Works With grid with all 4 tiles.
 
-**fix-mini-player-controls:**
-- Add `skipForward` from `usePlayer()` — already exists in PlayerContext
-- Add one button: +30s skip with `e.stopPropagation()` to avoid triggering `onExpand`
-- `aria-label="Skip forward 30 seconds"` for accessibility + testability
-- Keep it compact — no background circle, just icon + "30s" label below
+**Health gates:** lint ✅ test ✅ build ✅
 
-**fix-upload-polish:**
-- Change drop zone copy: `"Tap to browse files"` / `"or drag and drop · PDF, EPUB, TXT up to 50MB"`
-- Add `{!preview && (...)}` "Works with" grid below URL input: 2×2 grid of icon+label+desc tiles
-- Content: Articles & URLs 🌐, PDFs 📄, EPUBs 📚, Text files 📝
-- Tiles disappear when preview card is showing (the `!preview` condition handles this)
+---
+
+## What the Next Session Should Start With
+
+**No features remain in the queue.** All 3 scheduled Phase 2 visual fixes are done.
+
+Next steps:
+1. Define and write specs for Phase 2 continuation features, OR
+2. Run a new visual audit at http://localhost:3000 (`npm run dev`) to discover the next batch of issues, OR
+3. Start Phase 3 (iOS PWA shell, offline caching, App Store prep)
+
+Check `ROADMAP.md` and `VISION.md` for the strategic roadmap.
 
 ---
 

@@ -113,20 +113,26 @@ completed_features:
 - elevenlabs-key-settings
 features:
   fix-scrubber-handle:
-    status: ready
+    status: done
     title: "Fix progress bar scrubber — add visible drag thumb to ExpandedPlayer"
     spec: specs/features/phase2/fixes/fix-scrubber-handle.md
     depends_on: []
+    commit: c5337d9
+    completed_at: "2026-03-06T17:10:00Z"
   fix-mini-player-controls:
-    status: ready
+    status: done
     title: "Fix mini-player — add +30s skip button to PlayerBar"
     spec: specs/features/phase2/fixes/fix-mini-player-controls.md
     depends_on: []
+    commit: c416844
+    completed_at: "2026-03-06T17:11:00Z"
   fix-upload-polish:
-    status: ready
+    status: done
     title: "Fix upload screen — mobile tap copy + Works With grid to fill dead space"
     spec: specs/features/phase2/fixes/fix-upload-polish.md
     depends_on: []
+    commit: 77fad80
+    completed_at: "2026-03-06T17:12:00Z"
 next_steps:
 - step: 1
   task: Run dev machine build loop on Phase 1 feature specs
