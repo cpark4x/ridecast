@@ -44,13 +44,9 @@ health_gates:
   command: npm run test
   status: PASS
   duration: 1.86s
-  notes: 'Vitest: 58/65 tests passing, 7 intentionally skipped (DB-dependent).
+  notes: 'Vitest: 151/158 tests passing, 7 intentionally skipped (DB-dependent).
 
-    Non-blocking: React act() warnings in AppShell.test.tsx (×3) but assertions pass.
-
-    All tests green as of PR #17 (duplicate 409 regression fix, merged 2026-03-06).
-
-    '
+    All tests green as of Session 8 (Phase 0 complete).'
 - id: build
   command: npm run build
   status: PASS
@@ -88,6 +84,14 @@ known_issues:
 
     '
 recently_shipped:
+- session: '8'
+  date: '2026-03-06'
+  commits:
+  - a476a7b
+  - 3b39547
+  - 7750c49
+  title: 'Phase 0 complete: multi-user-schema + azure-deployment + stripe-subscription'
+  notes: All 6 Phase 0 specs implemented. App ready for Azure deployment.
 - pr: '#17'
   merged: '2026-03-06'
   title: 'fix: restore 409 status for duplicate-content upload response'
@@ -108,8 +112,8 @@ recently_shipped:
     '
 phase: 0
 phase_name: phase-0-ios-foundation
-epoch: 5
-next_action: implement Phase 0 iOS foundation specs — auth, storage, payments, deployment
+epoch: 6
+next_action: All Phase 0 features complete. Begin Phase 1 feature implementation.
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -130,33 +134,36 @@ completed_features:
 - google-cloud-tts
 - clerk-auth
 - azure-blob-storage
+- multi-user-schema
+- azure-deployment
+- stripe-subscription
 features:
   multi-user-schema:
-    status: in-progress
+    status: done
     title: Multi-User Schema — replace DEFAULT_USER_ID with real Clerk user IDs
     spec: specs/features/phase0/multi-user-schema.md
     depends_on:
     - clerk-auth
+    commit: a476a7b
+    completed_at: '2026-03-06T22:25:00Z'
   stripe-subscription:
-    status: in-progress
+    status: done
     title: Stripe Freemium — $10/mo subscription gate on own-content upload/process
     spec: specs/features/phase0/stripe-subscription.md
     depends_on:
     - clerk-auth
     - multi-user-schema
+    commit: 7750c49
+    completed_at: '2026-03-06T22:33:00Z'
   azure-deployment:
-    status: in-progress
+    status: done
     title: Azure Deployment — Dockerfile, GitHub Actions CI/CD, deployment guide
     spec: specs/features/phase0/azure-deployment.md
     depends_on: []
+    commit: 3b39547
+    completed_at: '2026-03-06T22:28:00Z'
 next_steps:
 - step: 1
-  task: Run dev machine build loop on Phase 1 feature specs
-  action: "Execute: amplifier recipe execute .dev-machine/recipes/build.yaml\n5 specs\
-    \ ready in specs/features/phase1/:\n  1. duration-accuracy.md          — Tighten\
-    \ ±15%, 2nd retry, durationAdvisory\n  2. pipeline-error-resilience.md  — retryWithBackoff,\
-    \ truncation warning, maxDuration\n  3. processing-screen-upgrade.md  — 4-stage\
-    \ Analyzing→Scripting→Generating→Ready\n  4. playback-state-persistence.md — Wire\
-    \ /api/playback into PlayerContext\n  5. audio-duration-measurement.md — Replace\
-    \ buffer-size estimate with real measurement\n"
-last_session: '2026-03-07T06:16:26.103888+00:00'
+  task: Begin Phase 1 feature implementation
+  action: Run dev machine on specs/features/phase1/ — 5 specs ready
+last_session: '2026-03-07T06:33:58.364395+00:00'

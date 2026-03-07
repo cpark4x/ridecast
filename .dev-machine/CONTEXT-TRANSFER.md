@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Project:** ridecast2
-**Status:** Phase 0 iOS foundation — 3 of 6 specs done. All gates green.
+**Status:** Phase 0 iOS foundation — ALL 6 specs COMPLETE. All gates green.
 
 ---
 
@@ -13,11 +13,11 @@
 | Gate | Status | Notes |
 |------|--------|-------|
 | `npm run lint` | ✅ PASS | 11 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **139 passing**, 7 skipped |
-| `npm run build` | ✅ PASS | All routes including sign-in/sign-up |
+| `npm run test` | ✅ PASS | **151 passing**, 7 skipped |
+| `npm run build` | ✅ PASS | All routes including /upgrade, /api/webhook |
 | `npm run test:e2e` | ✅ PASS | 5/5 (last run 2026-03-06) |
 
-### Total shipped to date: 19 features across 7 machine sessions
+### Total shipped to date: 22 features across 8 machine sessions
 
 ---
 
@@ -38,69 +38,56 @@
 
 ## Phase 0 Specs — Build Order
 
-6 specs in `specs/features/phase0/`. **Respect depends_on strictly.**
+6 specs in `specs/features/phase0/`. All DONE.
 
-| Priority | Feature | Depends on | Status |
-|----------|---------|------------|--------|
-| 1 | google-cloud-tts | — | ✅ DONE (de483d0) |
-| 2 | clerk-auth | — | ✅ DONE (40c35f7) |
-| 3 | azure-blob-storage | — | ✅ DONE (41f81e8) |
-| 4 | multi-user-schema | clerk-auth ✅ | **ready** |
-| 5 | stripe-subscription | clerk-auth ✅ + multi-user-schema | blocked on #4 |
-| 6 | azure-deployment | — | **ready** |
+| Priority | Feature | Status |
+|----------|---------|--------|
+| 1 | google-cloud-tts | ✅ DONE (de483d0) |
+| 2 | clerk-auth | ✅ DONE (40c35f7) |
+| 3 | azure-blob-storage | ✅ DONE (41f81e8) |
+| 4 | multi-user-schema | ✅ DONE (a476a7b) |
+| 5 | stripe-subscription | ✅ DONE (7750c49) |
+| 6 | azure-deployment | ✅ DONE (3b39547) |
 
-**Next session:** multi-user-schema + azure-deployment (both ready, can be done together)
-**Session after:** stripe-subscription (depends on multi-user-schema)
+**Phase 0 is complete.** Next session should begin Phase 1 specs.
 
 ---
 
-## Session 7 Summary — 2026-03-06
+## Session 8 Summary — 2026-03-06
 
 **Completed:**
-- `google-cloud-tts` — `GoogleCloudTTSProvider` in `src/lib/tts/google.ts` using `@google-cloud/text-to-speech`. Factory priority updated: Google > ElevenLabs > OpenAI. Triggered by `GOOGLE_APPLICATION_CREDENTIALS` or `GOOGLE_CLOUD_PROJECT`. Google voices: `en-US-Studio-O` (narrator), `en-US-Studio-M`/`O` (conversation). `instructions` field ignored (Google uses voice name only).
-- `clerk-auth` — `src/lib/auth.ts` with `getCurrentUserId()` helper (Clerk `auth()` + upserts User). `src/middleware.ts` with public route matcher (`/sign-in`, `/sign-up`, `/api/library`, `/api/audio/*`). Sign-in/up pages created. `layout.tsx` wrapped with `<ClerkProvider>`. **Does NOT replace `DEFAULT_USER_ID` yet** — that's `multi-user-schema`'s job.
-- `azure-blob-storage` — `src/lib/storage/blob.ts` with `uploadAudio()` + `isBlobStorageConfigured()`. `audio/generate/route.ts` uses blob when `AZURE_STORAGE_CONNECTION_STRING` is set, local filesystem fallback for dev. `audio/[id]/route.ts` redirects to blob URL when `filePath` starts with `https://`.
 
-**Health gates:** lint ✅ test ✅ (139 passing) build ✅
+- `multi-user-schema` (a476a7b) — Removed `@default(uuid())` from `User.id` (Clerk provides ID); added `stripeCustomerId String?` and `subscriptionStatus String @default("free")` to User model; ran migration `20260307061942_add_stripe_fields_to_user`; replaced `DEFAULT_USER_ID = "default-user"` with `await getCurrentUserId()` in all 5 routes (upload, library, playback, process, audio/generate); created `GET /api/me` → `{ userId }`; updated `PlayerContext.tsx` to fetch `/api/me` on mount and gate `savePosition` on `userIdRef.current`; updated all route tests with `vi.mock('@/lib/auth')`.
+
+- `azure-deployment` (3b39547) — Multi-stage `Dockerfile` (node:20-alpine, deps/builder/runner stages); `.dockerignore`; `next.config.ts` + `output: "standalone"`; `.github/workflows/deploy-azure.yml` CI/CD pipeline to ACR + Container Apps; `docs/deployment.md` one-time Azure CLI setup guide; `.env.example` with complete Phase 0 env vars.
+
+- `stripe-subscription` (7750c49) — `src/lib/stripe.ts` lazy singleton (avoids build-time failure when key absent); `src/lib/subscription.ts` with `isByokInstance()`, `hasActiveSubscription()`, `requireSubscription()`; gated upload/process/audio-generate with `requireSubscription`; `GET /api/create-checkout-session`; `POST /api/webhook` (checkout.session.completed, customer.subscription.deleted/paused); `/app/upgrade/page.tsx` upgrade UI; 10 subscription tests passing; route tests mock `@/lib/subscription` pass-through.
+
+**Health gates:** lint ✅ test ✅ (151 passing) build ✅
 
 **Key decisions made:**
-- Used named import `{ TextToSpeechClient }` from `@google-cloud/text-to-speech` (not default import) — resolves TypeScript namespace error at build time
-- Test mock for `TextToSpeechClient` uses `vi.fn(function() { return {...} })` (regular function, not arrow) so it works as a constructor with `new`
-- Blob storage `containerClient` is module-level singleton (lazy-initialized) — consistent with singleton DB pattern
-
-**Next session should start with:** `multi-user-schema` (spec: `specs/features/phase0/multi-user-schema.md`)
-- clerk-auth is done, so the dependency is met
-- Key work: remove `@default(uuid())` from `User.id`, add `stripeCustomerId`/`subscriptionStatus` to User schema, replace `DEFAULT_USER_ID` in 5 routes with `await getCurrentUserId()`, add `/api/me` route, run `npm run db:migrate && npm run db:generate`
-- Also do `azure-deployment` in the same session (independent, no unit tests — just Dockerfile + CI/CD)
+- Stripe client uses lazy singleton pattern (same as Prisma DB) — prevents Next.js build error when `STRIPE_SECRET_KEY` absent. Uses `getStripeClient()` function, not a direct module-level `new Stripe(...)`.
+- Stripe API version: `"2026-02-25.clover"` (matches installed stripe@latest)
+- `PlayerContext.tsx` savePosition now guarded by `userIdRef.current` being non-null — fetch `/api/me` on mount first, then persisting works. Silent fail if `/api/me` unavailable.
+- Subscription gate tests use top-level `vi.mock('@/lib/db')` + env var manipulation per test (no `vi.resetModules()` complexity) — simpler and reliable.
+- Route tests mock `@/lib/subscription` with `requireSubscription: vi.fn().mockResolvedValue(null)` — subscription logic fully tested in `subscription.test.ts`, not in every route test.
 
 ---
 
-## Key Implementation Notes Per Spec
+## What's Next: Phase 1
 
-### multi-user-schema (next)
-- Remove `@default(uuid())` from `User.id` — Clerk provides the ID
-- Add `stripeCustomerId String?` and `subscriptionStatus String @default("free")` to User
-- Replace `DEFAULT_USER_ID = "default-user"` in 5 routes with `await getCurrentUserId()`
-- Add `src/app/api/me/route.ts` → returns `{ userId }` for PlayerContext
-- Run `npm run db:migrate && npm run db:generate` after schema changes
-- Tests must mock `getCurrentUserId` from `@/lib/auth`
+**Next session should start with Phase 1 specs:**
 
-### azure-deployment (next, can batch with multi-user-schema)
-- `Dockerfile`: multi-stage, node:20-alpine, `next.config.ts` needs `output: "standalone"`
-- `.github/workflows/deploy-azure.yml`: build image → push to ACR → deploy to Container Apps
-- `docs/deployment.md`: one-time Azure CLI setup commands
-- `.env.example`: complete list of all Phase 0 env vars (mostly done already)
-- `.dockerignore`: exclude node_modules, .next, .env, prisma/dev.db
-- **No unit tests** — verify by `docker build .` succeeding
+5 specs in `specs/features/phase1/`:
+1. `duration-accuracy.md` — Tighten ±15%, 2nd retry, durationAdvisory
+2. `pipeline-error-resilience.md` — retryWithBackoff, truncation warning, maxDuration
+3. `processing-screen-upgrade.md` — 4-stage Analyzing→Scripting→Generating→Ready
+4. `playback-state-persistence.md` — Wire /api/playback into PlayerContext
+5. `audio-duration-measurement.md` — Replace buffer-size estimate with real measurement
 
-### stripe-subscription (session after next)
-- Package: `stripe`
-- `src/lib/stripe.ts`: Stripe client + `SUBSCRIPTION_PRICE_ID`
-- `src/lib/subscription.ts`: `hasActiveSubscription()`, `requireSubscription()`, `isByokInstance()`
-- BYOK exemption: if `ANTHROPIC_API_KEY` + `OPENAI_API_KEY` set but no `STRIPE_SECRET_KEY` → skip gate
-- Gate on: `POST /api/upload`, `POST /api/process`, `POST /api/audio/generate`
-- New routes: `/api/create-checkout-session`, `/api/webhook`
-- New page: `/app/upgrade/page.tsx`
+**Note:** Items 1, 2, 4, 5 are already marked `done` in completed_features (they were shipped in earlier sessions). Verify before re-implementing.
+
+Actually, looking at STATE.yaml, all 5 Phase 1 specs are already in `completed_features`. **The machine should check what Phase 1 specs REMAIN** before starting. The `next_steps` in STATE.yaml points to Phase 1 as the next target.
 
 ---
 
@@ -117,10 +104,15 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUserId: vi.fn().mockResolvedValue("user_test123"),
 }));
 
+// Mock subscription gate (use in route tests — logic tested in subscription.test.ts)
+vi.mock("@/lib/subscription", () => ({
+  requireSubscription: vi.fn().mockResolvedValue(null),
+}));
+
 // Mock Prisma user operations
 vi.mock("@/lib/db", () => ({
   prisma: {
-    user: { upsert: vi.fn(), findUnique: vi.fn() },
+    user: { upsert: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     content: { findMany: vi.fn(), create: vi.fn() },
     // ... etc
   },
@@ -140,21 +132,15 @@ vi.mock("@azure/storage-blob", () => ({
   },
 }));
 
-// Mock Google Cloud TTS (use regular function not arrow for constructor)
-vi.mock("@google-cloud/text-to-speech", () => ({
-  TextToSpeechClient: vi.fn(function () {
-    return { synthesizeSpeech: vi.fn().mockResolvedValue([{ audioContent: Buffer.from("audio") }]) };
-  }),
-}));
-
-// Mock Stripe
-vi.mock("stripe", () => ({
-  default: vi.fn().mockImplementation(() => ({
+// Mock Stripe (use getStripeClient pattern)
+vi.mock("@/lib/stripe", () => ({
+  getStripeClient: vi.fn().mockReturnValue({
     checkout: {
       sessions: { create: vi.fn().mockResolvedValue({ url: "https://checkout.stripe.com/test" }) },
     },
     webhooks: { constructEvent: vi.fn() },
-  })),
+  }),
+  SUBSCRIPTION_PRICE_ID: "price_test",
 }));
 ```
 
