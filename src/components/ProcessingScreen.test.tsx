@@ -4,12 +4,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ProcessingScreen } from "./ProcessingScreen";
 
-// Mock fetch to prevent actual API calls during tests
+// Mock fetch so the pipeline starts but never completes during these tests.
+// Tests here only assert on initial render state — we don't need (or want)
+// the fetch to resolve. A pending promise avoids both the console.error noise
+// and the act() warnings that come from async state updates mid-assertion.
 beforeEach(() => {
-  vi.spyOn(global, "fetch").mockResolvedValue({
-    ok: false,
-    json: async () => ({ error: "test-mode — no real API calls" }),
-  } as Response);
+  vi.spyOn(global, "fetch").mockImplementation(() => new Promise(() => {}));
 });
 
 afterEach(() => {
