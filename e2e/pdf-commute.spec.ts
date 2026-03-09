@@ -21,7 +21,7 @@ test.describe("Scenario 1: The PDF Commute", () => {
     // Register the response waiter BEFORE triggering the upload so the
     // promise is in place before the mocked /api/upload response fires.
     const uploadDone = page.waitForResponse("**/api/upload");
-    await page.locator('input[type="file"]').setInputFiles(
+    await page.locator('[data-testid="upload-file-input"]').setInputFiles(
       path.resolve(__dirname, "../test-fixtures/sample.pdf")
     );
     // Wait for the mocked /api/upload to respond so setPreview() has been

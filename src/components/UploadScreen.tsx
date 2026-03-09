@@ -146,7 +146,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
         </svg>
         <div className="text-[15px] font-semibold mb-1">Drop files here</div>
         <div className="text-xs text-white/55">or tap to browse · PDF, EPUB, TXT up to 50MB</div>
-        <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+        <input data-testid="upload-file-input" ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
       </div>
 
       {/* Divider */}
