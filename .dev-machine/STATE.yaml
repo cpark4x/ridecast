@@ -104,10 +104,14 @@ recently_shipped:
     ROADMAP.md + VISION.md updated to reflect iOS strategy.
 
     '
-phase: 0
-phase_name: phase-0-ios-foundation
-epoch: 7
-next_action: All Phase 0 features complete. Begin Phase 1 feature implementation.
+phase: 2
+phase_name: phase-2-pwa-features
+epoch: 9
+next_action: >
+  Phase 0 integration pass complete (Clerk + Stripe + upload verified end-to-end 2026-03-09).
+  Phase 1 complete. Phase 2 PWA features complete.
+  Remaining: Native Mobile App (React Native/Expo) — last Phase 2 item.
+  Then write Phase 3 specs (Pocket Refugee Capture first — time-sensitive).
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
