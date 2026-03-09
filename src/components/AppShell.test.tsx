@@ -34,10 +34,10 @@ describe("AppShell", () => {
     expect(screen.getAllByText("Player").length).toBeGreaterThan(0);
   });
 
-  it("shows home screen by default (resolves to empty queue)", async () => {
+  it("shows upload screen by default", () => {
     renderWithPlayer();
-    // After fetch resolves with [], HomeScreen shows the empty state
-    await waitFor(() => expect(screen.getByText("Nothing queued")).toBeInTheDocument());
+    // Default tab is "upload" — UploadScreen heading should be visible
+    expect(screen.getByText("Drop files here")).toBeInTheDocument();
   });
 
   it("switches to library screen when Library tab is clicked", () => {
