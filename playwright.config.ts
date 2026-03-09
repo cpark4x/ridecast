@@ -22,6 +22,7 @@ export default defineConfig({
     // path, so production auth is completely unaffected.
     env: {
       E2E_TEST_MODE: "true",
+      NEXT_PUBLIC_E2E_TEST_MODE: "true",
     },
   },
 });

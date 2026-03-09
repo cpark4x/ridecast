@@ -57,6 +57,7 @@ jobs:
       #   cannot authenticate anyone even if accidentally exposed.
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_e2VyZWx5LXRlc3QtbW9kZQ
       CLERK_SECRET_KEY: sk_test_e2e_test_mode_placeholder_not_a_real_key
+      NEXT_PUBLIC_E2E_TEST_MODE: "true"
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
       NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /

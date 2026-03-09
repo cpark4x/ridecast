@@ -140,15 +140,19 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
 
   // Auto-navigate to library once audio is ready — tests and normal flow
   // both expect the transition to happen without requiring a button click.
-  // 5 000 ms grace period: keeps "AI chose:" visible long enough for E2E
-  // assertions even on slow CI startup, while still feeling snappy in
-  // production (real API calls take 30–60 s, so 5 s is imperceptible).
+  // In E2E test mode (NEXT_PUBLIC_E2E_TEST_MODE=true) use a longer delay so
+  // Playwright assertions can run before the tab switches; in production 1 500 ms
+  // is imperceptible (real API calls take 30–60 s before this fires).
+  const autoCompleteDelay =
+    process.env.NEXT_PUBLIC_E2E_TEST_MODE === "true" ? 15000 : 1500;
+
   useEffect(() => {
     if (stage !== "ready" || !audioRecord) return;
     const timer = setTimeout(() => {
       onComplete(audioRecord.id);
-    }, 5000);
+    }, autoCompleteDelay);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, audioRecord, onComplete]);
 
   async function handleRetryAudio() {
