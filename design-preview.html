@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ridecast — Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Neutrals */
+      --bg:           #F7F6F3;        /* warm off-white canvas */
+      --surface:      #FFFFFF;        /* card / elevated surfaces */
+      --surface-2:    #F0EEE9;        /* recessed / input surfaces */
+      --border:       rgba(0,0,0,0.07);
+      --border-md:    rgba(0,0,0,0.11);
+
+      /* Text */
+      --text:         #18181A;
+      --text-mid:     rgba(24,24,26,0.50);
+      --text-dim:     rgba(24,24,26,0.30);
+
+      /* Accent — warm amber-orange */
+      --accent:       #EA580C;        /* primary CTA, active states */
+      --accent-light: rgba(234,88,12,0.10);
+      --accent-pale:  rgba(234,88,12,0.06);
+      --accent-text:  #C2410C;        /* text on light bg */
+
+      /* Status */
+      --green:        #16A34A;
+      --green-dim:    rgba(22,163,74,0.10);
+      --amber:        #D97706;
+      --amber-dim:    rgba(217,119,6,0.10);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Geist', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Page ─── */
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    /* ─── Nav ─── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    .nav-tag {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      text-align: center;
+      padding: 96px 0 72px;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-text);
+      background: var(--accent-light);
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-size: clamp(48px, 6.5vw, 84px);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      color: var(--text);
+      margin-bottom: 22px;
+    }
+    .hero-tagline {
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-weight: 400;
+      color: var(--text-mid);
+      max-width: 460px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* ─── Showcase ─── */
+    .showcase {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      padding: 56px 0 96px;
+      perspective: 1400px;
+    }
+
+    .phone-wrap { position: relative; }
+    .phone-wrap.center { z-index: 2; }
+    .phone-wrap.side {
+      transform: rotateY(10deg) scale(0.90);
+      z-index: 1;
+      opacity: 0.65;
+    }
+    .phone-wrap.side.left  { transform: rotateY(12deg)  translateX(16px)  scale(0.90); }
+    .phone-wrap.side.right { transform: rotateY(-12deg) translateX(-16px) scale(0.90); }
+
+    .phone {
+      width: 338px;
+      background: var(--surface);
+      border-radius: 44px;
+      border: 1px solid var(--border-md);
+      overflow: hidden;
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.04),
+        0 8px 24px rgba(0,0,0,0.08),
+        0 24px 64px rgba(0,0,0,0.10),
+        0 0 0 1px rgba(255,255,255,0.8) inset;
+    }
+
+    /* Dynamic island */
+    .island {
+      width: 90px;
+      height: 27px;
+      background: #000;
+      border-radius: 18px;
+      margin: 14px auto 0;
+    }
+
+    /* ─── Shared screen ─── */
+    .screen {
+      padding: 20px 20px 100px;
+      min-height: 680px;
+      position: relative;
+    }
+
+    .screen-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .screen-sub {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    /* ─── Episode cards ─── */
+    .ep {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      border-radius: 16px;
+      margin-bottom: 8px;
+      border: 1px solid transparent;
+    }
+    .ep-active {
+      background: var(--accent-pale);
+      border-color: rgba(234,88,12,0.15);
+    }
+    .ep-default {
+      background: var(--surface-2);
+      border-color: transparent;
+    }
+
+    .ep-thumb {
+      width: 46px;
+      height: 46px;
+      border-radius: 11px;
+      flex-shrink: 0;
+    }
+    /* Artwork — warm earthy gradients that suit the light palette */
+    .art-a { background: linear-gradient(135deg, #EA580C, #F97316, #FCD34D); }
+    .art-b { background: linear-gradient(135deg, #0EA5E9, #38BDF8); }
+    .art-c { background: linear-gradient(135deg, #059669, #34D399); }
+
+    .ep-info { flex: 1; min-width: 0; }
+    .ep-name {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .ep-detail { font-size: 11px; color: var(--text-dim); }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: var(--green); }
+    .dot-amber { background: var(--amber); }
+
+    /* ─── CTA ─── */
+    .cta-primary {
+      width: 100%;
+      padding: 15px;
+      margin-top: 18px;
+      background: var(--accent);
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Geist', sans-serif;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(234,88,12,0.25), 0 1px 2px rgba(234,88,12,0.15);
+    }
+    .cta-ghost {
+      width: 100%;
+      padding: 15px;
+      margin-top: 8px;
+      background: transparent;
+      border: 1.5px solid var(--border-md);
+      border-radius: 15px;
+      color: var(--text-mid);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Geist', sans-serif;
+      cursor: pointer;
+    }
+
+    /* ─── Player screen ─── */
+    .player-screen {
+      padding: 20px 20px 100px;
+      min-height: 680px;
+      position: relative;
+      background: var(--surface);
+    }
+
+    .artwork {
+      border-radius: 22px;
+      aspect-ratio: 1;
+      background: linear-gradient(145deg, #EA580C 0%, #F97316 40%, #FCD34D 100%);
+      background-size: 200% 200%;
+      animation: shift 9s ease infinite;
+      box-shadow:
+        0 16px 48px rgba(234,88,12,0.28),
+        0 4px 12px rgba(234,88,12,0.15),
+        0 1px 3px rgba(0,0,0,0.10);
+      margin-bottom: 26px;
+    }
+    @keyframes shift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .track-title {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .track-source {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 22px;
+    }
+
+    .progress-wrap { margin-bottom: 22px; }
+    .progress-bar {
+      height: 3px;
+      background: rgba(0,0,0,0.08);
+      border-radius: 2px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .progress-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 40%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .progress-thumb {
+      position: absolute;
+      left: calc(40% - 5px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px white;
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 18px;
+    }
+    .ctrl-secondary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-mid);
+      line-height: 1;
+    }
+    .ctrl-secondary small {
+      font-size: 8px;
+      font-weight: 400;
+      color: var(--text-dim);
+    }
+    .ctrl-play {
+      width: 64px;
+      height: 64px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(234,88,12,0.35);
+    }
+    .play-tri {
+      width: 0; height: 0;
+      border-style: solid;
+      border-width: 10px 0 10px 17px;
+      border-color: transparent transparent transparent #fff;
+      margin-left: 3px;
+    }
+
+    .pill-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .pill {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 7px 13px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-mid);
+      font-family: 'Geist', sans-serif;
+      cursor: pointer;
+    }
+
+    /* ─── Upload screen ─── */
+    .drop-zone {
+      border: 1.5px dashed var(--border-md);
+      border-radius: 18px;
+      padding: 28px 16px;
+      text-align: center;
+      margin-bottom: 14px;
+      background: var(--surface-2);
+    }
+    .drop-icon { font-size: 24px; margin-bottom: 8px; opacity: 0.3; }
+    .drop-label { font-size: 13px; font-weight: 600; color: var(--text-mid); margin-bottom: 3px; }
+    .drop-sub   { font-size: 11px; color: var(--text-dim); }
+
+    .url-input {
+      background: var(--surface-2);
+      border: 1.5px solid var(--border-md);
+      border-radius: 13px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      display: block;
+      width: 100%;
+    }
+
+    .duration-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .dur-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Geist', sans-serif;
+      border: none;
+      cursor: pointer;
+    }
+    .dur-active {
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border: 1.5px solid rgba(234,88,12,0.2);
+    }
+    .dur-default {
+      background: var(--surface-2);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    /* ─── Bottom nav ─── */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(247,246,243,0.90);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 10px 0 22px;
+    }
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .nav-tab.active { color: var(--accent); }
+    .nav-icon { font-size: 18px; line-height: 1.2; }
+
+    /* ─── Divider ─── */
+    .sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ─── Token reference ─── */
+    .tokens-section { padding: 80px 0; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+    }
+    .tokens-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+    }
+    .token-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+    }
+    .token-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .token-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .token-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .token-val  { font-size: 10px; color: var(--text-dim); font-family: monospace; letter-spacing: 0.03em; }
+
+    .type-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .type-row:last-child { border: none; }
+    .type-meta { font-size: 10px; color: var(--text-dim); font-family: monospace; text-align: right; }
+
+    .principle {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .principle:last-child { border: none; }
+    .principle-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .principle-desc { font-size: 12px; color: var(--text-mid); line-height: 1.6; }
+
+    /* ─── Footer ─── */
+    footer {
+      padding: 36px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer span { font-size: 11px; color: var(--text-dim); }
+    .footer-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-logo">Ridecast</div>
+    <div class="nav-tag">Design Brief · 2026</div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">Reads worth listening to</div>
+    <div class="hero-title">The listening<br>app for readers.</div>
+    <div class="hero-tagline">Drop a link, pick a time, press play. Your reading backlog — cleared on the commute.</div>
+  </div>
+
+  <!-- Phones -->
+  <div class="showcase">
+
+    <!-- Left: Queue -->
+    <div class="phone-wrap side left">
+      <div class="phone">
+        <div class="island"></div>
+        <div class="screen">
+          <div style="padding: 12px 0 20px;">
+            <div class="screen-title">Your Queue</div>
+            <div class="screen-sub">3 episodes ready</div>
+          </div>
+
+          <div class="ep ep-active">
+            <div class="ep-thumb art-a"></div>
+            <div class="ep-info">
+              <div class="ep-name">The Design of Everyday Things</div>
+              <div class="ep-detail">nngroup.com · 28 min</div>
+            </div>
+            <div class="dot dot-green"></div>
+          </div>
+
+          <div class="ep ep-default">
+            <div class="ep-thumb art-b"></div>
+            <div class="ep-info">
+              <div class="ep-name">Why Figma Won</div>
+              <div class="ep-detail">every.to · 15 min</div>
+            </div>
+            <div class="dot dot-amber"></div>
+          </div>
+
+          <div class="ep ep-default">
+            <div class="ep-thumb art-c"></div>
+            <div class="ep-info">
+              <div class="ep-name">The Attention Economy</div>
+              <div class="ep-detail">theatlantic.com · 20 min</div>
+            </div>
+            <div class="dot dot-green"></div>
+          </div>
+
+          <button class="cta-primary">▶&nbsp; Start Commute</button>
+
+          <div class="bottom-nav">
+            <div class="nav-tab active"><div class="nav-icon">⌂</div>Queue</div>
+            <div class="nav-tab"><div class="nav-icon">+</div>Add</div>
+            <div class="nav-tab"><div class="nav-icon">≡</div>Library</div>
+            <div class="nav-tab"><div class="nav-icon">♪</div>Player</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Player -->
+    <div class="phone-wrap center">
+      <div class="phone">
+        <div class="island"></div>
+        <div class="player-screen">
+          <div class="artwork"></div>
+
+          <div class="track-title">The Design of Everyday Things</div>
+          <div class="track-source">nngroup.com · 1.0×</div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+              <div class="progress-thumb"></div>
+            </div>
+            <div class="time-row"><span>10:42</span><span>−17:18</span></div>
+          </div>
+
+          <div class="controls">
+            <div class="ctrl-secondary">−30<br><small>sec</small></div>
+            <div class="ctrl-play"><div class="play-tri"></div></div>
+            <div class="ctrl-secondary">+30<br><small>sec</small></div>
+          </div>
+
+          <div class="pill-row">
+            <button class="pill">1.0×</button>
+            <button class="pill">Car Mode</button>
+            <button class="pill">+ Queue</button>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-tab"><div class="nav-icon">⌂</div>Queue</div>
+            <div class="nav-tab"><div class="nav-icon">+</div>Add</div>
+            <div class="nav-tab"><div class="nav-icon">≡</div>Library</div>
+            <div class="nav-tab active"><div class="nav-icon">♪</div>Player</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Add -->
+    <div class="phone-wrap side right">
+      <div class="phone">
+        <div class="island"></div>
+        <div class="screen">
+          <div style="padding: 12px 0 20px;">
+            <div class="screen-title">Add</div>
+            <div class="screen-sub">Paste a link or drop a file</div>
+          </div>
+
+          <div class="drop-zone">
+            <div class="drop-icon">↑</div>
+            <div class="drop-label">Drop anything here</div>
+            <div class="drop-sub">URL · PDF · EPUB · Text</div>
+          </div>
+
+          <div class="url-input">https://</div>
+
+          <div class="duration-row">
+            <button class="dur-btn dur-active">5 min</button>
+            <button class="dur-btn dur-default">15 min</button>
+            <button class="dur-btn dur-default">30 min</button>
+          </div>
+
+          <button class="cta-primary">Create Episode</button>
+          <button class="cta-ghost">Import from Pocket</button>
+
+          <div class="bottom-nav">
+            <div class="nav-tab"><div class="nav-icon">⌂</div>Queue</div>
+            <div class="nav-tab active"><div class="nav-icon">+</div>Add</div>
+            <div class="nav-tab"><div class="nav-icon">≡</div>Library</div>
+            <div class="nav-tab"><div class="nav-icon">♪</div>Player</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="sep">
+
+  <!-- Tokens -->
+  <div class="tokens-section">
+    <div class="section-label">Design Tokens &amp; Principles</div>
+    <div class="tokens-grid">
+
+      <!-- Color -->
+      <div>
+        <div class="token-group-title">Color</div>
+
+        <div class="token-row">
+          <div class="token-swatch" style="background:#F7F6F3; border-color:rgba(0,0,0,0.12);"></div>
+          <div>
+            <div class="token-name">Canvas</div>
+            <div class="token-val">#F7F6F3 — warm off-white</div>
+          </div>
+        </div>
+        <div class="token-row">
+          <div class="token-swatch" style="background:#FFFFFF;"></div>
+          <div>
+            <div class="token-name">Surface</div>
+            <div class="token-val">#FFFFFF — cards, elevated</div>
+          </div>
+        </div>
+        <div class="token-row">
+          <div class="token-swatch" style="background:linear-gradient(135deg,#EA580C,#F97316,#FCD34D);"></div>
+          <div>
+            <div class="token-name">Brand gradient</div>
+            <div class="token-val">#EA580C → #FCD34D</div>
+          </div>
+        </div>
+        <div class="token-row">
+          <div class="token-swatch" style="background:#EA580C;"></div>
+          <div>
+            <div class="token-name">Amber-orange — primary</div>
+            <div class="token-val">#EA580C — CTA, active, artwork</div>
+          </div>
+        </div>
+        <div class="token-row">
+          <div class="token-swatch" style="background:#16A34A;"></div>
+          <div>
+            <div class="token-name">Green — status only</div>
+            <div class="token-val">#16A34A — ready states</div>
+          </div>
+        </div>
+        <div class="token-row">
+          <div class="token-swatch" style="background:#D97706;"></div>
+          <div>
+            <div class="token-name">Amber — status only</div>
+            <div class="token-val">#D97706 — processing states</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Type -->
+      <div>
+        <div class="token-group-title">Typography — Geist</div>
+        <div class="type-row">
+          <span style="font-size:26px;font-weight:900;letter-spacing:-0.04em;">Heading</span>
+          <span class="type-meta">900 / −4%</span>
+        </div>
+        <div class="type-row">
+          <span style="font-size:20px;font-weight:800;letter-spacing:-0.03em;">Screen title</span>
+          <span class="type-meta">800 / −3%</span>
+        </div>
+        <div class="type-row">
+          <span style="font-size:16px;font-weight:700;letter-spacing:-0.02em;">Card title</span>
+          <span class="type-meta">700 / −2%</span>
+        </div>
+        <div class="type-row">
+          <span style="font-size:14px;font-weight:500;color:var(--text-mid);">Body / detail</span>
+          <span class="type-meta">500 / 0 / 50%</span>
+        </div>
+        <div class="type-row">
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--text-dim);">Label</span>
+          <span class="type-meta">700 / +10% / caps</span>
+        </div>
+      </div>
+
+      <!-- Principles -->
+      <div>
+        <div class="token-group-title">Design Principles</div>
+        <div class="principle">
+          <div class="principle-name">Simple. Warm. Effortless.</div>
+          <div class="principle-desc">One job per screen. No configuration. Complexity is invisible — the surface is obvious.</div>
+        </div>
+        <div class="principle">
+          <div class="principle-name">Neutrals carry the UI.</div>
+          <div class="principle-desc">Off-white canvas, white surfaces, gray text. Color appears only to direct attention or signal state.</div>
+        </div>
+        <div class="principle">
+          <div class="principle-name">One accent. Used with restraint.</div>
+          <div class="principle-desc">Amber-orange is the only brand color. It appears on primary CTAs, active states, and episode artwork. Never decorative.</div>
+        </div>
+        <div class="principle">
+          <div class="principle-name">Artwork is the emotion.</div>
+          <div class="principle-desc">The gradient carries warmth and energy. Chrome recedes. Content leads.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <span><span class="footer-dot"></span>Ridecast — Design Brief 2026</span>
+    <span>Icon study pending · Geist Sans</span>
+  </footer>
+
+</div>
+</body>
+</html>
