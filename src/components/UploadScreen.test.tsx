@@ -7,15 +7,15 @@ vi.mock("@/hooks/useCommuteDuration", () => ({
 }));
 
 describe("UploadScreen", () => {
-  it("shows 'Tap to browse files' copy (not 'Drop files here')", () => {
+  it("shows 'Drop files here' copy in the drop zone", () => {
     render(<UploadScreen onProcess={vi.fn()} onImportPocket={vi.fn()} />);
-    expect(screen.getByText("Tap to browse files")).toBeInTheDocument();
-    expect(screen.queryByText("Drop files here")).not.toBeInTheDocument();
+    expect(screen.getByText("Drop files here")).toBeInTheDocument();
+    expect(screen.queryByText("Tap to browse files")).not.toBeInTheDocument();
   });
 
-  it("shows updated drop zone subtext with drag-and-drop hint", () => {
+  it("shows drop zone subtext with tap-to-browse hint", () => {
     render(<UploadScreen onProcess={vi.fn()} onImportPocket={vi.fn()} />);
-    expect(screen.getByText(/or drag and drop/i)).toBeInTheDocument();
+    expect(screen.getByText(/or tap to browse/i)).toBeInTheDocument();
   });
 
   it("shows 'Works with' section when no preview is active", () => {

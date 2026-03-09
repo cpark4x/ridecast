@@ -23,11 +23,19 @@ export async function getCurrentUserId(): Promise<string> {
   // (see playwright.config.ts webServer.env).  This lets the full API surface
   // work in CI without CLERK_SECRET_KEY or a real session cookie.
   if (process.env.E2E_TEST_MODE === "true") {
-    await prisma.user.upsert({
-      where: { id: E2E_TEST_USER_ID },
-      update: {},
-      create: { id: E2E_TEST_USER_ID, name: "E2E Test User" },
-    });
+    try {
+      await prisma.user.upsert({
+        where: { id: E2E_TEST_USER_ID },
+        update: {},
+        create: { id: E2E_TEST_USER_ID, name: "E2E Test User" },
+      });
+    } catch (err: unknown) {
+      // Concurrent parallel requests (fullyParallel: true in Playwright) can
+      // race through the upsert "does it exist?" check simultaneously and both
+      // attempt the INSERT.  The second one hits a unique constraint (P2002).
+      // That's fine — the row already exists.  Rethrow anything else.
+      if ((err as { code?: string }).code !== "P2002") throw err;
+    }
     return E2E_TEST_USER_ID;
   }
   // ─────────────────────────────────────────────────────────────────────────

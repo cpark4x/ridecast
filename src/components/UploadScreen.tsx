@@ -144,8 +144,8 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
         <svg viewBox="0 0 24 24" className="w-10 h-10 stroke-violet-400 fill-none mx-auto mb-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <div className="text-[15px] font-semibold mb-1">Tap to browse files</div>
-        <div className="text-xs text-white/55">or drag and drop · PDF, EPUB, TXT up to 50MB</div>
+        <div className="text-[15px] font-semibold mb-1">Drop files here</div>
+        <div className="text-xs text-white/55">or tap to browse · PDF, EPUB, TXT up to 50MB</div>
         <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
       </div>
 

@@ -14,7 +14,7 @@ import { usePlayer } from "./PlayerContext";
 import { PocketImportScreen } from "./PocketImportScreen";
 
 export function AppShell() {
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("upload");
   const [processing, setProcessing] = useState<{ contentId: string; targetMinutes: number } | null>(null);
   const [showExpandedPlayer, setShowExpandedPlayer] = useState(false);
   const [showCarMode, setShowCarMode] = useState(false);
