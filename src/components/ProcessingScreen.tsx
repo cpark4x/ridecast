@@ -140,13 +140,14 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
 
   // Auto-navigate to library once audio is ready — tests and normal flow
   // both expect the transition to happen without requiring a button click.
-  // The 1 500 ms grace period keeps the "AI chose:" label visible long enough
-  // for assertions before the tab switches.
+  // 5 000 ms grace period: keeps "AI chose:" visible long enough for E2E
+  // assertions even on slow CI startup, while still feeling snappy in
+  // production (real API calls take 30–60 s, so 5 s is imperceptible).
   useEffect(() => {
     if (stage !== "ready" || !audioRecord) return;
     const timer = setTimeout(() => {
       onComplete(audioRecord.id);
-    }, 1500);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [stage, audioRecord, onComplete]);
 
