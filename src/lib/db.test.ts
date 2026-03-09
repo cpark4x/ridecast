@@ -18,13 +18,14 @@ describe.skipIf(!dbAvailable)('Prisma client', () => {
   });
 
   it('can create and query a user', async () => {
+    const testId = `test-user-${Math.random().toString(36).slice(2)}`;
     const user = await prisma.user.create({
-      data: { name: 'Test User' },
+      data: { id: testId, name: 'Test User' },
     });
 
     createdUserIds.push(user.id);
 
-    expect(user.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    expect(user.id).toBe(testId);
     expect(user.name).toBe('Test User');
   });
 });
