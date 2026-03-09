@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ridecast.azurecr.io
+  REGISTRY: ridecastapp.azurecr.io
   IMAGE_NAME: ridecast
   CONTAINER_APP_NAME: ridecast-app
   RESOURCE_GROUP: ridecast-rg
@@ -27,7 +27,7 @@ jobs:
 
       - name: Log in to Azure Container Registry
         run: |
-          az acr login --name ridecast
+          az acr login --name ridecastapp
 
       - name: Build and push Docker image
         run: |
