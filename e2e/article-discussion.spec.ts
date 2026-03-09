@@ -39,11 +39,13 @@ test.describe("Scenario 2: The Article Discussion", () => {
     // Wait for completion and library
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 30000 });
 
-    // Verify item is ready
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 60000 });
+    // Verify item is ready in the library.
+    // HomeScreen also fetches library data, so scope to library-item testids
+    // which only exist in LibraryScreen — avoids clicking a hidden element.
+    await expect(page.getByTestId("library-item").first()).toBeVisible({ timeout: 60000 });
 
     // Play the item
-    await page.getByText("Ready").first().click();
+    await page.getByTestId("library-item").first().click();
 
     // Verify player shows
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });

@@ -43,11 +43,13 @@ test.describe("Scenario 1: The PDF Commute", () => {
     // Wait for processing to complete and transition to library
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 60000 });
 
-    // Find the new item in the library
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 60000 });
+    // Find the new item in the library.
+    // HomeScreen also renders library items (it shares the same mock), so we
+    // scope to the visible LibraryScreen by targeting library-item test IDs.
+    await expect(page.getByTestId("library-item").first()).toBeVisible({ timeout: 60000 });
 
-    // Click on the item to play
-    await page.getByText("Ready").first().click();
+    // Click on the visible library item to play
+    await page.getByTestId("library-item").first().click();
 
     // Player bar should appear
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });
