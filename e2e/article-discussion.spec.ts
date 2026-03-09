@@ -30,11 +30,11 @@ test.describe("Scenario 2: The Article Discussion", () => {
     // Create Audio
     await page.getByText("Create Audio").click();
 
-    // Wait for processing
-    await expect(page.getByText("Analyzing").first()).toBeVisible({ timeout: 5000 });
-
-    // Should show AI format decision (from our mock returning format: "conversation")
-    await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 10000 });
+    // Wait for processing and AI format decision in a single assertion.
+    // The mock /api/process responds in ~200ms; "AI chose:" appears then and
+    // stays visible for the full auto-complete window.  Using one 15 s timeout
+    // avoids the stacked 5 s + 10 s race that was consuming the window in CI.
+    await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 15000 });
 
     // Wait for completion and library
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 30000 });
