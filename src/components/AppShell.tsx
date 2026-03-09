@@ -11,6 +11,7 @@ import { ExpandedPlayer } from "./ExpandedPlayer";
 import { CarMode } from "./CarMode";
 import { SettingsScreen } from "./SettingsScreen";
 import { usePlayer } from "./PlayerContext";
+import { PocketImportScreen } from "./PocketImportScreen";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState("home");
@@ -43,7 +44,7 @@ export function AppShell() {
       {/* Upload Screen */}
       <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "upload" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
         style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        <UploadScreen onProcess={handleProcess} />
+        <UploadScreen onProcess={handleProcess} onImportPocket={() => setActiveTab("pocket-import")} />
       </div>
 
       {/* Processing Screen */}
@@ -62,6 +63,12 @@ export function AppShell() {
       <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "library" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
         style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
         <LibraryScreen visible={activeTab === "library"} />
+      </div>
+
+      {/* Pocket Import Screen */}
+      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "pocket-import" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
+        style={{ bottom: "64px" }}>
+        <PocketImportScreen onComplete={() => setActiveTab("library")} />
       </div>
 
       {/* Player Tab (empty state) */}

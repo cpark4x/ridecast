@@ -13,9 +13,10 @@ interface ContentPreview {
 
 interface UploadScreenProps {
   onProcess: (contentId: string, targetMinutes: number) => void;
+  onImportPocket: () => void;
 }
 
-export function UploadScreen({ onProcess }: UploadScreenProps) {
+export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
   const { commuteDuration, setCommuteDuration } = useCommuteDuration();
   const [url, setUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -195,6 +196,21 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Pocket Import CTA */}
+          <div className="mt-5 p-3.5 rounded-[12px] bg-white/[0.03] border border-white/[0.06] flex items-center gap-3">
+            <span className="text-xl">📥</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold">Coming from Pocket?</div>
+              <div className="text-[11px] text-white/40">Import your entire reading list</div>
+            </div>
+            <button
+              onClick={onImportPocket}
+              className="shrink-0 px-3.5 py-2 rounded-[9px] bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[12px] font-semibold"
+            >
+              Import
+            </button>
           </div>
         </div>
       )}

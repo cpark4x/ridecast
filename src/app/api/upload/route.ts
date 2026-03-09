@@ -14,9 +14,46 @@ export async function POST(request: Request) {
     const gate = await requireSubscription(userId);
     if (gate) return gate;
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const url = formData.get('url') as string | null;
+    const rawBody = await request.formData();
+    const file = rawBody.get('file') as File | null;
+    const url = rawBody.get('url') as string | null;
+
+    // Fast-path: if URL is already in this user's library (including Pocket stubs),
+    // re-use it so we don't create a duplicate.
+    // We check before extraction to avoid the network cost of re-fetching.
+    if (url) {
+      const byUrl = await prisma.content.findFirst({
+        where: { userId, sourceUrl: url },
+      });
+      if (byUrl) {
+        if (byUrl.sourceType === 'pocket' && byUrl.rawText === '') {
+          // Stub — fetch and populate it now so the caller gets a real preview
+          try {
+            const fetched = await extractUrl(url);
+            const hash = contentHash(fetched.text);
+            const updated = await prisma.content.update({
+              where: { id: byUrl.id },
+              data: {
+                rawText: fetched.text,
+                wordCount: fetched.wordCount,
+                title: fetched.title || byUrl.title,
+                sourceType: 'url',
+                contentHash: hash,
+              },
+            });
+            return NextResponse.json(updated);
+          } catch {
+            // Fetch failed — fall through to normal upload flow
+          }
+        } else {
+          // Already fully populated — return as 409 dedup
+          return NextResponse.json(
+            { ...byUrl, error: 'This content has already been uploaded.' },
+            { status: 409 },
+          );
+        }
+      }
+    }
 
     let title: string;
     let text: string;
