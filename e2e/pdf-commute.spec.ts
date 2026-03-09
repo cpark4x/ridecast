@@ -38,7 +38,7 @@ test.describe("Scenario 1: The PDF Commute", () => {
     await page.getByText("Create Audio").click();
 
     // Should see processing screen
-    await expect(page.getByText("Analyzing content").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Analyzing").first()).toBeVisible({ timeout: 5000 });
 
     // Wait for processing to complete and transition to library
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 60000 });

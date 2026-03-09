@@ -26,7 +26,7 @@ interface ScriptRecord {
 const STAGE_CONFIG = {
   analyzing: {
     icon: "🔍",
-    label: "Analyzing content",
+    label: "Analyzing",
     copy: "Reading your content — extracting key ideas and structure",
   },
   scripting: {

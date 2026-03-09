@@ -31,7 +31,7 @@ test.describe("Scenario 2: The Article Discussion", () => {
     await page.getByText("Create Audio").click();
 
     // Wait for processing
-    await expect(page.getByText("Analyzing content").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Analyzing").first()).toBeVisible({ timeout: 5000 });
 
     // Should show AI format decision (from our mock returning format: "conversation")
     await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 10000 });
