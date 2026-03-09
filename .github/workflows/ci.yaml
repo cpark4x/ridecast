@@ -38,6 +38,30 @@ jobs:
       DATABASE_URL: postgresql://postgres:ridecast@localhost:5432/ridecast
       NEXT_TELEMETRY_DISABLED: 1   # silence Next.js telemetry in CI
 
+      # ── Clerk placeholder keys ────────────────────────────────────────────
+      # These are intentionally fake values — NOT real credentials.
+      #
+      # Why they're needed:
+      #   ClerkProvider (layout.tsx) reads NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+      #   at render time; without any value the SDK throws and crashes SSR.
+      #   clerkMiddleware also performs an early format-check on the key when
+      #   the module is first loaded during `npm run build`.
+      #
+      # Why they're safe:
+      #   The E2E_TEST_MODE=true flag (injected by playwright.config.ts
+      #   webServer.env) causes middleware.ts to return NextResponse.next()
+      #   immediately, so clerkHandler() is never actually invoked.
+      #   auth.ts likewise short-circuits before calling Clerk's auth(),
+      #   returning the synthetic "e2e-test-user" identity instead.
+      #   These dummy keys resolve to a non-existent Clerk instance, so they
+      #   cannot authenticate anyone even if accidentally exposed.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_e2VyZWx5LXRlc3QtbW9kZQ
+      CLERK_SECRET_KEY: sk_test_e2e_test_mode_placeholder_not_a_real_key
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /
+
     # ── Steps ──────────────────────────────────────────────────────────────────
     steps:
       - name: Checkout
