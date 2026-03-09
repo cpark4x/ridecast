@@ -53,7 +53,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
     try {
       const res = await fetch("/api/library");
       const data = await res.json();
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
     } catch {
       console.error("Failed to load library");
     } finally {

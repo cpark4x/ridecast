@@ -4,12 +4,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ProcessingScreen } from "./ProcessingScreen";
 
-// Mock fetch to prevent actual API calls during tests
+// Mock fetch so the pipeline starts but never completes during these tests.
+// Tests here only assert on initial render state — we don't need (or want)
+// the fetch to resolve. A pending promise avoids both the console.error noise
+// and the act() warnings that come from async state updates mid-assertion.
 beforeEach(() => {
-  vi.spyOn(global, "fetch").mockResolvedValue({
-    ok: false,
-    json: async () => ({ error: "test-mode — no real API calls" }),
-  } as Response);
+  vi.spyOn(global, "fetch").mockImplementation(() => new Promise(() => {}));
 });
 
 afterEach(() => {
@@ -29,8 +29,7 @@ function renderProcessingScreen() {
 describe("ProcessingScreen — 4-stage UI", () => {
   it('shows "Analyzing" as the active stage label on initial render', () => {
     renderProcessingScreen();
-    // New stage config uses "Analyzing" (not the old "Analyzing content...")
-    // It appears in both the active-stage copy area and the step bar
+    // Stage label is "Analyzing" — appears in both the active-stage display and the step bar
     expect(screen.getAllByText("Analyzing").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -51,6 +50,7 @@ describe("ProcessingScreen — 4-stage UI", () => {
 
   it("does not render old stage label 'Analyzing content...'", () => {
     renderProcessingScreen();
+    // Old 3-stage ProcessingScreen had "Analyzing content..." — new 4-stage uses "Analyzing"
     expect(screen.queryByText(/Analyzing content/)).not.toBeInTheDocument();
   });
 });

@@ -13,9 +13,10 @@ interface ContentPreview {
 
 interface UploadScreenProps {
   onProcess: (contentId: string, targetMinutes: number) => void;
+  onImportPocket: () => void;
 }
 
-export function UploadScreen({ onProcess }: UploadScreenProps) {
+export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
   const { commuteDuration, setCommuteDuration } = useCommuteDuration();
   const [url, setUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -49,6 +50,19 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
 
       const response = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await response.json();
+
+      // 409 = content already uploaded — surface the existing record as a
+      // preview so the user can still create audio from it.
+      if (response.status === 409) {
+        setPreview({
+          id: data.id,
+          title: data.title,
+          wordCount: data.wordCount,
+          readTime: Math.round(data.wordCount / 250),
+          truncationWarning: null,
+        });
+        return;
+      }
 
       if (!response.ok) {
         setError(data.error || "Upload failed");
@@ -130,9 +144,9 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
         <svg viewBox="0 0 24 24" className="w-10 h-10 stroke-violet-400 fill-none mx-auto mb-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <div className="text-[15px] font-semibold mb-1">Tap to browse files</div>
-        <div className="text-xs text-white/55">or drag and drop · PDF, EPUB, TXT up to 50MB</div>
-        <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+        <div className="text-[15px] font-semibold mb-1">Drop files here</div>
+        <div className="text-xs text-white/55">or tap to browse · PDF, EPUB, TXT up to 50MB</div>
+        <input data-testid="upload-file-input" ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
       </div>
 
       {/* Divider */}
@@ -182,6 +196,21 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Pocket Import CTA */}
+          <div className="mt-5 p-3.5 rounded-[12px] bg-white/[0.03] border border-white/[0.06] flex items-center gap-3">
+            <span className="text-xl">📥</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold">Coming from Pocket?</div>
+              <div className="text-[11px] text-white/40">Import your entire reading list</div>
+            </div>
+            <button
+              onClick={onImportPocket}
+              className="shrink-0 px-3.5 py-2 rounded-[9px] bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[12px] font-semibold"
+            >
+              Import
+            </button>
           </div>
         </div>
       )}

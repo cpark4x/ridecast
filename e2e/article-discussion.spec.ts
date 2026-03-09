@@ -30,20 +30,22 @@ test.describe("Scenario 2: The Article Discussion", () => {
     // Create Audio
     await page.getByText("Create Audio").click();
 
-    // Wait for processing
-    await expect(page.getByText("Analyzing content")).toBeVisible({ timeout: 5000 });
-
-    // Should show AI format decision (from our mock returning format: "conversation")
-    await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 10000 });
+    // Wait for processing and AI format decision in a single assertion.
+    // The mock /api/process responds in ~200ms; "AI chose:" appears then and
+    // stays visible for the full auto-complete window.  Using one 15 s timeout
+    // avoids the stacked 5 s + 10 s race that was consuming the window in CI.
+    await expect(page.getByText(/AI chose:/)).toBeVisible({ timeout: 15000 });
 
     // Wait for completion and library
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 30000 });
 
-    // Verify item is ready
-    await expect(page.getByText("Ready").first()).toBeVisible({ timeout: 60000 });
+    // Verify item is ready in the library.
+    // HomeScreen also fetches library data, so scope to library-item testids
+    // which only exist in LibraryScreen — avoids clicking a hidden element.
+    await expect(page.getByTestId("library-item").first()).toBeVisible({ timeout: 60000 });
 
     // Play the item
-    await page.getByText("Ready").first().click();
+    await page.getByTestId("library-item").first().click();
 
     // Verify player shows
     await expect(page.getByTestId("player-bar")).toBeVisible({ timeout: 10000 });

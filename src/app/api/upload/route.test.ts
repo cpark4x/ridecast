@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('@/lib/db', () => ({
   prisma: {
     content: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
     },
@@ -31,6 +32,7 @@ import { extractContent, extractUrl } from '@/lib/extractors';
 import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
 
+const mockFindFirst = prisma.content.findFirst as ReturnType<typeof vi.fn>;
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
 const mockCreate = prisma.content.create as ReturnType<typeof vi.fn>;
 const mockExtractContent = extractContent as ReturnType<typeof vi.fn>;
@@ -56,6 +58,7 @@ function createMockRequest(fields: Record<string, unknown>): Request {
 describe('POST /api/upload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindFirst.mockResolvedValue(null);
     mockFindUnique.mockResolvedValue(null);
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
   });

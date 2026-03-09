@@ -4,6 +4,8 @@ import { ClaudeProvider } from '@/lib/ai/claude';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireSubscription } from '@/lib/subscription';
+import { extractUrl } from '@/lib/extractors';
+import { contentHash } from '@/lib/utils/hash';
 
 // 2 minutes — Claude can be slow on long content
 export const maxDuration = 120;
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     // Look up content
-    const content = await prisma.content.findUnique({
+    let content = await prisma.content.findUnique({
       where: { id: contentId },
     });
 
@@ -36,6 +38,31 @@ export async function POST(request: Request) {
         { error: 'Content not found' },
         { status: 404 },
       );
+    }
+
+    // Pocket stubs: rawText is empty — fetch the URL now on demand
+    if (content.rawText === '' && content.sourceUrl) {
+      try {
+        const fetched = await extractUrl(content.sourceUrl);
+        await prisma.content.update({
+          where: { id: contentId },
+          data: {
+            rawText: fetched.text,
+            wordCount: fetched.wordCount,
+            title: fetched.title || content.title,
+            sourceType: 'url',
+            contentHash: contentHash(fetched.text),
+          },
+        });
+        // Reload with updated data
+        content = await prisma.content.findUnique({ where: { id: contentId } }) ?? content;
+      } catch (fetchError) {
+        console.error('Failed to fetch Pocket article:', { contentId, url: content.sourceUrl, fetchError });
+        return NextResponse.json(
+          { error: "Couldn't fetch the article from that URL. Check the link is still accessible." },
+          { status: 422 },
+        );
+      }
     }
 
     // Step 1: Analyze content

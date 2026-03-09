@@ -27,6 +27,10 @@ export async function mockAiRoutes(page: Page): Promise<void> {
   });
 
   // Mock GET /api/library (so the Library screen has a deterministic Ready item)
+  // The shape must match the nested-versions format returned by GET /api/library
+  // and consumed by LibraryScreen and HomeScreen.  The old flat-field shape
+  // (status/audioId/audioUrl at the top level) predates the versions refactor
+  // and causes LibraryScreen to crash on `item.versions.length`.
   await page.route("**/api/library", async (route) => {
     if (route.request().method() !== "GET") {
       await route.continue();
@@ -42,11 +46,19 @@ export async function mockAiRoutes(page: Page): Promise<void> {
           title: "sample",
           sourceType: "pdf",
           createdAt: new Date().toISOString(),
-          status: "ready",
-          format: "conversation",
-          durationSecs: 60,
-          audioId: "e2e-mock-audio-id",
-          audioUrl: "audio/e2e-mock.mp3",
+          wordCount: 2000,
+          versions: [
+            {
+              scriptId: "e2e-mock-script-id",
+              audioId: "e2e-mock-audio-id",
+              audioUrl: "audio/e2e-mock.mp3",
+              durationSecs: 60,
+              targetDuration: 15,
+              format: "conversation",
+              status: "ready",
+              createdAt: new Date().toISOString(),
+            },
+          ],
         },
       ]),
     });

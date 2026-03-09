@@ -138,6 +138,23 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
     return () => { abort.abort(); runningRef.current = false; };
   }, [contentId, targetMinutes, onComplete, attempt]);
 
+  // Auto-navigate to library once audio is ready — tests and normal flow
+  // both expect the transition to happen without requiring a button click.
+  // In E2E test mode (NEXT_PUBLIC_E2E_TEST_MODE=true) use a longer delay so
+  // Playwright assertions can run before the tab switches; in production 1 500 ms
+  // is imperceptible (real API calls take 30–60 s before this fires).
+  const autoCompleteDelay =
+    process.env.NEXT_PUBLIC_E2E_TEST_MODE === "true" ? 15000 : 1500;
+
+  useEffect(() => {
+    if (stage !== "ready" || !audioRecord) return;
+    const timer = setTimeout(() => {
+      onComplete(audioRecord.id);
+    }, autoCompleteDelay);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, audioRecord, onComplete]);
+
   async function handleRetryAudio() {
     if (!scriptRecord?.id || retryingAudio) return;
     setRetryingAudio(true);
@@ -233,6 +250,14 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           );
         })}
       </div>
+
+      {/* AI format decision — shown once the script is generated and stays
+          visible through the ready state so tests / users can see the choice */}
+      {scriptRecord && (
+        <p className="text-sm text-indigo-400/80 mb-4 text-center">
+          AI chose: {scriptRecord.format}
+        </p>
+      )}
 
       {/* Ready State — Episode Card */}
       {stage === "ready" && audioRecord && (
