@@ -9,11 +9,15 @@ function SavePageInner() {
   const url = params.get('url') ?? '';
   const title = params.get('title') ?? '';
 
-  const [status, setStatus] = useState<'loading' | 'saved' | 'duplicate' | 'error'>('loading');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [status, setStatus] = useState<'loading' | 'saved' | 'duplicate' | 'error'>(
+    () => url ? 'loading' : 'error',
+  );
+  const [errorMsg, setErrorMsg] = useState(
+    () => url ? '' : 'No URL provided.',
+  );
 
   useEffect(() => {
-    if (!url) { setStatus('error'); setErrorMsg('No URL provided.'); return; }
+    if (!url) return; // initial state already handles empty URL
 
     fetch('/api/pocket/save', {
       method: 'POST',
