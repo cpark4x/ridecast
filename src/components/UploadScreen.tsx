@@ -50,6 +50,19 @@ export function UploadScreen({ onProcess }: UploadScreenProps) {
       const response = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await response.json();
 
+      // 409 = content already uploaded — surface the existing record as a
+      // preview so the user can still create audio from it.
+      if (response.status === 409) {
+        setPreview({
+          id: data.id,
+          title: data.title,
+          wordCount: data.wordCount,
+          readTime: Math.round(data.wordCount / 250),
+          truncationWarning: null,
+        });
+        return;
+      }
+
       if (!response.ok) {
         setError(data.error || "Upload failed");
         return;

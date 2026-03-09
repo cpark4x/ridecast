@@ -70,7 +70,13 @@ export async function POST(request: Request) {
     });
 
     if (existing) {
-      return NextResponse.json(existing, { status: 409 });
+      // Return the existing record so the client can surface it directly.
+      // Include an `error` field as a fallback message in case the client
+      // doesn't special-case 409 — prevents the generic "Upload failed" string.
+      return NextResponse.json(
+        { ...existing, error: 'This content has already been uploaded.' },
+        { status: 409 },
+      );
     }
 
     const record = await prisma.content.create({

@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/library", // catalog browsing — free, unauthenticated
   "/api/audio/(.*)", // audio streaming — free, unauthenticated
+  "/api/webhook", // Stripe webhooks — verified by signature, not Clerk session
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
