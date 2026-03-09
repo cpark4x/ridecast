@@ -27,11 +27,10 @@ function renderProcessingScreen() {
 }
 
 describe("ProcessingScreen — 4-stage UI", () => {
-  it('shows "Analyzing" as the active stage label on initial render', () => {
+  it('shows "Analyzing content" as the active stage label on initial render', () => {
     renderProcessingScreen();
-    // New stage config uses "Analyzing" (not the old "Analyzing content...")
-    // It appears in both the active-stage copy area and the step bar
-    expect(screen.getAllByText("Analyzing").length).toBeGreaterThanOrEqual(1);
+    // Stage label is "Analyzing content" — appears in the step bar
+    expect(screen.getAllByText("Analyzing content").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows the analyzing copy text on initial render", () => {
@@ -49,8 +48,9 @@ describe("ProcessingScreen — 4-stage UI", () => {
     expect(screen.getByText("Ready")).toBeInTheDocument();
   });
 
-  it("does not render old stage label 'Analyzing content...'", () => {
+  it("does not render old stage label with trailing ellipsis 'Analyzing content...'", () => {
     renderProcessingScreen();
-    expect(screen.queryByText(/Analyzing content/)).not.toBeInTheDocument();
+    // Old label had trailing "..." — new label is "Analyzing content" (no ellipsis)
+    expect(screen.queryByText(/Analyzing content\.\.\./)).not.toBeInTheDocument();
   });
 });
