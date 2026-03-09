@@ -26,7 +26,7 @@ interface ScriptRecord {
 const STAGE_CONFIG = {
   analyzing: {
     icon: "🔍",
-    label: "Analyzing",
+    label: "Analyzing content",
     copy: "Reading your content — extracting key ideas and structure",
   },
   scripting: {
@@ -138,6 +138,18 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
     return () => { abort.abort(); runningRef.current = false; };
   }, [contentId, targetMinutes, onComplete, attempt]);
 
+  // Auto-navigate to library once audio is ready — tests and normal flow
+  // both expect the transition to happen without requiring a button click.
+  // The 1 500 ms grace period keeps the "AI chose:" label visible long enough
+  // for assertions before the tab switches.
+  useEffect(() => {
+    if (stage !== "ready" || !audioRecord) return;
+    const timer = setTimeout(() => {
+      onComplete(audioRecord.id);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [stage, audioRecord, onComplete]);
+
   async function handleRetryAudio() {
     if (!scriptRecord?.id || retryingAudio) return;
     setRetryingAudio(true);
@@ -233,6 +245,14 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           );
         })}
       </div>
+
+      {/* AI format decision — shown once the script is generated and stays
+          visible through the ready state so tests / users can see the choice */}
+      {scriptRecord && (
+        <p className="text-sm text-indigo-400/80 mb-4 text-center">
+          AI chose: {scriptRecord.format}
+        </p>
+      )}
 
       {/* Ready State — Episode Card */}
       {stage === "ready" && audioRecord && (
