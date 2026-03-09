@@ -8,9 +8,9 @@ const isPublicRoute = createRouteMatcher([
   "/api/audio/(.*)", // audio streaming — free, unauthenticated
 ]);
 
-export default clerkMiddleware((auth, request) => {
+export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    auth.protect(); // redirects to sign-in if not authenticated
+    await auth.protect(); // redirects to sign-in if not authenticated
   }
 });
 
