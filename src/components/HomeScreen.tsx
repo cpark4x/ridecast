@@ -79,20 +79,20 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
   }
 
   if (loading) {
-    return <div className="p-6 text-center text-white/30 pt-16">Loading...</div>;
+    return <div className="p-6 text-center text-[var(--text-dim)] pt-16">Loading...</div>;
   }
 
   if (episodes.length === 0) {
     return (
       <div className="p-6 pt-12 flex flex-col items-center text-center gap-4">
-        <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-white/20 fill-none" strokeWidth="1">
+        <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-[var(--text-dim)] fill-none" strokeWidth="1">
           <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
         </svg>
         <h2 className="text-xl font-bold">Nothing queued</h2>
-        <p className="text-sm text-white/55">Upload an article or PDF to generate your first episode.</p>
+        <p className="text-sm text-[var(--text-mid)]">Upload an article or PDF to generate your first episode.</p>
         <button
           onClick={onUpload}
-          className="mt-2 px-6 py-3 rounded-[12px] bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-semibold"
+          className="mt-2 px-6 py-3 rounded-[12px] bg-gradient-to-br from-[#EA580C] to-[#F97316] text-sm font-semibold text-white"
         >
           Upload Content
         </button>
@@ -105,9 +105,9 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
       {/* Commute summary */}
       <div className="mb-5">
         <h1 className="text-[26px] font-extrabold tracking-tight mb-1">Your Queue</h1>
-        <p className="text-sm text-white/55">
+        <p className="text-sm text-[var(--text-mid)]">
           {episodes.length} episode{episodes.length !== 1 ? "s" : ""} · {formatDuration(totalQueueSecs)} total
-          {" · "}Your commute: <span className="text-white/80 font-semibold">{commuteDuration} min</span>
+          {" · "}Your commute: <span className="text-[#18181A] font-semibold">{commuteDuration} min</span>
         </p>
       </div>
 
@@ -115,7 +115,7 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
       {fitsCommute.length > 0 && (
         <button
           onClick={playAll}
-          className="w-full py-4 rounded-[14px] bg-gradient-to-br from-indigo-500 to-violet-500 text-[15px] font-semibold mb-6 shadow-[0_4px_20px_rgba(99,102,241,0.35)] flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-[14px] bg-gradient-to-br from-[#EA580C] to-[#F97316] text-[15px] font-semibold text-white mb-6 shadow-[0_4px_20px_rgba(234,88,12,0.35)] flex items-center justify-center gap-2"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><polygon points="8,5 19,12 8,19" /></svg>
           Start Commute
@@ -136,16 +136,16 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
                 audioUrl: ep.audioUrl,
               })
             }
-            className="flex items-center gap-3.5 p-4 rounded-[14px] bg-white/[0.06] border border-white/[0.08] cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all"
+            className="flex items-center gap-3.5 p-4 rounded-[14px] bg-white border border-black/[0.07] cursor-pointer hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
           >
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/15 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white/70"><polygon points="8,5 19,12 8,19" /></svg>
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#EA580C]/20 to-[#F97316]/15 flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#EA580C]/70"><polygon points="8,5 19,12 8,19" /></svg>
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold truncate">{ep.title}</div>
-              <div className="text-xs text-white/55 mt-0.5">{ep.format} · {ep.targetDuration} min target</div>
+              <div className="text-xs text-[var(--text-mid)] mt-0.5">{ep.format} · {ep.targetDuration} min target</div>
             </div>
-            <span className="text-[13px] font-semibold text-white/55 shrink-0">{formatDuration(ep.durationSecs)}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-mid)] shrink-0">{formatDuration(ep.durationSecs)}</span>
           </div>
         ))}
       </div>
