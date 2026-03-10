@@ -56,15 +56,15 @@ const tabs = [
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <nav
-      className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-around border-t border-white/[0.08] z-50 pb-[env(safe-area-inset-bottom)]"
-      style={{ background: "linear-gradient(to top, rgba(10,10,15,0.98) 60%, rgba(10,10,15,0.85))", backdropFilter: "blur(20px)" }}
+      className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-around border-t border-black/[0.07] z-50 pb-[env(safe-area-inset-bottom)]"
+      style={{ background: "linear-gradient(to top, rgba(247,246,243,0.98) 60%, rgba(247,246,243,0.85))", backdropFilter: "blur(20px)" }}
     >
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all select-none ${
-            activeTab === tab.id ? "text-violet-400" : "text-white/30"
+            activeTab === tab.id ? "text-[#EA580C]" : "text-[var(--text-dim)]"
           }`}
         >
           {tab.icon}

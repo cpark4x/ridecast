@@ -25,7 +25,7 @@ interface LibraryItem {
 }
 
 const gradients = [
-  "from-indigo-500 to-violet-500",
+  "from-[#EA580C] to-[#F97316]",
   "from-pink-500 to-rose-500",
   "from-teal-500 to-cyan-500",
   "from-amber-500 to-red-500",
@@ -98,19 +98,19 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-extrabold tracking-tight">Library</h1>
-        <span className="text-[13px] text-white/55">{items.length} episode{items.length !== 1 ? "s" : ""}</span>
+        <span className="text-[13px] text-[var(--text-mid)]">{items.length} episode{items.length !== 1 ? "s" : ""}</span>
       </div>
 
       {loading ? (
-        <div className="text-center text-white/30 py-20">Loading...</div>
+        <div className="text-center text-[var(--text-dim)] py-20">Loading...</div>
       ) : items.length === 0 ? (
         <div className="text-center py-16">
-          <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-white/30 fill-none mx-auto mb-5" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-[var(--text-dim)] fill-none mx-auto mb-5" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
             <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
           </svg>
           <h3 className="text-lg font-bold mb-1.5">No episodes yet</h3>
-          <p className="text-sm text-white/55">Upload content to create your first audio episode.</p>
+          <p className="text-sm text-[var(--text-mid)]">Upload content to create your first audio episode.</p>
         </div>
       ) : (
         <div>
@@ -131,7 +131,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                       handlePlay(item, pv);
                     }
                   }}
-                  className="flex items-center gap-3.5 p-4 rounded-[14px] bg-white/[0.06] border border-white/[0.08] cursor-pointer transition-all hover:bg-white/10 active:scale-[0.98]"
+                  className="flex items-center gap-3.5 p-4 rounded-[14px] bg-white border border-black/[0.07] cursor-pointer transition-all hover:bg-[var(--surface-2)] active:scale-[0.98]"
                 >
                   <div className={`w-[52px] h-[52px] rounded-xl bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center shrink-0`}>
                     <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white opacity-85">
@@ -140,7 +140,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate mb-0.5">{item.title}</div>
-                    <div className="text-xs text-white/55 flex items-center gap-2">
+                    <div className="text-xs text-[var(--text-mid)] flex items-center gap-2">
                       <span className="uppercase">{item.sourceType}</span>
                       <span>&middot;</span>
                       <span>{timeAgo(item.createdAt)}</span>
@@ -154,7 +154,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                     ) : pv?.status === "ready" ? (
                       <>
                         {pv.durationSecs && (
-                          <span className="text-[13px] font-semibold text-white/55">{formatDuration(pv.durationSecs)}</span>
+                          <span className="text-[13px] font-semibold text-[var(--text-mid)]">{formatDuration(pv.durationSecs)}</span>
                         )}
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-green-500/15 text-green-500">
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
@@ -170,7 +170,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                     {hasMultiple && (
                       <svg
                         viewBox="0 0 24 24"
-                        className={`w-4 h-4 stroke-white/40 fill-none transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        className={`w-4 h-4 stroke-[var(--text-dim)] fill-none transition-transform ${isExpanded ? "rotate-180" : ""}`}
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -183,26 +183,26 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
 
                 {/* Expanded version rows */}
                 {isExpanded && (
-                  <div className="mt-1 ml-4 border-l border-white/[0.08] pl-3">
+                  <div className="mt-1 ml-4 border-l border-black/[0.07] pl-3">
                     {item.versions.map((version) => (
                       <div
                         key={version.scriptId}
                         onClick={() => handlePlay(item, version)}
                         className={`flex items-center gap-3 p-3 mb-1 rounded-[10px] transition-all ${
                           version.status === "ready"
-                            ? "bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer active:scale-[0.98]"
-                            : "bg-white/[0.02] cursor-default opacity-60"
+                            ? "bg-white hover:bg-[var(--surface-2)] cursor-pointer active:scale-[0.98]"
+                            : "bg-[var(--surface-2)] cursor-default opacity-60"
                         }`}
                       >
                         <div className="flex-1 flex items-center gap-2 flex-wrap">
-                          <span className="text-[12px] font-semibold text-white/80">
+                          <span className="text-[12px] font-semibold text-[#18181A]">
                             {version.targetDuration} min
                           </span>
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-white/60">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.06] text-[var(--text-mid)]">
                             {version.format === "conversation" ? "Chat" : "Narrator"}
                           </span>
                           {version.durationSecs && (
-                            <span className="text-[11px] text-white/40">{formatDuration(version.durationSecs)}</span>
+                            <span className="text-[11px] text-[var(--text-dim)]">{formatDuration(version.durationSecs)}</span>
                           )}
                         </div>
                         <div className="shrink-0">
