@@ -199,10 +199,10 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
       <div
         className="w-[120px] h-[120px] rounded-[28px] flex items-center justify-center mb-9"
         style={{
-          background: "linear-gradient(135deg, #6366f1, #8b5cf6, #c084fc)",
+          background: "linear-gradient(135deg, #EA580C, #F97316, #FCD34D)",
           backgroundSize: "200% 200%",
           animation: stage === "ready" ? "none" : "gradientShift 3s ease infinite",
-          boxShadow: "0 0 60px rgba(99,102,241,0.3)",
+          boxShadow: "0 0 60px rgba(234,88,12,0.3)",
         }}
       >
         {stage === "ready" ? (
@@ -219,9 +219,9 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
       {/* Stage Display — active stage copy */}
       {stage !== "ready" && !error && (
         <div className="text-center mb-8 w-full max-w-[280px]">
-          <p className="text-lg font-bold text-white mb-1">{activeConfig.label}</p>
+          <p className="text-lg font-bold text-[#18181A] mb-1">{activeConfig.label}</p>
           {activeConfig.copy && (
-            <p className="text-sm text-white/55 leading-snug">{activeConfig.copy}</p>
+            <p className="text-sm text-[var(--text-mid)] leading-snug">{activeConfig.copy}</p>
           )}
         </div>
       )}
@@ -237,14 +237,14 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           return (
             <div key={s} className="flex items-center gap-3 py-2 transition-all">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
-                isDone ? "border-green-500 bg-green-500/15" : isActive ? "border-indigo-500 bg-indigo-500/20" : "border-white/[0.08] bg-white/[0.06]"
+                isDone ? "border-green-500 bg-green-500/15" : isActive ? "border-[#EA580C] bg-[#EA580C]/20" : "border-black/[0.08] bg-black/[0.04]"
               } ${isActive && stage !== "ready" ? "animate-[pulseDot_1.5s_ease_infinite]" : ""}`}>
-                <svg viewBox="0 0 24 24" className={`w-3 h-3 fill-none stroke-2 ${isDone ? "stroke-green-500" : "stroke-white/30"}`} strokeLinecap="round">
+                <svg viewBox="0 0 24 24" className={`w-3 h-3 fill-none stroke-2 ${isDone ? "stroke-green-500" : "stroke-black/30"}`} strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
               <span className={`text-sm font-medium transition-all ${
-                isDone ? "text-white/55" : isActive ? "text-white" : "text-white/30"
+                isDone ? "text-[var(--text-mid)]" : isActive ? "text-[#18181A]" : "text-[var(--text-dim)]"
               }`}>{config.label}</span>
             </div>
           );
@@ -254,31 +254,31 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
       {/* AI format decision — shown once the script is generated and stays
           visible through the ready state so tests / users can see the choice */}
       {scriptRecord && (
-        <p className="text-sm text-indigo-400/80 mb-4 text-center">
+        <p className="text-sm text-[#EA580C]/80 mb-4 text-center">
           AI chose: {scriptRecord.format}
         </p>
       )}
 
       {/* Ready State — Episode Card */}
       {stage === "ready" && audioRecord && (
-        <div className="w-full max-w-[280px] bg-white/[0.06] border border-white/[0.08] rounded-[14px] p-5 mb-4">
+        <div className="w-full max-w-[280px] bg-white border border-black/[0.07] rounded-[14px] p-5 mb-4">
           <div className="text-center mb-4">
-            <div className="text-[13px] text-white/55 uppercase tracking-wider font-semibold mb-0.5">
+            <div className="text-[13px] text-[var(--text-mid)] uppercase tracking-wider font-semibold mb-0.5">
               {scriptRecord?.contentType?.replace(/_/g, " ") ?? "Episode"}
             </div>
-            <div className="text-white/55 text-xs">
+            <div className="text-[var(--text-mid)] text-xs">
               ~{Math.round(audioRecord.durationSecs / 60)} min
             </div>
           </div>
           <button
             onClick={() => onComplete(audioRecord.id)}
-            className="w-full py-3 rounded-[10px] text-sm font-semibold text-white bg-gradient-to-br from-indigo-500 to-violet-500 shadow-[0_4px_20px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mb-2"
+            className="w-full py-3 rounded-[10px] text-sm font-semibold text-white bg-gradient-to-br from-[#EA580C] to-[#F97316] shadow-[0_4px_20px_rgba(234,88,12,0.35)] hover:shadow-[0_6px_28px_rgba(234,88,12,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mb-2"
           >
             ▶ Play Now
           </button>
           <button
             onClick={() => { addToQueue(audioRecord.id); onComplete(audioRecord.id); }}
-            className="w-full py-3 rounded-[10px] text-sm font-semibold text-white/60 bg-white/[0.06] border border-white/[0.08] hover:bg-white/10 active:scale-[0.98] transition-all"
+            className="w-full py-3 rounded-[10px] text-sm font-semibold text-[var(--text-mid)] bg-[var(--surface-2)] border border-black/[0.07] hover:bg-[var(--surface-2)]/80 active:scale-[0.98] transition-all"
           >
             Add to Queue
           </button>
@@ -296,13 +296,13 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           <p className="text-red-400 text-sm mb-4">
             Something went wrong during {errorStage === "audio" ? "audio generation" : "script generation"}.
           </p>
-          <p className="text-white/40 text-xs mb-4">{error}</p>
+          <p className="text-[var(--text-dim)] text-xs mb-4">{error}</p>
           <div className="flex flex-col gap-2">
             {errorStage === "audio" && scriptRecord?.id ? (
               <button
                 onClick={handleRetryAudio}
                 disabled={retryingAudio}
-                className="px-5 py-2 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-50"
+                className="px-5 py-2 rounded-full text-sm font-semibold bg-[#EA580C]/20 text-[#EA580C] hover:bg-[#EA580C]/30 transition-colors disabled:opacity-50"
               >
                 {retryingAudio ? "Retrying..." : "Retry Audio Generation"}
               </button>
@@ -317,7 +317,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
                 setAudioRecord(null);
                 setAttempt((a) => a + 1);
               }}
-              className="px-5 py-2 rounded-full text-sm font-semibold bg-white/10 text-white/60 hover:bg-white/15 transition-colors"
+              className="px-5 py-2 rounded-full text-sm font-semibold bg-black/10 text-[var(--text-mid)] hover:bg-black/15 transition-colors"
             >
               {errorStage === "audio" ? "Start Over" : "Try Again"}
             </button>

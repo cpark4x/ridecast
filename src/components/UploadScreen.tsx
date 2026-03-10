@@ -123,12 +123,12 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
       {/* Logo */}
       <div className="text-center pt-4 mb-8">
         <div className="flex items-center justify-center gap-2.5 mb-2">
-          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-[#EA580C] to-[#F97316] flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><circle cx="12" cy="12" r="9" opacity="0.3" /><polygon points="10,8 16,12 10,16" /></svg>
           </div>
-          <span className="text-[22px] font-extrabold tracking-tight bg-gradient-to-br from-white to-white/55 bg-clip-text text-transparent">Ridecast 2</span>
+          <span className="text-[22px] font-extrabold tracking-tight bg-gradient-to-br from-[#18181A] to-[#18181A]/70 bg-clip-text text-transparent">Ridecast 2</span>
         </div>
-        <p className="text-sm text-white/55">Turn anything into audio for your commute</p>
+        <p className="text-sm text-[var(--text-mid)]">Turn anything into audio for your commute</p>
       </div>
 
       {/* Drop Zone */}
@@ -138,19 +138,19 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-[14px] p-9 text-center cursor-pointer transition-all mb-4 ${
-          dragOver ? "border-indigo-500 bg-indigo-500/[0.08]" : "border-indigo-500/30 bg-indigo-500/[0.03]"
+          dragOver ? "border-[#EA580C] bg-[#EA580C]/[0.08]" : "border-[#EA580C]/30 bg-[#EA580C]/[0.03]"
         }`}
       >
-        <svg viewBox="0 0 24 24" className="w-10 h-10 stroke-violet-400 fill-none mx-auto mb-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 24 24" className="w-10 h-10 stroke-[#EA580C] fill-none mx-auto mb-3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
         <div className="text-[15px] font-semibold mb-1">Drop files here</div>
-        <div className="text-xs text-white/55">or tap to browse · PDF, EPUB, TXT up to 50MB</div>
+        <div className="text-xs text-[var(--text-mid)]">or tap to browse · PDF, EPUB, TXT up to 50MB</div>
         <input data-testid="upload-file-input" ref={fileInputRef} type="file" accept=".pdf,.epub,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
       </div>
 
       {/* Divider */}
-      <div className="text-center text-white/30 text-xs font-medium my-4 relative before:content-[''] before:absolute before:top-1/2 before:left-0 before:w-[calc(50%-24px)] before:h-px before:bg-white/[0.08] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[calc(50%-24px)] after:h-px after:bg-white/[0.08]">
+      <div className="text-center text-[var(--text-dim)] text-xs font-medium my-4 relative before:content-[''] before:absolute before:top-1/2 before:left-0 before:w-[calc(50%-24px)] before:h-px before:bg-black/[0.07] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[calc(50%-24px)] after:h-px after:bg-black/[0.07]">
         or
       </div>
 
@@ -162,12 +162,12 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleUpload()}
-          className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-[10px] px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all focus:border-indigo-500 focus:bg-indigo-500/[0.06]"
+          className="flex-1 bg-white border border-black/[0.07] rounded-[10px] px-4 py-3 text-sm text-[#18181A] placeholder-[var(--text-dim)] outline-none transition-all focus:border-[#EA580C] focus:bg-[#EA580C]/[0.06]"
         />
         <button
           onClick={() => handleUpload()}
           disabled={!url || uploading}
-          className="px-5 py-3 bg-white/[0.06] border border-white/[0.08] rounded-[10px] text-sm font-semibold transition-all hover:bg-white/10 disabled:opacity-50"
+          className="px-5 py-3 bg-white border border-black/[0.07] rounded-[10px] text-sm font-semibold transition-all hover:bg-[var(--surface-2)] disabled:opacity-50"
         >
           {uploading ? "..." : "Fetch"}
         </button>
@@ -180,7 +180,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
       {/* Works with — shown only when no preview is active */}
       {!preview && (
         <div className="mt-6">
-          <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Works with</p>
+          <p className="text-[11px] font-semibold text-[var(--text-dim)] uppercase tracking-wider mb-3">Works with</p>
           <div className="grid grid-cols-2 gap-2">
             {[
               { icon: "🌐", label: "Articles & URLs", desc: "Any web page" },
@@ -188,26 +188,26 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
               { icon: "📚", label: "EPUBs", desc: "Ebooks and long reads" },
               { icon: "📝", label: "Text files", desc: "TXT, notes, drafts" },
             ].map(({ icon, label, desc }) => (
-              <div key={label} className="flex items-start gap-2.5 p-3 rounded-[10px] bg-white/[0.04] border border-white/[0.06]">
+              <div key={label} className="flex items-start gap-2.5 p-3 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07]">
                 <span className="text-lg leading-none mt-0.5">{icon}</span>
                 <div>
                   <div className="text-[12px] font-semibold">{label}</div>
-                  <div className="text-[11px] text-white/40">{desc}</div>
+                  <div className="text-[11px] text-[var(--text-dim)]">{desc}</div>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Pocket Import CTA */}
-          <div className="mt-5 p-3.5 rounded-[12px] bg-white/[0.03] border border-white/[0.06] flex items-center gap-3">
+          <div className="mt-5 p-3.5 rounded-[12px] bg-[var(--surface-2)] border border-black/[0.07] flex items-center gap-3">
             <span className="text-xl">📥</span>
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-semibold">Coming from Pocket?</div>
-              <div className="text-[11px] text-white/40">Import your entire reading list</div>
+              <div className="text-[11px] text-[var(--text-dim)]">Import your entire reading list</div>
             </div>
             <button
               onClick={onImportPocket}
-              className="shrink-0 px-3.5 py-2 rounded-[9px] bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[12px] font-semibold"
+              className="shrink-0 px-3.5 py-2 rounded-[9px] bg-[#EA580C]/15 border border-[#EA580C]/30 text-[#EA580C] text-[12px] font-semibold"
             >
               Import
             </button>
@@ -217,16 +217,16 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
 
       {/* Content Preview */}
       {preview && (
-        <div className="bg-white/[0.06] border border-white/[0.08] rounded-[14px] p-[18px] mb-7 animate-[slideUp_0.4s_ease]">
+        <div className="bg-white border border-black/[0.07] rounded-[14px] p-[18px] mb-7 animate-[slideUp_0.4s_ease]">
           <div className="flex items-start gap-3.5 mb-3.5">
-            <div className="w-11 h-11 rounded-[10px] bg-gradient-to-br from-indigo-500/20 to-violet-500/15 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] stroke-violet-400 fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-11 h-11 rounded-[10px] bg-gradient-to-br from-[#EA580C]/20 to-[#F97316]/15 flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] stroke-[#EA580C] fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
               </svg>
             </div>
             <div>
               <div className="text-[15px] font-semibold mb-0.5 leading-snug">{preview.title}</div>
-              <div className="text-xs text-white/55 flex gap-3">
+              <div className="text-xs text-[var(--text-mid)] flex gap-3">
                 <span>{preview.wordCount.toLocaleString()} words</span>
                 <span>~{preview.readTime} min read</span>
               </div>
@@ -239,10 +239,10 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
             </div>
           )}
 
-          <div className="h-px bg-white/[0.08] my-3.5" />
+          <div className="h-px bg-black/[0.07] my-3.5" />
 
           {/* Duration Selector */}
-          <div className="text-[13px] font-semibold text-white/55 uppercase tracking-wider mb-3.5">Target Duration</div>
+          <div className="text-[13px] font-semibold text-[var(--text-mid)] uppercase tracking-wider mb-3.5">Target Duration</div>
           <div className="flex gap-2 mb-5">
             {presets.map(({ minutes, label }) => (
               <button
@@ -250,12 +250,12 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
                 onClick={() => handlePresetClick(minutes)}
                 className={`flex-1 py-3 px-2 rounded-[10px] text-center transition-all border ${
                   selectedPreset === minutes
-                    ? "bg-indigo-500/[0.12] border-indigo-500"
-                    : "bg-white/[0.06] border-white/[0.08]"
+                    ? "bg-[#EA580C]/[0.12] border-[#EA580C]"
+                    : "bg-white border-black/[0.07]"
                 }`}
               >
-                <div className={`text-[15px] font-bold mb-0.5 ${selectedPreset === minutes ? "text-violet-400" : "text-white"}`}>~{minutes} min</div>
-                <div className="text-[11px] text-white/55 font-medium">{label}</div>
+                <div className={`text-[15px] font-bold mb-0.5 ${selectedPreset === minutes ? "text-[#EA580C]" : "text-[#18181A]"}`}>~{minutes} min</div>
+                <div className="text-[11px] text-[var(--text-mid)] font-medium">{label}</div>
               </button>
             ))}
           </div>
@@ -263,8 +263,8 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
           {/* Slider */}
           <div className="mb-7">
             <div className="flex justify-between items-center mb-2.5">
-              <span className="text-[13px] text-white/55">Fit to my commute</span>
-              <span className="text-lg font-bold text-violet-400">{sliderValue} min</span>
+              <span className="text-[13px] text-[var(--text-mid)]">Fit to my commute</span>
+              <span className="text-lg font-bold text-[#EA580C]">{sliderValue} min</span>
             </div>
             <input
               type="range"
@@ -274,11 +274,11 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
               value={sliderValue}
               onChange={(e) => handleSliderChange(Number(e.target.value))}
               className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-              style={{ background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }}
+              style={{ background: "linear-gradient(90deg, #EA580C, #F97316)" }}
             />
             <div className="flex justify-between mt-1.5 px-0.5">
               {[5, 15, 30, 45, 60].map((t) => (
-                <span key={t} className="text-[10px] text-white/30">{t}</span>
+                <span key={t} className="text-[10px] text-[var(--text-dim)]">{t}</span>
               ))}
             </div>
           </div>
@@ -286,7 +286,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
           {/* Create Button */}
           <button
             onClick={handleCreateAudio}
-            className="w-full py-3.5 px-7 rounded-[14px] text-[15px] font-semibold text-white transition-all bg-gradient-to-br from-indigo-500 to-violet-500 shadow-[0_4px_20px_rgba(99,102,241,0.35)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.5)] active:scale-[0.96] flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-7 rounded-[14px] text-[15px] font-semibold text-white transition-all bg-gradient-to-br from-[#EA580C] to-[#F97316] shadow-[0_4px_20px_rgba(234,88,12,0.35)] hover:shadow-[0_6px_28px_rgba(234,88,12,0.5)] active:scale-[0.96] flex items-center justify-center gap-2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
             Create Audio

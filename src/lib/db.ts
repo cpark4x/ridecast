@@ -1,3 +1,4 @@
+// generated client — run `npx prisma generate` to rebuild
 import { PrismaClient } from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
