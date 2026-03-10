@@ -89,12 +89,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setIsPlaying(false);
       savePosition(true); // completed = true
     };
+    const onPlay = () => savePosition();
     const onPause = () => savePosition();
     const onSeeked = () => savePosition();
     const onError = (e: Event) => console.error("Audio error:", (e.target as HTMLAudioElement).error);
 
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("seeked", onSeeked);
     audio.addEventListener("error", onError);
@@ -102,6 +104,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("seeked", onSeeked);
       audio.removeEventListener("error", onError);

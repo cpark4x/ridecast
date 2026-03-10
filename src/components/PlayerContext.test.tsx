@@ -214,6 +214,32 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
     });
   });
 
+  it("POSTs to /api/playback when the play event fires (save-on-play)", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    // Capture POST count before dispatching play (play() itself may or may not have
+    // already fired one — we only care that the native "play" event triggers a save)
+    const postsBefore = fetchMock.mock.calls.filter(
+      (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+    ).length;
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("play"));
+    });
+
+    await waitFor(() => {
+      const postsAfter = fetchMock.mock.calls.filter(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      ).length;
+      expect(postsAfter).toBeGreaterThan(postsBefore);
+    });
+  });
+
   it("POSTs to /api/playback with userId=default-user when the seeked event fires", async () => {
     render(<PlayerProvider><TestComponent /></PlayerProvider>);
 
