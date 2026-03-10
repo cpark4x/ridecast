@@ -115,8 +115,9 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
       ) : (
         <div>
           {items.map((item, i) => {
-            const pv = primaryVersion(item.versions);
-            const hasMultiple = item.versions.length > 1;
+            const versions = item.versions ?? [];
+            const pv = primaryVersion(versions);
+            const hasMultiple = versions.length > 1;
             const isExpanded = expandedId === item.id;
 
             return (
@@ -147,7 +148,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    {item.versions.length === 0 ? (
+                    {versions.length === 0 ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500">
                         Processing
                       </span>
@@ -158,7 +159,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                         )}
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-green-500/15 text-green-500">
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
-                          {hasMultiple ? `${item.versions.length} versions` : "Ready"}
+                          {hasMultiple ? `${versions.length} versions` : "Ready"}
                         </span>
                       </>
                     ) : (
@@ -184,7 +185,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                 {/* Expanded version rows */}
                 {isExpanded && (
                   <div className="mt-1 ml-4 border-l border-white/[0.08] pl-3">
-                    {item.versions.map((version) => (
+                    {versions.map((version) => (
                       <div
                         key={version.scriptId}
                         onClick={() => handlePlay(item, version)}
