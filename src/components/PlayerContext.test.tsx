@@ -95,7 +95,9 @@ describe("PlayerContext — playback state persistence", () => {
 
     await waitFor(() => {
       const getCall = fetchMock.mock.calls.find(
-        (c) => typeof c[0] === "string" && c[0].includes("/api/playback?audioId=1")
+        (c) => typeof c[0] === "string" &&
+               c[0].includes("/api/playback") &&
+               c[0].includes("audioId=1")
       );
       expect(getCall).toBeDefined();
     });
@@ -162,6 +164,136 @@ describe("PlayerContext — playback state persistence", () => {
     expect(postCallsAfter).toBeGreaterThan(postCallsBefore);
 
     vi.useRealTimers();
+  });
+});
+
+// --- Persistence: event-triggered saves (pause, seeked, beforeunload, silent failure) ---
+// These tests intentionally do NOT mock /api/me to return a userId.
+// With the OLD implementation savePosition returns early when userIdRef.current is null,
+// so all POSTs are silently skipped.  The NEW implementation uses 'default-user' and
+// requires no /api/me dependency — so all tests below will FAIL until that change lands.
+
+describe("PlayerContext — persistence: event-triggered saves", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // /api/me returns a failure — userIdRef.current will stay null in the old implementation
+    fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve(null),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("POSTs to /api/playback with userId=default-user when the pause event fires", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("pause"));
+    });
+
+    await waitFor(() => {
+      const postCall = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      );
+      expect(postCall).toBeDefined();
+      const body = JSON.parse(postCall![1].body);
+      expect(body.userId).toBe("default-user");
+      expect(body.audioId).toBe("1");
+      expect(body.completed).toBe(false);
+    });
+  });
+
+  it("POSTs to /api/playback with userId=default-user when the seeked event fires", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("seeked"));
+    });
+
+    await waitFor(() => {
+      const postCall = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      );
+      expect(postCall).toBeDefined();
+      const body = JSON.parse(postCall![1].body);
+      expect(body.userId).toBe("default-user");
+    });
+  });
+
+  it("POSTs to /api/playback when the beforeunload event fires", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const postsBefore = fetchMock.mock.calls.filter(
+      (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+    ).length;
+
+    await act(async () => {
+      window.dispatchEvent(new Event("beforeunload"));
+    });
+
+    await waitFor(() => {
+      const postsAfter = fetchMock.mock.calls.filter(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      ).length;
+      expect(postsAfter).toBeGreaterThan(postsBefore);
+    });
+  });
+
+  it("does not throw when the /api/playback POST fetch rejects (silent failure)", async () => {
+    // Make every fetch reject with a network error
+    fetchMock.mockRejectedValue(new Error("network failure"));
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const audioEl = document.querySelector("audio")!;
+
+    // None of these should throw
+    await expect(
+      act(async () => {
+        audioEl.dispatchEvent(new Event("pause"));
+      })
+    ).resolves.not.toThrow();
+  });
+
+  it("includes userId=default-user in the GET restore URL when a new item loads", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    await waitFor(() => {
+      const getCall = fetchMock.mock.calls.find(
+        (c) => typeof c[0] === "string" && c[0].includes("/api/playback") &&
+               c[0].includes("userId=default-user") &&
+               c[0].includes("audioId=1")
+      );
+      expect(getCall).toBeDefined();
+    });
   });
 });
 
