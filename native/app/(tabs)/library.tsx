@@ -15,6 +15,7 @@ import EpisodeCard from "../../components/EpisodeCard";
 import { filterEpisodes } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
+import { usePlayer } from "../../lib/usePlayer";
 import type { LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
 const FILTERS: { key: LibraryFilter; label: string }[] = [
@@ -26,6 +27,7 @@ const FILTERS: { key: LibraryFilter; label: string }[] = [
 
 export default function LibraryScreen() {
   const router = useRouter();
+  const player = usePlayer();
 
   const [episodes, setEpisodes] = useState<LibraryItem[]>([]);
   const [filter, setFilter] = useState<LibraryFilter>("all");
@@ -118,9 +120,9 @@ export default function LibraryScreen() {
       createdAt: item.createdAt,
     };
 
-    console.log("play", item.title);
-    // player.play(playable) — wired in Task 10
-    void playable; // suppress unused var until Task 10 wires it
+    player.play(playable).catch((err) =>
+      console.warn("[library] play error:", err),
+    );
   }
 
   const filtered = filterEpisodes(episodes, filter);
