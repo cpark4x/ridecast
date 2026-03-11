@@ -16,6 +16,7 @@ specs:
   - specs/features/phase0/multi-user-schema.md
   - specs/features/phase0/stripe-subscription.md
   - specs/features/phase0/azure-deployment.md
+  - specs/features/phase3/home-screen-redesign.md
 commands:
   build: npm run build
   test: npm run test
@@ -108,10 +109,7 @@ phase: 2
 phase_name: phase-2-pwa-features
 epoch: 9
 next_action: >
-  Phase 0 integration pass complete (Clerk + Stripe + upload verified end-to-end 2026-03-09).
-  Phase 1 complete. Phase 2 PWA features complete.
-  Remaining: Native Mobile App (React Native/Expo) — last Phase 2 item.
-  Then write Phase 3 specs (Pocket Refugee Capture first — time-sensitive).
+  Execute home screen redesign — 8 features queued, ~12 points, estimated 2 sessions.
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -135,7 +133,39 @@ completed_features:
 - multi-user-schema
 - azure-deployment
 - stripe-subscription
-features: {}
+features:
+  home-screen-api:
+    status: "ready"
+    size: S
+    depends_on: []
+  home-screen-playercontext-userid:
+    status: "ready"
+    size: S
+    depends_on: []
+  home-screen-playercontext-queue:
+    status: "ready"
+    size: M
+    depends_on: ["home-screen-playercontext-userid"]
+  home-screen-upload-presets:
+    status: "ready"
+    size: S
+    depends_on: []
+  home-screen-nav-restructure:
+    status: "ready"
+    size: M
+    depends_on: []
+  home-screen-content-display-utils:
+    status: "ready"
+    size: S
+    depends_on: []
+  home-screen-rewrite:
+    status: "ready"
+    size: L
+    depends_on: ["home-screen-api", "home-screen-playercontext-queue", "home-screen-content-display-utils", "home-screen-nav-restructure"]
+  home-screen-title-fallback:
+    status: "ready"
+    size: S
+    depends_on: ["home-screen-content-display-utils"]
 next_steps:
 - step: 1
   task: Begin Phase 1 feature implementation
