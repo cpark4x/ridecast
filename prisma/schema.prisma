@@ -46,6 +46,7 @@ model Script {
   scriptText       String
   contentType      String?  // "business_book", "technical_article", etc.
   themes           String[]
+  summary          String?  // AI-generated summary from Claude's analyze() — saved for expanded player
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
