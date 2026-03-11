@@ -9,16 +9,14 @@ features:
     completed_at: '2026-03-06T14:18:00Z'
   pipeline-error-resilience:
     status: done
-    title: "Pipeline Error Resilience \u2014 retryWithBackoff, truncation warning,\
-      \ maxDuration"
+    title: "Pipeline Error Resilience \u2014 retryWithBackoff, truncation warning, maxDuration"
     spec: specs/features/phase1/pipeline-error-resilience.md
     depends_on: []
     commit: b158b0d
     completed_at: '2026-03-06T14:24:00Z'
   processing-screen-upgrade:
     status: done
-    title: "ProcessingScreen 4-Stage UI \u2014 Analyzing\u2192Scripting\u2192Generating\u2192\
-      Ready"
+    title: "ProcessingScreen 4-Stage UI \u2014 Analyzing\u2192Scripting\u2192Generating\u2192Ready"
     spec: specs/features/phase1/processing-screen-upgrade.md
     depends_on: []
     commit: 43bec2a
@@ -54,8 +52,7 @@ features:
     completed_at: '2026-03-06T15:09:50Z'
   home-screen-queue-first:
     status: done
-    title: "Queue-First Home Screen \u2014 replaces Upload as default, shows episode\
-      \ queue + commute math"
+    title: "Queue-First Home Screen \u2014 replaces Upload as default, shows episode queue + commute math"
     spec: specs/features/phase2/home-screen-queue-first.md
     depends_on:
     - commute-duration
@@ -77,8 +74,7 @@ features:
     completed_at: '2026-03-06T15:32:00Z'
   elevenlabs-key-settings:
     status: done
-    title: "ElevenLabs Key Settings \u2014 UI to enter key without editing .env, sent\
-      \ as header"
+    title: "ElevenLabs Key Settings \u2014 UI to enter key without editing .env, sent as header"
     spec: specs/features/phase2/elevenlabs-key-settings.md
     depends_on:
     - elevenlabs-provider
@@ -99,8 +95,7 @@ features:
     completed_at: '2026-03-06T17:11:00Z'
   fix-upload-polish:
     status: done
-    title: "Fix upload screen \u2014 mobile tap copy + Works With grid to fill dead\
-      \ space"
+    title: "Fix upload screen \u2014 mobile tap copy + Works With grid to fill dead space"
     spec: specs/features/phase2/fixes/fix-upload-polish.md
     depends_on: []
     commit: 77fad80
@@ -128,8 +123,7 @@ features:
     completed_at: '2026-03-06T22:14:00Z'
   multi-user-schema:
     status: done
-    title: "Multi-User Schema \u2014 replace DEFAULT_USER_ID with real Clerk user\
-      \ IDs"
+    title: "Multi-User Schema \u2014 replace DEFAULT_USER_ID with real Clerk user IDs"
     spec: specs/features/phase0/multi-user-schema.md
     depends_on:
     - clerk-auth
@@ -151,3 +145,39 @@ features:
     depends_on: []
     commit: 3b39547
     completed_at: '2026-03-06T22:28:00Z'
+  home-screen-rewrite:
+    status: done
+    size: L
+    depends_on:
+    - home-screen-api
+    - home-screen-playercontext-queue
+    - home-screen-content-display-utils
+    - home-screen-nav-restructure
+    started_at: '2026-03-11T02:58:00Z'
+    completed_at: '2026-03-11T03:00:00Z'
+    commit: 4d220f6
+  expanded-player-minibar:
+    status: done
+    size: S
+    depends_on:
+    - expanded-player-playable-item
+    started_at: '2026-03-11T03:01:00Z'
+    completed_at: '2026-03-11T03:02:00Z'
+    commit: 28904c1
+  library-search-filter:
+    status: done
+    size: M
+    depends_on:
+    - home-screen-api
+    started_at: '2026-03-11T02:54:00Z'
+    completed_at: '2026-03-11T02:56:00Z'
+    commit: fadc894
+  library-progress-display:
+    status: done
+    size: M
+    depends_on:
+    - home-screen-api
+    - home-screen-content-display-utils
+    started_at: '2026-03-11T02:56:00Z'
+    completed_at: '2026-03-11T02:57:00Z'
+    commit: f7b87ac
