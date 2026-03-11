@@ -26,5 +26,24 @@ export const STAGE_COPY: Record<ProcessingStage, string | null> = {
   ready: null,
 };
 
+// Stage pipeline metadata (icon names match Ionicons — no RN import needed here)
+export const STAGE_LABELS: {
+  stage: ProcessingStage;
+  label: string;
+  icon: string;
+}[] = [
+  { stage: "analyzing",  label: "Reading content", icon: "search-outline" },
+  { stage: "scripting",  label: "Writing script",  icon: "create-outline" },
+  { stage: "generating", label: "Recording audio", icon: "mic-outline" },
+  { stage: "ready",      label: "Episode ready",   icon: "checkmark-circle-outline" },
+];
+
+/**
+ * Returns the ordinal index (0–3) for a given processing stage.
+ */
+export function getStageIndex(stage: ProcessingStage): number {
+  return STAGE_LABELS.findIndex((s) => s.stage === stage);
+}
+
 // API
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
