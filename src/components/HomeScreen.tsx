@@ -107,7 +107,7 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
         <h1 className="text-[26px] font-extrabold tracking-tight mb-1">Your Queue</h1>
         <p className="text-sm text-[var(--text-mid)]">
           {episodes.length} episode{episodes.length !== 1 ? "s" : ""} · {formatDuration(totalQueueSecs)} total
-          {" · "}Your commute: <span className="text-[#18181A] font-semibold">{commuteDuration} min</span>
+          {" · "}Your commute: <span className="text-[var(--text)] font-semibold">{commuteDuration} min</span>
         </p>
       </div>
 
@@ -136,7 +136,7 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
                 audioUrl: ep.audioUrl,
               })
             }
-            className="flex items-center gap-3.5 p-4 rounded-[14px] bg-white border border-black/[0.07] cursor-pointer hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
+            className="flex items-center gap-3.5 p-4 rounded-[14px] bg-[var(--surface)] border border-black/[0.07] cursor-pointer hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
           >
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#EA580C]/20 to-[#F97316]/15 flex items-center justify-center shrink-0">
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#EA580C]/70"><polygon points="8,5 19,12 8,19" /></svg>

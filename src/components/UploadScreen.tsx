@@ -162,12 +162,12 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleUpload()}
-          className="flex-1 bg-white border border-black/[0.07] rounded-[10px] px-4 py-3 text-sm text-[#18181A] placeholder-[var(--text-dim)] outline-none transition-all focus:border-[#EA580C] focus:bg-[#EA580C]/[0.06]"
+          className="flex-1 bg-[var(--surface)] border border-black/[0.07] rounded-[10px] px-4 py-3 text-sm text-[#18181A] placeholder-[var(--text-dim)] outline-none transition-all focus:border-[#EA580C] focus:bg-[#EA580C]/[0.06]"
         />
         <button
           onClick={() => handleUpload()}
           disabled={!url || uploading}
-          className="px-5 py-3 bg-white border border-black/[0.07] rounded-[10px] text-sm font-semibold transition-all hover:bg-[var(--surface-2)] disabled:opacity-50"
+          className="px-5 py-3 bg-[var(--surface)] border border-black/[0.07] rounded-[10px] text-sm font-semibold transition-all hover:bg-[var(--surface-2)] disabled:opacity-50"
         >
           {uploading ? "..." : "Fetch"}
         </button>
@@ -217,7 +217,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
 
       {/* Content Preview */}
       {preview && (
-        <div className="bg-white border border-black/[0.07] rounded-[14px] p-[18px] mb-7 animate-[slideUp_0.4s_ease]">
+        <div className="bg-[var(--surface)] border border-black/[0.07] rounded-[14px] p-[18px] mb-7 animate-[slideUp_0.4s_ease]">
           <div className="flex items-start gap-3.5 mb-3.5">
             <div className="w-11 h-11 rounded-[10px] bg-gradient-to-br from-[#EA580C]/20 to-[#F97316]/15 flex items-center justify-center shrink-0">
               <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] stroke-[#EA580C] fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -251,10 +251,10 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
                 className={`flex-1 py-3 px-2 rounded-[10px] text-center transition-all border ${
                   selectedPreset === minutes
                     ? "bg-[#EA580C]/[0.12] border-[#EA580C]"
-                    : "bg-white border-black/[0.07]"
+                    : "bg-[var(--surface)] border-black/[0.07]"
                 }`}
               >
-                <div className={`text-[15px] font-bold mb-0.5 ${selectedPreset === minutes ? "text-[#EA580C]" : "text-[#18181A]"}`}>~{minutes} min</div>
+                <div className={`text-[15px] font-bold mb-0.5 ${selectedPreset === minutes ? "text-[var(--accent-text)]" : "text-[#18181A]"}`}>~{minutes} min</div>
                 <div className="text-[11px] text-[var(--text-mid)] font-medium">{label}</div>
               </button>
             ))}
@@ -264,7 +264,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
           <div className="mb-7">
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[13px] text-[var(--text-mid)]">Fit to my commute</span>
-              <span className="text-lg font-bold text-[#EA580C]">{sliderValue} min</span>
+              <span className="text-lg font-bold text-[var(--accent-text)]">{sliderValue} min</span>
             </div>
             <input
               type="range"

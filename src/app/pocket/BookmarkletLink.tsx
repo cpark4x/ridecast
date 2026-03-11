@@ -11,7 +11,7 @@ export function BookmarkletLink({ href }: BookmarkletLinkProps) {
       href={href}
       onClick={(e) => e.preventDefault()}
       draggable
-      className="flex-1 font-semibold text-sm text-[#EA580C] cursor-grab select-none"
+      className="flex-1 font-semibold text-sm text-[var(--accent-text)] cursor-grab select-none"
     >
       Save to Ridecast
     </a>

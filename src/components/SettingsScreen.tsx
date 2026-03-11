@@ -41,7 +41,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         <span className="text-sm font-semibold">Settings</span>
         <button
           onClick={handleSave}
-          className="text-sm font-semibold text-[#EA580C] hover:text-[#C2410C] transition-colors"
+          className="text-sm font-semibold text-[var(--accent-text)] hover:opacity-80 transition-colors"
         >
           {saved ? "Saved ✓" : "Save"}
         </button>
@@ -52,7 +52,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           <h2 className="text-[13px] font-semibold text-[var(--text-mid)] uppercase tracking-wider mb-3">
             Voice Quality
           </h2>
-          <div className="bg-white border border-black/[0.07] rounded-[14px] p-4">
+          <div className="bg-[var(--surface)] border border-black/[0.07] rounded-[14px] p-4">
             <div className="mb-3">
               <label className="text-sm font-semibold block mb-1">
                 ElevenLabs API Key
@@ -82,7 +82,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           <h2 className="text-[13px] font-semibold text-[var(--text-mid)] uppercase tracking-wider mb-3">
             About
           </h2>
-          <div className="bg-white border border-black/[0.07] rounded-[14px] p-4">
+          <div className="bg-[var(--surface)] border border-black/[0.07] rounded-[14px] p-4">
             <p className="text-sm text-[var(--text-mid)]">
               Ridecast2 — Turn anything you want to read into audio worth
               listening to.

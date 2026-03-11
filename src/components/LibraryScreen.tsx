@@ -132,7 +132,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                       handlePlay(item, pv);
                     }
                   }}
-                  className="flex items-center gap-3.5 p-4 rounded-[14px] bg-white border border-black/[0.07] cursor-pointer transition-all hover:bg-[var(--surface-2)] active:scale-[0.98]"
+                  className="flex items-center gap-3.5 p-4 rounded-[14px] bg-[var(--surface)] border border-black/[0.07] cursor-pointer transition-all hover:bg-[var(--surface-2)] active:scale-[0.98]"
                 >
                   <div className={`w-[52px] h-[52px] rounded-xl bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center shrink-0`}>
                     <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white opacity-85">
@@ -149,7 +149,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                     {versions.length === 0 ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
                         Processing
                       </span>
                     ) : pv?.status === "ready" ? (
@@ -157,13 +157,13 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                         {pv.durationSecs && (
                           <span className="text-[13px] font-semibold text-[var(--text-mid)]">{formatDuration(pv.durationSecs)}</span>
                         )}
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-green-500/15 text-green-500">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--green-dim)] text-[var(--green)]">
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
                           {hasMultiple ? `${versions.length} versions` : "Ready"}
                         </span>
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
                         Generating
                       </span>
                     )}
@@ -191,12 +191,12 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                         onClick={() => handlePlay(item, version)}
                         className={`flex items-center gap-3 p-3 mb-1 rounded-[10px] transition-all ${
                           version.status === "ready"
-                            ? "bg-white hover:bg-[var(--surface-2)] cursor-pointer active:scale-[0.98]"
+                            ? "bg-[var(--surface)] hover:bg-[var(--surface-2)] cursor-pointer active:scale-[0.98]"
                             : "bg-[var(--surface-2)] cursor-default opacity-60"
                         }`}
                       >
                         <div className="flex-1 flex items-center gap-2 flex-wrap">
-                          <span className="text-[12px] font-semibold text-[#18181A]">
+                          <span className="text-[12px] font-semibold text-[var(--text)]">
                             {version.targetDuration} min
                           </span>
                           <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.06] text-[var(--text-mid)]">
@@ -208,12 +208,12 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                         </div>
                         <div className="shrink-0">
                           {version.status === "ready" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/15 text-green-500">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--green-dim)] text-[var(--green)]">
                               <svg width="6" height="6" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
                               Play
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-500">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
                               Generating
                             </span>
                           )}

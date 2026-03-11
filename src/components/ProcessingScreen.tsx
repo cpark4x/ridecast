@@ -219,7 +219,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
       {/* Stage Display — active stage copy */}
       {stage !== "ready" && !error && (
         <div className="text-center mb-8 w-full max-w-[280px]">
-          <p className="text-lg font-bold text-[#18181A] mb-1">{activeConfig.label}</p>
+          <p className="text-lg font-bold text-[var(--text)] mb-1">{activeConfig.label}</p>
           {activeConfig.copy && (
             <p className="text-sm text-[var(--text-mid)] leading-snug">{activeConfig.copy}</p>
           )}
@@ -237,14 +237,14 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
           return (
             <div key={s} className="flex items-center gap-3 py-2 transition-all">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
-                isDone ? "border-green-500 bg-green-500/15" : isActive ? "border-[#EA580C] bg-[#EA580C]/20" : "border-black/[0.08] bg-black/[0.04]"
+                isDone ? "border-[var(--green)] bg-[var(--green-dim)]" : isActive ? "border-[#EA580C] bg-[#EA580C]/20" : "border-black/[0.08] bg-black/[0.04]"
               } ${isActive && stage !== "ready" ? "animate-[pulseDot_1.5s_ease_infinite]" : ""}`}>
-                <svg viewBox="0 0 24 24" className={`w-3 h-3 fill-none stroke-2 ${isDone ? "stroke-green-500" : "stroke-black/30"}`} strokeLinecap="round">
+                <svg viewBox="0 0 24 24" className={`w-3 h-3 fill-none stroke-2 ${isDone ? "stroke-[var(--green)]" : "stroke-black/30"}`} strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
               <span className={`text-sm font-medium transition-all ${
-                isDone ? "text-[var(--text-mid)]" : isActive ? "text-[#18181A]" : "text-[var(--text-dim)]"
+                isDone ? "text-[var(--text-mid)]" : isActive ? "text-[var(--text)]" : "text-[var(--text-dim)]"
               }`}>{config.label}</span>
             </div>
           );
@@ -261,7 +261,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
 
       {/* Ready State — Episode Card */}
       {stage === "ready" && audioRecord && (
-        <div className="w-full max-w-[280px] bg-white border border-black/[0.07] rounded-[14px] p-5 mb-4">
+        <div className="w-full max-w-[280px] bg-[var(--surface)] border border-black/[0.07] rounded-[14px] p-5 mb-4">
           <div className="text-center mb-4">
             <div className="text-[13px] text-[var(--text-mid)] uppercase tracking-wider font-semibold mb-0.5">
               {scriptRecord?.contentType?.replace(/_/g, " ") ?? "Episode"}

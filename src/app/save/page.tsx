@@ -69,7 +69,7 @@ function SavePageInner() {
 
       {status === 'error' && (
         <>
-          <p className="text-red-400 font-semibold">Couldn&apos;t save</p>
+          <p className="text-red-600 font-semibold">Couldn&apos;t save</p>
           <p className="text-[var(--text-mid)] text-xs">{errorMsg}</p>
           <a href={`/sign-in?redirect_url=${encodeURIComponent('/save?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title))}`}
             className="mt-2 px-5 py-2 rounded-[10px] bg-[#EA580C] text-white text-sm font-semibold">

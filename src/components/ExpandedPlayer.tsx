@@ -93,7 +93,7 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
       {/* Info */}
       <div className="text-center px-6 mb-6">
         <h2 className="text-xl font-bold mb-1.5 tracking-tight">{currentItem.title}</h2>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#EA580C]/15 text-[#EA580C]">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--accent-light)] text-[var(--accent-text)]">
           {currentItem.format}
         </span>
       </div>
@@ -151,7 +151,7 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
           <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#18181A]"><path d="M12.5 8.5C12.5 8.5 7 12 7 12l5.5 3.5V8.5z" /><path d="M18 8.5C18 8.5 12.5 12 12.5 12L18 15.5V8.5z" /><rect x="4" y="7" width="2" height="10" rx="0.5" /></svg>
           <span className="absolute -bottom-3.5 text-[9px] font-semibold text-[var(--text-dim)]">15s</span>
         </button>
-        <button onClick={togglePlay} className="w-[68px] h-[68px] bg-[#18181A] rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-[0.92] shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+        <button onClick={togglePlay} className="w-[68px] h-[68px] bg-[var(--text)] rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-[0.92] shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
           {isPlaying ? (
             <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white"><rect x="7" y="5" width="3.5" height="14" rx="1" /><rect x="13.5" y="5" width="3.5" height="14" rx="1" /></svg>
           ) : (
