@@ -8,7 +8,7 @@ function readStoredDuration(): number {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = parseInt(stored, 10);
-      if (!isNaN(parsed) && parsed >= 5 && parsed <= 60) {
+      if (!isNaN(parsed) && parsed >= 2 && parsed <= 60) {
         return parsed;
       }
     }

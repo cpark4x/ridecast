@@ -23,14 +23,16 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<ContentPreview | null>(null);
   const [selectedPreset, setSelectedPreset] = useState(() =>
-    [5, 15, 30].includes(commuteDuration) ? commuteDuration : 0
+    [2, 3, 5, 15, 30].includes(commuteDuration) ? commuteDuration : 0
   );
   const [sliderValue, setSliderValue] = useState(commuteDuration);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const presets = [
-    { minutes: 5, label: "Quick Summary" },
+    { minutes: 2, label: "Quick Take" },
+    { minutes: 3, label: "Brief" },
+    { minutes: 5, label: "Summary" },
     { minutes: 15, label: "Main Points" },
     { minutes: 30, label: "Deep Dive" },
   ];
@@ -99,7 +101,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
   function handleSliderChange(value: number) {
     setSliderValue(value);
     setCommuteDuration(value); // persist
-    if ([5, 15, 30].includes(value)) {
+    if ([2, 3, 5, 15, 30].includes(value)) {
       setSelectedPreset(value);
     } else {
       setSelectedPreset(0);
@@ -113,7 +115,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
       setPreview(null);
       setUrl("");
       setError(null);
-      setSelectedPreset([5, 15, 30].includes(commuteDuration) ? commuteDuration : 0);
+      setSelectedPreset([2, 3, 5, 15, 30].includes(commuteDuration) ? commuteDuration : 0);
       setSliderValue(commuteDuration);
     }
   }
@@ -268,7 +270,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
             </div>
             <input
               type="range"
-              min="5"
+              min="2"
               max="60"
               step="1"
               value={sliderValue}
@@ -277,7 +279,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
               style={{ background: "linear-gradient(90deg, #EA580C, #F97316)" }}
             />
             <div className="flex justify-between mt-1.5 px-0.5">
-              {[5, 15, 30, 45, 60].map((t) => (
+              {[2, 15, 30, 45, 60].map((t) => (
                 <span key={t} className="text-[10px] text-[var(--text-dim)]">{t}</span>
               ))}
             </div>
