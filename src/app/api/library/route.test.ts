@@ -33,12 +33,19 @@ const twoScriptItem = [
         id: "s1",
         format: "narrator",
         targetDuration: 5,
+        contentType: "science_article",
+        themes: ["cognitive bias", "decision making"],
+        compressionRatio: 0.15,
+        actualWordCount: 450,
+        summary: "A fascinating exploration of cognitive biases.",
         createdAt: new Date("2026-03-01"),
         audio: [
           {
             id: "a1",
             filePath: "/audio/a1.mp3",
             durationSecs: 310,
+            voices: ["alloy"],
+            ttsProvider: "openai",
             createdAt: new Date(),
             playbackState: [{ position: 120.5, completed: false }],
           },
@@ -48,12 +55,19 @@ const twoScriptItem = [
         id: "s2",
         format: "conversation",
         targetDuration: 15,
+        contentType: "science_article",
+        themes: ["cognitive bias", "decision making"],
+        compressionRatio: 0.15,
+        actualWordCount: 450,
+        summary: "A fascinating exploration of cognitive biases.",
         createdAt: new Date("2026-03-01"),
         audio: [
           {
             id: "a2",
             filePath: "/audio/a2.mp3",
             durationSecs: 920,
+            voices: ["alloy", "echo"],
+            ttsProvider: "openai",
             createdAt: new Date(),
             playbackState: [],
           },
@@ -174,5 +188,58 @@ describe("GET /api/library", () => {
     const res = await GET();
     const data = await res.json();
     expect(data[0].author).toBeNull();
+  });
+
+  it("returns contentType on each version", async () => {
+    mockFindMany.mockResolvedValueOnce(twoScriptItem);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions[0].contentType).toBe("science_article");
+  });
+
+  it("returns themes array on each version", async () => {
+    mockFindMany.mockResolvedValueOnce(twoScriptItem);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions[0].themes).toEqual(["cognitive bias", "decision making"]);
+  });
+
+  it("returns summary on each version", async () => {
+    mockFindMany.mockResolvedValueOnce(twoScriptItem);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions[0].summary).toBe("A fascinating exploration of cognitive biases.");
+    expect(data[0].versions[1].summary).toBe("A fascinating exploration of cognitive biases.");
+  });
+
+  it("returns null summary when script has no summary", async () => {
+    mockFindMany.mockResolvedValueOnce([{
+      ...twoScriptItem[0],
+      scripts: [{
+        ...twoScriptItem[0].scripts[0],
+        summary: null,
+        audio: twoScriptItem[0].scripts[0].audio,
+      }],
+    }]);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions[0].summary).toBeNull();
+  });
+
+  it("returns compressionRatio and actualWordCount", async () => {
+    mockFindMany.mockResolvedValueOnce(twoScriptItem);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions[0].compressionRatio).toBe(0.15);
+    expect(data[0].versions[0].actualWordCount).toBe(450);
+  });
+
+  it("returns voices array and ttsProvider", async () => {
+    mockFindMany.mockResolvedValueOnce(twoScriptItem);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions[0].voices).toEqual(["alloy"]);
+    expect(data[0].versions[0].ttsProvider).toBe("openai");
+    expect(data[0].versions[1].voices).toEqual(["alloy", "echo"]);
   });
 });

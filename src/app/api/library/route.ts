@@ -13,6 +13,13 @@ interface AudioVersion {
   completed: boolean;
   position: number;
   createdAt: string;
+  summary: string | null;
+  contentType: string | null;
+  themes: string[];
+  compressionRatio: number;
+  actualWordCount: number;
+  voices: string[];
+  ttsProvider: string;
 }
 
 export async function GET() {
@@ -62,6 +69,13 @@ export async function GET() {
                 completed: false,
                 position: 0,
                 createdAt: script.createdAt.toISOString(),
+                summary: script.summary ?? null,
+                contentType: script.contentType ?? null,
+                themes: script.themes ?? [],
+                compressionRatio: script.compressionRatio,
+                actualWordCount: script.actualWordCount,
+                voices: [],
+                ttsProvider: "",
               },
             ];
           }
@@ -78,6 +92,13 @@ export async function GET() {
               completed: pb?.completed ?? false,
               position: pb?.position ?? 0,
               createdAt: audio.createdAt.toISOString(),
+              summary: script.summary ?? null,
+              contentType: script.contentType ?? null,
+              themes: script.themes ?? [],
+              compressionRatio: script.compressionRatio,
+              actualWordCount: script.actualWordCount,
+              voices: audio.voices ?? [],
+              ttsProvider: audio.ttsProvider,
             };
           });
         })

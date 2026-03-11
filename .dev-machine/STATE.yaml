@@ -155,8 +155,10 @@ completed_features:
 - expanded-player-schema
 features:
   home-screen-playercontext-queue:
-    status: "in-progress"
+    status: "done"
     started_at: "2026-03-11T01:45:00Z"
+    completed_at: "2026-03-11T01:47:00Z"
+    commit: "733d360"
     size: M
     depends_on: ["home-screen-playercontext-userid"]
   home-screen-rewrite:
@@ -164,11 +166,15 @@ features:
     size: L
     depends_on: ["home-screen-api", "home-screen-playercontext-queue", "home-screen-content-display-utils", "home-screen-nav-restructure"]
   expanded-player-save-summary:
-    status: "ready"
+    status: "done"
+    started_at: "2026-03-11T01:47:00Z"
+    completed_at: "2026-03-11T01:48:00Z"
+    commit: "d3d8ac6"
     size: S
     depends_on: ["expanded-player-schema"]
   expanded-player-api:
-    status: "ready"
+    status: "in-progress"
+    started_at: "2026-03-11T01:49:00Z"
     size: S
     depends_on: ["expanded-player-schema"]
   expanded-player-playable-item:
