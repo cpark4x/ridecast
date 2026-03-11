@@ -18,6 +18,7 @@ specs:
   - specs/features/phase0/azure-deployment.md
   - specs/features/phase3/home-screen-redesign.md
   - specs/features/phase3/expanded-player.md
+  - specs/features/phase3/library-redesign.md
 commands:
   build: npm run build
   test: npm run test
@@ -110,7 +111,7 @@ phase: 2
 phase_name: phase-2-pwa-features
 epoch: 9
 next_action: >
-  Execute home screen redesign (12 pts) + expanded player (10 pts) — ~22 points total, estimated 3-4 sessions.
+  Execute home screen redesign (12 pts) + expanded player (10 pts) + library redesign (11 pts) — ~33 points total, estimated 5-6 sessions.
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -195,6 +196,30 @@ features:
     status: "ready"
     size: M
     depends_on: []
+  library-search-filter:
+    status: "ready"
+    size: M
+    depends_on: ["home-screen-api"]
+  library-progress-display:
+    status: "ready"
+    size: M
+    depends_on: ["home-screen-api", "home-screen-content-display-utils"]
+  library-card-enhancement:
+    status: "ready"
+    size: S
+    depends_on: ["home-screen-api", "home-screen-content-display-utils"]
+  library-upload-modal:
+    status: "ready"
+    size: M
+    depends_on: ["home-screen-nav-restructure"]
+  library-process-new-version:
+    status: "ready"
+    size: S
+    depends_on: ["library-upload-modal"]
+  library-screen-rewrite:
+    status: "ready"
+    size: L
+    depends_on: ["library-search-filter", "library-progress-display", "library-card-enhancement", "library-upload-modal", "library-process-new-version"]
 next_steps:
 - step: 1
   task: Begin Phase 1 feature implementation

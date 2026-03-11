@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ridecast — Library Experience</title>
+  <style>
+    /* ─── Reset ─────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Design tokens ──────────────────────────────────────────────────────── */
+    :root {
+      --bg:            #F7F6F3;
+      --surface:       #FFFFFF;
+      --surface-2:     #F0EEE9;
+      --text:          #18181A;
+      --text-mid:      rgba(24,24,26,0.50);
+      --text-dim:      rgba(24,24,26,0.30);
+      --accent:        #EA580C;
+      --accent-text:   #C2410C;
+      --accent-light:  rgba(234,88,12,0.10);
+      --accent-border: rgba(234,88,12,0.22);
+      --green:         #16A34A;
+      --green-light:   rgba(22,163,74,0.10);
+      --amber:         #D97706;
+      --amber-light:   rgba(217,119,6,0.10);
+      --card-shadow:   0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(24,24,26,0.06);
+      --card-radius:   12px;
+      --font:          system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+
+    /* ─── Page shell ─────────────────────────────────────────────────────────── */
+    body {
+      background: #1a1a1a;
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      padding: 56px 40px 88px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ─── Page header ────────────────────────────────────────────────────────── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      margin-bottom: 7px;
+    }
+    .page-subtitle {
+      font-size: 12px;
+      color: rgba(255,255,255,0.36);
+      font-weight: 400;
+      letter-spacing: 0.15px;
+    }
+    .page-subtitle em {
+      color: rgba(255,255,255,0.54);
+      font-style: normal;
+    }
+
+    /* ─── Phones row ─────────────────────────────────────────────────────────── */
+    .phones-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .phone-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .screen-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+    }
+    .screen-caption {
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.25);
+      text-align: center;
+      max-width: 310px;
+      line-height: 1.65;
+      padding: 0 8px;
+    }
+    .screen-caption strong {
+      color: rgba(255,255,255,0.44);
+      font-weight: 600;
+    }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      margin-top: 96px;
+      color: rgba(255,255,255,0.13);
+      font-size: 22px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    /* ─── Phone frame ────────────────────────────────────────────────────────── */
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      border-radius: 50px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 0 0 10px #252525,
+        0 0 0 11px rgba(255,255,255,0.05),
+        0 36px 90px rgba(0,0,0,0.72),
+        0 8px 24px rgba(0,0,0,0.35);
+      flex-shrink: 0;
+    }
+
+    /* ─── Dynamic Island ─────────────────────────────────────────────────────── */
+    .dynamic-island {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 50;
+    }
+
+    /* ─── Status bar ─────────────────────────────────────────────────────────── */
+    .status-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 54px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 28px 10px;
+      z-index: 30;
+      background: var(--bg);
+    }
+    .status-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+    }
+
+    /* ─── Scrollable content area ────────────────────────────────────────────── */
+    .scroll-area {
+      position: absolute;
+      top: 54px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+      /* Bottom padding: tab bar 84 + mini-player 54 + breathing room */
+      padding-bottom: 148px;
+    }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* ─── Library header ─────────────────────────────────────────────────────── */
+    .lib-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 10px;
+    }
+    .lib-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.7px;
+      line-height: 1.1;
+    }
+    .gear-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-mid);
+      flex-shrink: 0;
+    }
+
+    /* ─── Search bar ─────────────────────────────────────────────────────────── */
+    .search-wrap {
+      padding: 0 20px 10px;
+    }
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid rgba(24,24,26,0.08);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .search-placeholder {
+      font-size: 14px;
+      color: var(--text-dim);
+      font-weight: 400;
+      letter-spacing: -0.1px;
+    }
+
+    /* ─── Filter chips ───────────────────────────────────────────────────────── */
+    .filter-row {
+      display: flex;
+      gap: 7px;
+      padding: 0 20px 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mid);
+      background: var(--surface);
+      border: 1px solid rgba(24,24,26,0.10);
+      border-radius: 99px;
+      padding: 5px 12px;
+      letter-spacing: -0.1px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .filter-chip.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 1px 6px rgba(234,88,12,0.28);
+    }
+
+    /* ─── Library item list ──────────────────────────────────────────────────── */
+    .lib-list {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    /* ─── Library card ───────────────────────────────────────────────────────── */
+    .lib-card {
+      background: var(--surface);
+      border-radius: var(--card-radius);
+      border: 1px solid rgba(24,24,26,0.06);
+      box-shadow: var(--card-shadow);
+      overflow: hidden;
+    }
+
+    /* Main card row */
+    .lib-card-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 13px;
+    }
+
+    /* Thumbnail */
+    .lib-thumb {
+      flex-shrink: 0;
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lib-thumb.teal   { background: linear-gradient(135deg, #0D9488 0%, #2DD4BF 100%); box-shadow: 0 2px 6px rgba(13,148,136,0.28); }
+    .lib-thumb.orange { background: linear-gradient(135deg, #EA580C 0%, #FB923C 100%); box-shadow: 0 2px 6px rgba(234,88,12,0.26); }
+    .lib-thumb.pink   { background: linear-gradient(135deg, #DB2777 0%, #F472B6 100%); box-shadow: 0 2px 6px rgba(219,39,119,0.24); }
+    .lib-thumb.amber  { background: linear-gradient(135deg, #D97706 0%, #FCD34D 100%); box-shadow: 0 2px 6px rgba(217,119,6,0.24); }
+    .lib-thumb.blue   { background: linear-gradient(135deg, #3B82F6 0%, #93C5FD 100%); box-shadow: 0 2px 6px rgba(59,130,246,0.26); }
+
+    /* Card body */
+    .lib-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .lib-card-title {
+      font-size: 13.5px;
+      font-weight: 650;
+      color: var(--text);
+      letter-spacing: -0.2px;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lib-card-title.played {
+      color: var(--text-dim);
+    }
+    .lib-card-meta {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--text-mid);
+      display: flex;
+      align-items: center;
+      gap: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lib-card-meta.played {
+      opacity: 0.55;
+    }
+    .dot-sep {
+      display: inline-block;
+      width: 2.5px;
+      height: 2.5px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      margin: 0 4px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    /* Version badge + progress row */
+    .lib-card-footer {
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .ver-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 650;
+      color: var(--text-mid);
+      background: var(--surface-2);
+      border: 1px solid rgba(24,24,26,0.08);
+      border-radius: 5px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+    }
+
+    /* Mini progress bar inline */
+    .lib-mini-track {
+      flex: 1;
+      height: 2.5px;
+      background: rgba(24,24,26,0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      max-width: 80px;
+    }
+    .lib-mini-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent) 0%, #FB923C 100%);
+    }
+    .lib-mini-fill.played {
+      background: rgba(24,24,26,0.15);
+    }
+
+    /* ─── Status badges ──────────────────────────────────────────────────────── */
+    .lib-card-right {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 650;
+      border-radius: 99px;
+      padding: 3px 9px;
+      white-space: nowrap;
+    }
+    .badge-ready {
+      color: var(--green);
+      background: var(--green-light);
+      border: 1px solid rgba(22,163,74,0.18);
+    }
+    .badge-generating {
+      color: var(--amber);
+      background: var(--amber-light);
+      border: 1px solid rgba(217,119,6,0.18);
+      animation: pulse-badge 1.8s ease-in-out infinite;
+    }
+    .badge-played {
+      color: var(--text-dim);
+      background: rgba(24,24,26,0.05);
+      border: 1px solid rgba(24,24,26,0.09);
+    }
+    @keyframes pulse-badge {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.55; }
+    }
+    .chevron-icon {
+      color: var(--text-dim);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .chevron-icon.open { transform: rotate(180deg); }
+
+    /* ─── Expanded versions panel ────────────────────────────────────────────── */
+    .expanded-panel {
+      border-top: 1px solid rgba(24,24,26,0.07);
+      background: var(--surface-2);
+      padding: 6px 10px 8px 10px;
+    }
+    .version-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid rgba(24,24,26,0.06);
+      margin-bottom: 5px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .version-row:last-of-type {
+      margin-bottom: 0;
+    }
+    .version-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .version-name {
+      font-size: 12.5px;
+      font-weight: 650;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+    .version-meta {
+      margin-top: 2px;
+      font-size: 10.5px;
+      color: var(--text-mid);
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Mini progress on version row */
+    .version-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .version-progress-track {
+      width: 48px;
+      height: 2px;
+      background: rgba(24,24,26,0.09);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .version-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #FB923C);
+      border-radius: 99px;
+    }
+    .version-played-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent-text);
+      white-space: nowrap;
+    }
+
+    /* Play button on version */
+    .version-play-btn {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--green);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(22,163,74,0.28);
+    }
+
+    /* Add version link */
+    .add-version-link {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 7px;
+      padding: 0 10px;
+      font-size: 11.5px;
+      font-weight: 650;
+      color: var(--accent-text);
+      cursor: pointer;
+      letter-spacing: -0.1px;
+    }
+
+    /* ─── Mini-player ────────────────────────────────────────────────────────── */
+    .mini-player {
+      position: absolute;
+      bottom: 84px;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(247,246,243,0.96);
+      -webkit-backdrop-filter: blur(24px) saturate(1.7);
+      backdrop-filter: blur(24px) saturate(1.7);
+      border-top: 1px solid rgba(24,24,26,0.09);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+    }
+    /* Thin progress strip at very top of mini-player */
+    .mini-player-progress {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: rgba(24,24,26,0.07);
+    }
+    .mini-player-progress-fill {
+      height: 100%;
+      width: 65%;
+      background: linear-gradient(90deg, var(--accent) 0%, #FB923C 100%);
+    }
+    .mini-player-art {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0D9488 0%, #2DD4BF 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(13,148,136,0.28);
+    }
+    .mini-player-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .mini-player-title {
+      font-size: 12.5px;
+      font-weight: 650;
+      color: var(--text);
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mini-player-meta {
+      font-size: 10.5px;
+      color: var(--text-mid);
+      margin-top: 1px;
+    }
+    .mini-play-btn {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(234,88,12,0.30);
+      cursor: pointer;
+    }
+
+    /* ─── Tab bar ────────────────────────────────────────────────────────────── */
+    .tab-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 84px;
+      background: rgba(247,246,243,0.92);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+      backdrop-filter: blur(20px) saturate(1.6);
+      border-top: 1px solid rgba(24,24,26,0.08);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-around;
+      padding: 10px 20px 0;
+      border-radius: 0 0 50px 50px;
+      z-index: 10;
+    }
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      flex: 1;
+    }
+    .tab-icon-wrap {
+      width: 44px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+    .tab-item.active .tab-icon-wrap {
+      background: var(--accent-light);
+    }
+    .tab-label {
+      font-size: 10px;
+      font-weight: 550;
+      letter-spacing: 0.1px;
+      color: var(--text-dim);
+    }
+    .tab-item.active .tab-label {
+      color: var(--accent);
+    }
+
+    /* ─── FAB ────────────────────────────────────────────────────────────────── */
+    .fab {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 2px 8px rgba(234,88,12,0.36),
+        0 6px 20px rgba(234,88,12,0.20);
+      cursor: pointer;
+      z-index: 11;
+      border: 2px solid rgba(255,255,255,0.25);
+    }
+
+    /* ─── Upload modal overlay (Screen 3) ───────────────────────────────────── */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.42);
+      z-index: 20;
+      border-radius: 50px;
+    }
+
+    /* ─── Bottom sheet ───────────────────────────────────────────────────────── */
+    .bottom-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 580px;
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      z-index: 25;
+      padding: 0 0 20px;
+      overflow: hidden;
+    }
+
+    .sheet-drag-handle-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 10px 0 6px;
+    }
+    .sheet-drag-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(24,24,26,0.14);
+    }
+
+    .sheet-header {
+      padding: 4px 22px 12px;
+    }
+    .sheet-title {
+      font-size: 20px;
+      font-weight: 750;
+      color: var(--text);
+      letter-spacing: -0.45px;
+    }
+    .sheet-subtitle {
+      margin-top: 3px;
+      font-size: 13px;
+      color: var(--text-mid);
+      font-weight: 400;
+    }
+
+    .sheet-divider {
+      height: 1px;
+      background: rgba(24,24,26,0.07);
+      margin: 0 0 16px;
+    }
+
+    .sheet-section {
+      padding: 0 22px;
+      margin-bottom: 16px;
+    }
+    .sheet-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    /* URL input row */
+    .url-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .url-input {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1.5px solid rgba(24,24,26,0.10);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--text-dim);
+    }
+    .url-input::placeholder { color: var(--text-dim); }
+    .fetch-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(234,88,12,0.28);
+    }
+
+    /* File drop zone */
+    .file-dropzone {
+      border: 1.5px dashed rgba(24,24,26,0.20);
+      border-radius: 10px;
+      padding: 16px 12px;
+      text-align: center;
+      background: var(--surface-2);
+    }
+    .dropzone-text {
+      font-size: 12.5px;
+      color: var(--text-mid);
+      font-weight: 500;
+      margin-top: 6px;
+    }
+    .dropzone-types {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+    .browse-link {
+      font-size: 12.5px;
+      font-weight: 650;
+      color: var(--accent-text);
+      margin-top: 5px;
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    /* Duration presets */
+    .duration-chips {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .dur-chip {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--text-mid);
+      background: var(--surface-2);
+      border: 1.5px solid rgba(24,24,26,0.10);
+      border-radius: 99px;
+      padding: 5px 13px;
+      cursor: pointer;
+      letter-spacing: -0.1px;
+    }
+    .dur-chip.selected {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 1px 6px rgba(234,88,12,0.30);
+    }
+
+    /* Range slider (static representation) */
+    .slider-wrap {
+      position: relative;
+      height: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .slider-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(24,24,26,0.10);
+      border-radius: 99px;
+      position: relative;
+    }
+    .slider-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 10.3%; /* ~5 min on 2-60 range */
+      background: var(--accent);
+      border-radius: 99px;
+    }
+    .slider-thumb {
+      position: absolute;
+      left: calc(10.3% - 7px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 3px var(--accent), 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+    .slider-labels span {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    /* Generate button */
+    .generate-btn {
+      width: calc(100% - 44px);
+      margin: 10px 22px 0;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 15px 20px;
+      font-family: var(--font);
+      font-size: 15.5px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      box-shadow:
+        0 2px 8px rgba(234,88,12,0.28),
+        0 6px 18px rgba(234,88,12,0.18),
+        0 1px 0 rgba(255,255,255,0.14) inset;
+    }
+
+    /* ─── Shared icon helper ─────────────────────────────────────────────────── */
+    .icon { display: block; }
+
+    /* ─── Status icons (reusable inline SVG cluster) ─────────────────────────── */
+    /* (rendered inline in each phone) */
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="page-title">Ridecast — Library Experience</div>
+  <div class="page-subtitle">Content management + <em>upload-as-action</em> pattern</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     THREE PHONES
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="phones-row">
+
+<!-- ════════════════════════════════════════ PHONE 1 — LIBRARY MAIN VIEW ══ -->
+<div class="phone-wrapper">
+  <div class="screen-label">1. Library</div>
+
+  <div class="phone">
+    <div class="dynamic-island"></div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
+          <rect x="0"    y="8"   width="3" height="4"   rx="1" fill="currentColor" opacity="0.28"/>
+          <rect x="4.5"  y="5.5" width="3" height="6.5" rx="1" fill="currentColor" opacity="0.28"/>
+          <rect x="9"    y="3"   width="3" height="9"   rx="1" fill="currentColor"/>
+          <rect x="13.5" y="0"   width="3" height="12"  rx="1" fill="currentColor"/>
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 9.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" fill="currentColor"/>
+          <path d="M3.5 6.4A6.5 6.5 0 0 1 8 4.6c1.7 0 3.24.65 4.5 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M1 3.6A10.3 10.3 0 0 1 8 1c2.66 0 5.1.99 6.99 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.42"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/>
+          <rect x="2"   y="2"   width="15" height="8"  rx="2"   fill="currentColor"/>
+          <path d="M22.5 4v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="scroll-area">
+
+      <!-- Header -->
+      <div class="lib-header">
+        <div class="lib-title">Library</div>
+        <div class="gear-btn">
+          <svg class="icon" width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M8.24 2.41a.75.75 0 0 1 .74-.65h2.04a.75.75 0 0 1 .74.65l.2 1.4c.43.16.83.38 1.2.64l1.32-.53a.75.75 0 0 1 .91.34l1.02 1.77a.75.75 0 0 1-.17.95l-1.1.87c.04.29.06.59.06.9s-.02.61-.06.9l1.1.87a.75.75 0 0 1 .17.95l-1.02 1.77a.75.75 0 0 1-.91.34l-1.32-.53c-.37.26-.77.48-1.2.64l-.2 1.4a.75.75 0 0 1-.74.65H8.98a.75.75 0 0 1-.74-.65l-.2-1.4a5.27 5.27 0 0 1-1.2-.64l-1.32.53a.75.75 0 0 1-.91-.34L3.59 12.2a.75.75 0 0 1 .17-.95l1.1-.87A5.42 5.42 0 0 1 4.8 9.5c0-.31.02-.61.06-.9l-1.1-.87a.75.75 0 0 1-.17-.95L4.61 5a.75.75 0 0 1 .91-.34l1.32.53c.37-.26.77-.48 1.2-.64l.2-1.14ZM10 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              fill="rgba(24,24,26,0.45)"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="search-wrap">
+        <div class="search-bar">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="rgba(24,24,26,0.32)" stroke-width="1.5"/>
+            <path d="M10 10l2.5 2.5" stroke="rgba(24,24,26,0.32)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="search-placeholder">Search your library</span>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-row">
+        <div class="filter-chip active">All</div>
+        <div class="filter-chip">Unplayed</div>
+        <div class="filter-chip">In Progress</div>
+        <div class="filter-chip">Completed</div>
+        <div class="filter-chip">Generating</div>
+      </div>
+
+      <!-- Content list -->
+      <div class="lib-list">
+
+        <!-- Item 1: Psychology of Decision Making — 3 versions, 65% -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb teal">
+              <!-- Link icon -->
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">The Psychology of Decision Making</div>
+              <div class="lib-card-meta">
+                <span>By Daniel Kahneman</span>
+                <span class="dot-sep"></span>
+                <span>URL</span>
+                <span class="dot-sep"></span>
+                <span>2 days ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <circle cx="4.5" cy="1.5" r="1.2" fill="rgba(24,24,26,0.40)"/>
+                    <circle cx="1.5" cy="7" r="1.2" fill="rgba(24,24,26,0.40)"/>
+                    <circle cx="7.5" cy="7" r="1.2" fill="rgba(24,24,26,0.40)"/>
+                    <path d="M4.5 2.7V4.5M2.5 5.8L4.5 4.5M6.5 5.8L4.5 4.5" stroke="rgba(24,24,26,0.35)" stroke-width="0.9" stroke-linecap="round"/>
+                  </svg>
+                  3 versions
+                </div>
+                <div class="lib-mini-track">
+                  <div class="lib-mini-fill" style="width: 65%;"></div>
+                </div>
+                <span style="font-size:10px; color:var(--text-mid); font-weight:550;">65%</span>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+              <svg class="chevron-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 5l4 4 4-4" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Sam Altman — 1 version, unplayed -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb orange">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">Sam Altman's Latest Newsletter: Scaling Startups</div>
+              <div class="lib-card-meta">
+                <span>URL</span>
+                <span class="dot-sep"></span>
+                <span>3 hours ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">1 version</div>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3: Distributed Systems — 2 versions, 20% -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb pink">
+              <!-- Code icon -->
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M8 7L4 11l4 4" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 7l4 4-4 4" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 5l-3 12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">Building Resilient Distributed Systems</div>
+              <div class="lib-card-meta">
+                <span>URL</span>
+                <span class="dot-sep"></span>
+                <span>2 days ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">2 versions</div>
+                <div class="lib-mini-track">
+                  <div class="lib-mini-fill" style="width: 20%;"></div>
+                </div>
+                <span style="font-size:10px; color:var(--text-mid); font-weight:550;">20%</span>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+              <svg class="chevron-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 5l4 4 4-4" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 4: Innovator's Dilemma — Generating -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb amber">
+              <!-- Book/EPUB icon -->
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M8 8h7M8 12h5" stroke="white" stroke-width="1.3" stroke-linecap="round" opacity="0.75"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">The Innovator's Dilemma</div>
+              <div class="lib-card-meta">
+                <span>By Clayton Christensen</span>
+                <span class="dot-sep"></span>
+                <span>EPUB</span>
+                <span class="dot-sep"></span>
+                <span>1 week ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">1 version</div>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-generating">
+                <!-- Spinner dots -->
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                  <circle cx="4" cy="1.5" r="1" fill="currentColor"/>
+                  <circle cx="6.5" cy="4" r="1" fill="currentColor" opacity="0.6"/>
+                  <circle cx="4" cy="6.5" r="1" fill="currentColor" opacity="0.3"/>
+                  <circle cx="1.5" cy="4" r="1" fill="currentColor" opacity="0.6"/>
+                </svg>
+                Generating
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 5: ML Best Practices — Played, 100% -->
+        <div class="lib-card" style="opacity: 0.65;">
+          <div class="lib-card-row">
+            <div class="lib-thumb blue">
+              <!-- PDF icon -->
+              <svg width="21" height="21" viewBox="0 0 22 22" fill="none">
+                <path d="M6 2h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"
+                  stroke="white" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+                <path d="M13 2v5h5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 12.5h6M8 15.5h4" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title played">Machine Learning Best Practices 2026</div>
+              <div class="lib-card-meta played">
+                <span>PDF</span>
+                <span class="dot-sep"></span>
+                <span>3 days ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">1 version</div>
+                <div class="lib-mini-track">
+                  <div class="lib-mini-fill played" style="width: 100%;"></div>
+                </div>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-played">
+                <!-- Checkmark -->
+                <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                  <path d="M1.5 4.5l2.5 2.5 3.5-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Played
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /lib-list -->
+
+    </div>
+    <!-- /scroll-area -->
+
+    <!-- Mini-player -->
+    <div class="mini-player">
+      <div class="mini-player-progress">
+        <div class="mini-player-progress-fill"></div>
+      </div>
+      <div class="mini-player-art">
+        <svg width="14" height="14" viewBox="0 0 22 22" fill="none">
+          <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+            stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+            stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="mini-player-body">
+        <div class="mini-player-title">The Psychology of Decision Making</div>
+        <div class="mini-player-meta">5-min Quick Take · 65% complete</div>
+      </div>
+      <div class="mini-play-btn">
+        <svg width="11" height="12" viewBox="0 0 11 12" fill="none">
+          <rect x="1.5" y="2" width="2.8" height="8" rx="1.2" fill="white"/>
+          <rect x="6.2" y="2" width="2.8" height="8" rx="1.2" fill="white"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 4v12M4 10h12" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <!-- Home -->
+      <div class="tab-item">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M3 9.5L11 3l8 6.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"
+              fill="none" stroke="rgba(24,24,26,0.30)" stroke-width="1.7" stroke-linejoin="round"/>
+            <path d="M8 20v-7h6v7" stroke="rgba(24,24,26,0.30)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="tab-label">Home</span>
+      </div>
+      <!-- Library (active) -->
+      <div class="tab-item active">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="3"  y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+            <rect x="9"  y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+            <rect x="15" y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <span class="tab-label">Library</span>
+      </div>
+    </div>
+
+  </div>
+  <!-- /phone 1 -->
+
+  <div class="screen-caption">
+    <strong>All content grouped by item.</strong> Status badges, version counts,
+    and progress at a glance. Filter chips narrow the view. Search always visible.
+  </div>
+</div>
+<!-- /phone-wrapper 1 -->
+
+<!-- Flow arrow -->
+<div class="flow-arrow">→</div>
+
+<!-- ═══════════════════════════════════════ PHONE 2 — EXPANDED ITEM ══════ -->
+<div class="phone-wrapper">
+  <div class="screen-label">2. Expanded Item</div>
+
+  <div class="phone">
+    <div class="dynamic-island"></div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
+          <rect x="0"    y="8"   width="3" height="4"   rx="1" fill="currentColor" opacity="0.28"/>
+          <rect x="4.5"  y="5.5" width="3" height="6.5" rx="1" fill="currentColor" opacity="0.28"/>
+          <rect x="9"    y="3"   width="3" height="9"   rx="1" fill="currentColor"/>
+          <rect x="13.5" y="0"   width="3" height="12"  rx="1" fill="currentColor"/>
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 9.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" fill="currentColor"/>
+          <path d="M3.5 6.4A6.5 6.5 0 0 1 8 4.6c1.7 0 3.24.65 4.5 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M1 3.6A10.3 10.3 0 0 1 8 1c2.66 0 5.1.99 6.99 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.42"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/>
+          <rect x="2"   y="2"   width="15" height="8"  rx="2"   fill="currentColor"/>
+          <path d="M22.5 4v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="scroll-area">
+
+      <!-- Header (same) -->
+      <div class="lib-header">
+        <div class="lib-title">Library</div>
+        <div class="gear-btn">
+          <svg class="icon" width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M8.24 2.41a.75.75 0 0 1 .74-.65h2.04a.75.75 0 0 1 .74.65l.2 1.4c.43.16.83.38 1.2.64l1.32-.53a.75.75 0 0 1 .91.34l1.02 1.77a.75.75 0 0 1-.17.95l-1.1.87c.04.29.06.59.06.9s-.02.61-.06.9l1.1.87a.75.75 0 0 1 .17.95l-1.02 1.77a.75.75 0 0 1-.91.34l-1.32-.53c-.37.26-.77.48-1.2.64l-.2 1.4a.75.75 0 0 1-.74.65H8.98a.75.75 0 0 1-.74-.65l-.2-1.4a5.27 5.27 0 0 1-1.2-.64l-1.32.53a.75.75 0 0 1-.91-.34L3.59 12.2a.75.75 0 0 1 .17-.95l1.1-.87A5.42 5.42 0 0 1 4.8 9.5c0-.31.02-.61.06-.9l-1.1-.87a.75.75 0 0 1-.17-.95L4.61 5a.75.75 0 0 1 .91-.34l1.32.53c.37-.26.77-.48 1.2-.64l.2-1.14ZM10 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              fill="rgba(24,24,26,0.45)"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="search-wrap">
+        <div class="search-bar">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="rgba(24,24,26,0.32)" stroke-width="1.5"/>
+            <path d="M10 10l2.5 2.5" stroke="rgba(24,24,26,0.32)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="search-placeholder">Search your library</span>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-row">
+        <div class="filter-chip active">All</div>
+        <div class="filter-chip">Unplayed</div>
+        <div class="filter-chip">In Progress</div>
+        <div class="filter-chip">Completed</div>
+        <div class="filter-chip">Generating</div>
+      </div>
+
+      <!-- Content list -->
+      <div class="lib-list">
+
+        <!-- Item 1: EXPANDED — Psychology of Decision Making -->
+        <div class="lib-card" style="box-shadow: 0 2px 12px rgba(0,0,0,0.10), 0 0 0 1.5px rgba(24,24,26,0.09); border-color: rgba(24,24,26,0.10);">
+          <div class="lib-card-row">
+            <div class="lib-thumb teal">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">The Psychology of Decision Making</div>
+              <div class="lib-card-meta">
+                <span>By Daniel Kahneman</span>
+                <span class="dot-sep"></span>
+                <span>URL</span>
+                <span class="dot-sep"></span>
+                <span>2 days ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">3 versions</div>
+                <div class="lib-mini-track">
+                  <div class="lib-mini-fill" style="width: 65%;"></div>
+                </div>
+                <span style="font-size:10px; color:var(--text-mid); font-weight:550;">65%</span>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+              <svg class="chevron-icon open" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 5l4 4 4-4" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Expanded versions panel -->
+          <div class="expanded-panel">
+
+            <!-- Version 1: 5-min Quick Take — 65% played -->
+            <div class="version-row">
+              <div style="flex-shrink:0; width:28px; height:28px; border-radius:7px; background:var(--accent-light); border:1px solid var(--accent-border); display:flex; align-items:center; justify-content:center;">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 2L3.5 8h4.5l-1.5 4L14 6H9L11 2Z" stroke="var(--accent-text)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+              </div>
+              <div class="version-body">
+                <div class="version-name">5-min Quick Take</div>
+                <div class="version-meta">
+                  <span>Narrator</span>
+                  <span class="dot-sep"></span>
+                  <span>5:30</span>
+                </div>
+              </div>
+              <div class="version-progress-wrap">
+                <div class="version-progress-track">
+                  <div class="version-progress-fill" style="width:65%;"></div>
+                </div>
+                <span class="version-played-label">65%</span>
+              </div>
+              <button class="version-play-btn">
+                <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
+                  <path d="M2 1.5l7 4-7 4V1.5Z" fill="white"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Version 2: 15-min Summary — unplayed -->
+            <div class="version-row">
+              <div style="flex-shrink:0; width:28px; height:28px; border-radius:7px; background:var(--surface-2); border:1px solid rgba(24,24,26,0.09); display:flex; align-items:center; justify-content:center;">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <rect x="2" y="3" width="10" height="9" rx="1.5" stroke="rgba(24,24,26,0.35)" stroke-width="1.2" fill="none"/>
+                  <path d="M4 6.5h6M4 9h4" stroke="rgba(24,24,26,0.35)" stroke-width="1.1" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="version-body">
+                <div class="version-name">15-min Summary</div>
+                <div class="version-meta">
+                  <span>Narrator</span>
+                  <span class="dot-sep"></span>
+                  <span>14:20</span>
+                </div>
+              </div>
+              <button class="version-play-btn">
+                <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
+                  <path d="M2 1.5l7 4-7 4V1.5Z" fill="white"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Version 3: 30-min Deep Dive — unplayed -->
+            <div class="version-row">
+              <div style="flex-shrink:0; width:28px; height:28px; border-radius:7px; background:var(--surface-2); border:1px solid rgba(24,24,26,0.09); display:flex; align-items:center; justify-content:center;">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <rect x="1.5" y="9"   width="2" height="4"   rx="1" fill="rgba(24,24,26,0.35)" transform="translate(0,-5)"/>
+                  <rect x="4.5" y="6.5" width="2" height="6.5" rx="1" fill="rgba(24,24,26,0.35)" transform="translate(0,-5)"/>
+                  <rect x="7.5" y="5"   width="2" height="8"   rx="1" fill="rgba(24,24,26,0.35)" transform="translate(0,-5)"/>
+                  <rect x="10.5" y="7"  width="2" height="5"   rx="1" fill="rgba(24,24,26,0.35)" transform="translate(0,-5)"/>
+                </svg>
+              </div>
+              <div class="version-body">
+                <div class="version-name">30-min Deep Dive</div>
+                <div class="version-meta">
+                  <span>Conversation</span>
+                  <span class="dot-sep"></span>
+                  <span>28:45</span>
+                </div>
+              </div>
+              <button class="version-play-btn">
+                <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
+                  <path d="M2 1.5l7 4-7 4V1.5Z" fill="white"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Add new version link -->
+            <div class="add-version-link">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <circle cx="6.5" cy="6.5" r="5.5" stroke="var(--accent-text)" stroke-width="1.2" fill="none"/>
+                <path d="M6.5 4v5M4 6.5h5" stroke="var(--accent-text)" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              Process new version
+            </div>
+
+          </div>
+          <!-- /expanded-panel -->
+        </div>
+
+        <!-- Item 2 (collapsed) -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb orange">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">Sam Altman's Latest Newsletter: Scaling Startups</div>
+              <div class="lib-card-meta">
+                <span>URL</span><span class="dot-sep"></span><span>3 hours ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">1 version</div>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3 (collapsed) -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb pink">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M8 7L4 11l4 4" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 7l4 4-4 4" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 5l-3 12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">Building Resilient Distributed Systems</div>
+              <div class="lib-card-meta">
+                <span>URL</span><span class="dot-sep"></span><span>2 days ago</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">2 versions</div>
+                <div class="lib-mini-track"><div class="lib-mini-fill" style="width:20%;"></div></div>
+                <span style="font-size:10px;color:var(--text-mid);font-weight:550;">20%</span>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+              <svg class="chevron-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 5l4 4 4-4" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 4 (collapsed, generating) -->
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb amber">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M8 8h7M8 12h5" stroke="white" stroke-width="1.3" stroke-linecap="round" opacity="0.75"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">The Innovator's Dilemma</div>
+              <div class="lib-card-meta">
+                <span>By Clayton Christensen</span><span class="dot-sep"></span><span>EPUB</span>
+              </div>
+              <div class="lib-card-footer">
+                <div class="ver-badge">1 version</div>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-generating">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                  <circle cx="4" cy="1.5" r="1" fill="currentColor"/>
+                  <circle cx="6.5" cy="4" r="1" fill="currentColor" opacity="0.6"/>
+                  <circle cx="4" cy="6.5" r="1" fill="currentColor" opacity="0.3"/>
+                  <circle cx="1.5" cy="4" r="1" fill="currentColor" opacity="0.6"/>
+                </svg>
+                Generating
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /lib-list -->
+
+    </div>
+    <!-- /scroll-area -->
+
+    <!-- Mini-player -->
+    <div class="mini-player">
+      <div class="mini-player-progress">
+        <div class="mini-player-progress-fill"></div>
+      </div>
+      <div class="mini-player-art">
+        <svg width="14" height="14" viewBox="0 0 22 22" fill="none">
+          <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+            stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+            stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="mini-player-body">
+        <div class="mini-player-title">The Psychology of Decision Making</div>
+        <div class="mini-player-meta">5-min Quick Take · 65% complete</div>
+      </div>
+      <div class="mini-play-btn">
+        <svg width="11" height="12" viewBox="0 0 11 12" fill="none">
+          <rect x="1.5" y="2" width="2.8" height="8" rx="1.2" fill="white"/>
+          <rect x="6.2" y="2" width="2.8" height="8" rx="1.2" fill="white"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 4v12M4 10h12" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <div class="tab-item">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M3 9.5L11 3l8 6.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"
+              fill="none" stroke="rgba(24,24,26,0.30)" stroke-width="1.7" stroke-linejoin="round"/>
+            <path d="M8 20v-7h6v7" stroke="rgba(24,24,26,0.30)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="tab-label">Home</span>
+      </div>
+      <div class="tab-item active">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="3"  y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+            <rect x="9"  y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+            <rect x="15" y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <span class="tab-label">Library</span>
+      </div>
+    </div>
+
+  </div>
+  <!-- /phone 2 -->
+
+  <div class="screen-caption">
+    <strong>Tap any multi-version item</strong> to accordion-expand its versions.
+    Each row shows format, duration, and progress. <strong>"Process new version"</strong> opens the generator inline.
+  </div>
+</div>
+<!-- /phone-wrapper 2 -->
+
+<!-- Flow arrow -->
+<div class="flow-arrow">→</div>
+
+<!-- ══════════════════════════════════════ PHONE 3 — UPLOAD MODAL ═══════ -->
+<div class="phone-wrapper">
+  <div class="screen-label">3. Upload Action</div>
+
+  <div class="phone">
+    <div class="dynamic-island"></div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
+          <rect x="0"    y="8"   width="3" height="4"   rx="1" fill="currentColor" opacity="0.28"/>
+          <rect x="4.5"  y="5.5" width="3" height="6.5" rx="1" fill="currentColor" opacity="0.28"/>
+          <rect x="9"    y="3"   width="3" height="9"   rx="1" fill="currentColor"/>
+          <rect x="13.5" y="0"   width="3" height="12"  rx="1" fill="currentColor"/>
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 9.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" fill="currentColor"/>
+          <path d="M3.5 6.4A6.5 6.5 0 0 1 8 4.6c1.7 0 3.24.65 4.5 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M1 3.6A10.3 10.3 0 0 1 8 1c2.66 0 5.1.99 6.99 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.42"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/>
+          <rect x="2"   y="2"   width="15" height="8"  rx="2"   fill="currentColor"/>
+          <path d="M22.5 4v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Scrollable content (library behind, dimmed by overlay) -->
+    <div class="scroll-area">
+
+      <!-- Library header (visible through dim) -->
+      <div class="lib-header">
+        <div class="lib-title">Library</div>
+        <div class="gear-btn">
+          <svg class="icon" width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M8.24 2.41a.75.75 0 0 1 .74-.65h2.04a.75.75 0 0 1 .74.65l.2 1.4c.43.16.83.38 1.2.64l1.32-.53a.75.75 0 0 1 .91.34l1.02 1.77a.75.75 0 0 1-.17.95l-1.1.87c.04.29.06.59.06.9s-.02.61-.06.9l1.1.87a.75.75 0 0 1 .17.95l-1.02 1.77a.75.75 0 0 1-.91.34l-1.32-.53c-.37.26-.77.48-1.2.64l-.2 1.4a.75.75 0 0 1-.74.65H8.98a.75.75 0 0 1-.74-.65l-.2-1.4a5.27 5.27 0 0 1-1.2-.64l-1.32.53a.75.75 0 0 1-.91-.34L3.59 12.2a.75.75 0 0 1 .17-.95l1.1-.87A5.42 5.42 0 0 1 4.8 9.5c0-.31.02-.61.06-.9l-1.1-.87a.75.75 0 0 1-.17-.95L4.61 5a.75.75 0 0 1 .91-.34l1.32.53c.37-.26.77-.48 1.2-.64l.2-1.14ZM10 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              fill="rgba(24,24,26,0.45)"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Filter chips (barely visible under overlay) -->
+      <div class="filter-row" style="padding-top:8px;">
+        <div class="filter-chip active">All</div>
+        <div class="filter-chip">Unplayed</div>
+        <div class="filter-chip">In Progress</div>
+      </div>
+
+      <!-- Partial card list (cut off by modal) -->
+      <div class="lib-list">
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb teal">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">The Psychology of Decision Making</div>
+              <div class="lib-card-meta">
+                <span>By Daniel Kahneman</span><span class="dot-sep"></span><span>2 days ago</span>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="lib-card">
+          <div class="lib-card-row">
+            <div class="lib-thumb orange">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+                  stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="lib-card-body">
+              <div class="lib-card-title">Sam Altman's Latest Newsletter</div>
+              <div class="lib-card-meta">
+                <span>URL</span><span class="dot-sep"></span><span>3 hours ago</span>
+              </div>
+            </div>
+            <div class="lib-card-right">
+              <span class="badge badge-ready">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+                Ready
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- /scroll-area -->
+
+    <!-- Tab bar (dimmed) -->
+    <div class="tab-bar" style="z-index:8;">
+      <div class="tab-item">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M3 9.5L11 3l8 6.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"
+              fill="none" stroke="rgba(24,24,26,0.30)" stroke-width="1.7" stroke-linejoin="round"/>
+            <path d="M8 20v-7h6v7" stroke="rgba(24,24,26,0.30)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="tab-label">Home</span>
+      </div>
+      <div class="tab-item active">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="3"  y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+            <rect x="9"  y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+            <rect x="15" y="4" width="4" height="14" rx="1.5" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <span class="tab-label">Library</span>
+      </div>
+    </div>
+
+    <!-- Dark overlay -->
+    <div class="modal-overlay"></div>
+
+    <!-- Bottom sheet modal -->
+    <div class="bottom-sheet">
+
+      <!-- Drag handle -->
+      <div class="sheet-drag-handle-wrap">
+        <div class="sheet-drag-handle"></div>
+      </div>
+
+      <!-- Sheet header -->
+      <div class="sheet-header">
+        <div class="sheet-title">Add Content</div>
+        <div class="sheet-subtitle">Convert any text to audio</div>
+      </div>
+
+      <div class="sheet-divider"></div>
+
+      <!-- URL input -->
+      <div class="sheet-section">
+        <div class="sheet-section-label">Article URL</div>
+        <div class="url-input-row">
+          <div class="url-input">Paste article URL…</div>
+          <button class="fetch-btn">Fetch</button>
+        </div>
+      </div>
+
+      <!-- File upload -->
+      <div class="sheet-section">
+        <div class="sheet-section-label">Or upload a file</div>
+        <div class="file-dropzone">
+          <!-- Upload cloud icon -->
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="margin: 0 auto; display:block;">
+            <path d="M14 18V10M14 10l-4 4M14 10l4 4" stroke="rgba(24,24,26,0.25)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.5 20a5 5 0 1 1 .3-9.96A7 7 0 1 1 21 15.5H7.5Z" stroke="rgba(24,24,26,0.20)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <div class="dropzone-text">Drop file here</div>
+          <div class="dropzone-types">PDF, EPUB, or TXT</div>
+          <div class="browse-link">Browse files</div>
+        </div>
+      </div>
+
+      <!-- Duration presets -->
+      <div class="sheet-section">
+        <div class="sheet-section-label">Audio length</div>
+        <div class="duration-chips">
+          <div class="dur-chip">2 min</div>
+          <div class="dur-chip">3 min</div>
+          <div class="dur-chip selected">5 min</div>
+          <div class="dur-chip">15 min</div>
+          <div class="dur-chip">30 min</div>
+        </div>
+        <!-- Slider -->
+        <div class="slider-wrap">
+          <div class="slider-track">
+            <div class="slider-fill"></div>
+            <div class="slider-thumb"></div>
+          </div>
+        </div>
+        <div class="slider-labels">
+          <span>2 min</span>
+          <span>5 min selected</span>
+          <span>60 min</span>
+        </div>
+      </div>
+
+      <!-- Generate button -->
+      <button class="generate-btn">
+        <!-- Waveform icon -->
+        <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+          <rect x="0"  y="5"   width="2" height="4"   rx="1" fill="white" opacity="0.70"/>
+          <rect x="3.5" y="3"  width="2" height="8"   rx="1" fill="white" opacity="0.85"/>
+          <rect x="7"  y="0"   width="2" height="14"  rx="1" fill="white"/>
+          <rect x="10.5" y="2" width="2" height="10"  rx="1" fill="white" opacity="0.85"/>
+          <rect x="14" y="4"   width="2" height="6"   rx="1" fill="white" opacity="0.70"/>
+          <rect x="1.5" y="1"  width="0" height="0"   rx="1" fill="white"/>
+        </svg>
+        Generate Audio
+      </button>
+
+    </div>
+    <!-- /bottom-sheet -->
+
+  </div>
+  <!-- /phone 3 -->
+
+  <div class="screen-caption">
+    <strong>Upload is an action, not a tab.</strong> The FAB surfaces a bottom sheet for URL, PDF, EPUB, or TXT.
+    Duration presets let users control depth before committing.
+  </div>
+</div>
+<!-- /phone-wrapper 3 -->
+
+</div>
+<!-- /phones-row -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     DESIGN NOTES FOOTER
+══════════════════════════════════════════════════════════════════════════════ -->
+<div style="
+  margin-top: 64px;
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1080px;
+">
+  <div style="font-family: var(--font, system-ui); color: rgba(255,255,255,0.38); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; width: 100%; text-align: center; margin-bottom: -12px;">
+    Library Design Decisions
+  </div>
+
+  <!-- Note 1 -->
+  <div style="display:flex; align-items:flex-start; gap:10px; max-width:230px;">
+    <div style="width:28px; height:28px; border-radius:8px; background:rgba(234,88,12,0.14); border:1px solid rgba(234,88,12,0.24); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="2" y="2" width="4" height="10" rx="1" stroke="#EA580C" stroke-width="1.3" fill="none"/>
+        <rect x="8" y="2" width="4" height="10" rx="1" stroke="#EA580C" stroke-width="1.3" fill="none"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-family:system-ui; font-size:12px; font-weight:700; color:rgba(255,255,255,0.70); letter-spacing:-0.2px;">Grouped by content, not version</div>
+      <div style="font-family:system-ui; font-size:11px; color:rgba(255,255,255,0.30); margin-top:2px; line-height:1.6;">Home flattens to episodes for playback. Library groups by source item — your content management view.</div>
+    </div>
+  </div>
+
+  <!-- Note 2 -->
+  <div style="display:flex; align-items:flex-start; gap:10px; max-width:230px;">
+    <div style="width:28px; height:28px; border-radius:8px; background:rgba(234,88,12,0.14); border:1px solid rgba(234,88,12,0.24); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M2 7h10M7 2l5 5-5 5" stroke="#EA580C" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-family:system-ui; font-size:12px; font-weight:700; color:rgba(255,255,255,0.70); letter-spacing:-0.2px;">Upload-as-action FAB</div>
+      <div style="font-family:system-ui; font-size:11px; color:rgba(255,255,255,0.30); margin-top:2px; line-height:1.6;">Adding content is a transient action, not a persistent tab. Bottom sheet keeps context while the user configures their upload.</div>
+    </div>
+  </div>
+
+  <!-- Note 3 -->
+  <div style="display:flex; align-items:flex-start; gap:10px; max-width:230px;">
+    <div style="width:28px; height:28px; border-radius:8px; background:rgba(234,88,12,0.14); border:1px solid rgba(234,88,12,0.24); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M3 4.5h8M3 7h6M3 9.5h4" stroke="#EA580C" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="11" cy="10" r="2" fill="rgba(234,88,12,0.25)" stroke="#EA580C" stroke-width="1.1"/>
+        <path d="M10.3 10l.5.5 1-1" stroke="#EA580C" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-family:system-ui; font-size:12px; font-weight:700; color:rgba(255,255,255,0.70); letter-spacing:-0.2px;">All states visible</div>
+      <div style="font-family:system-ui; font-size:11px; color:rgba(255,255,255,0.30); margin-top:2px; line-height:1.6;">Ready, Generating (pulsing), and Played states coexist. Played items are de-emphasized but not hidden — content has value beyond first listen.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Watermark -->
+<div style="
+  margin-top: 44px;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: rgba(255,255,255,0.13);
+  letter-spacing: 0.3px;
+  text-align: center;
+">
+  Ridecast · Library Experience · Static Mockup · 2026
+</div>
+
+</body>
+</html>
