@@ -155,7 +155,8 @@ completed_features:
 - expanded-player-schema
 features:
   home-screen-playercontext-queue:
-    status: "ready"
+    status: "in-progress"
+    started_at: "2026-03-11T01:45:00Z"
     size: M
     depends_on: ["home-screen-playercontext-userid"]
   home-screen-rewrite:

@@ -325,6 +325,102 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
 
 // --- Smart Resume ---
 
+describe("PlayerContext — queue support", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function QueueTestComponent() {
+    const { currentItem, queue, queueIndex, playQueue, skipToNext, skipToPrevious } = usePlayer();
+    return (
+      <div>
+        <span data-testid="title">{currentItem?.title ?? "none"}</span>
+        <span data-testid="queue-length">{queue.length}</span>
+        <span data-testid="queue-index">{queueIndex}</span>
+        <button onClick={() => playQueue([
+          { id: "q1", title: "First", duration: 300, format: "narrator", audioUrl: "/a1.mp3" },
+          { id: "q2", title: "Second", duration: 400, format: "narrator", audioUrl: "/a2.mp3" },
+          { id: "q3", title: "Third", duration: 500, format: "narrator", audioUrl: "/a3.mp3" },
+        ])}>Play Queue</button>
+        <button onClick={skipToNext}>Next</button>
+        <button onClick={skipToPrevious}>Previous</button>
+      </div>
+    );
+  }
+
+  it("queue and queueIndex default to [] and 0", () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    expect(screen.getByTestId("queue-length").textContent).toBe("0");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("playQueue sets queue and plays first item", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play Queue"));
+    });
+    expect(screen.getByTestId("title").textContent).toBe("First");
+    expect(screen.getByTestId("queue-length").textContent).toBe("3");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("skipToNext advances to next item", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    expect(screen.getByTestId("title").textContent).toBe("Second");
+    expect(screen.getByTestId("queue-index").textContent).toBe("1");
+  });
+
+  it("skipToPrevious goes back", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    await act(async () => { fireEvent.click(screen.getByText("Previous")); });
+    expect(screen.getByTestId("title").textContent).toBe("First");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("skipToNext does nothing at end of queue", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); }); // past end
+    expect(screen.getByTestId("title").textContent).toBe("Third");
+    expect(screen.getByTestId("queue-index").textContent).toBe("2");
+  });
+
+  it("skipToPrevious does nothing at start", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Previous")); });
+    expect(screen.getByTestId("title").textContent).toBe("First");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("auto-advances when audio 'ended' event fires", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("ended"));
+    });
+
+    expect(screen.getByTestId("title").textContent).toBe("Second");
+    expect(screen.getByTestId("queue-index").textContent).toBe("1");
+  });
+});
+
 describe("Smart Resume", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 

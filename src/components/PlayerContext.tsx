@@ -25,6 +25,11 @@ interface PlayerState {
   setPosition: (position: number) => void;
   skipForward: (seconds: number) => void;
   skipBack: (seconds: number) => void;
+  queue: PlayableItem[];
+  queueIndex: number;
+  playQueue: (items: PlayableItem[]) => void;
+  skipToNext: () => void;
+  skipToPrevious: () => void;
 }
 
 const PlayerContext = createContext<PlayerState | null>(null);
@@ -34,8 +39,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPositionState] = useState(0);
   const [speed, setSpeedState] = useState(1.0);
+  const [queue, setQueue] = useState<PlayableItem[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const queueRef = useRef<PlayableItem[]>([]);
+  const queueIndexRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pausedAtRef = useRef<number | null>(null);
+
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => { queueIndexRef.current = queueIndex; }, [queueIndex]);
 
   // --- Playback state persistence ---
 
@@ -85,8 +97,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     const onTimeUpdate = () => setPositionState(audio.currentTime);
     const onEnded = () => {
-      setIsPlaying(false);
       savePosition(true); // completed = true
+      const nextIndex = queueIndexRef.current + 1;
+      if (nextIndex < queueRef.current.length) {
+        const nextItem = queueRef.current[nextIndex];
+        setQueueIndex(nextIndex);
+        setCurrentItem(nextItem);
+        setPositionState(0);
+        if (audio) { audio.src = nextItem.audioUrl; audio.currentTime = 0; audio.play().catch(console.error); }
+      } else {
+        setIsPlaying(false);
+      }
     };
     const onPlay = () => savePosition();
     const onPause = () => savePosition();
@@ -131,6 +152,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentItem(item);
       setIsPlaying(true);
       setPositionState(0);
+      // Clear queue when playing a single item directly
+      setQueue([]);
+      setQueueIndex(0);
       const audio = audioRef.current;
       if (audio) {
         audio.src = item.audioUrl;
@@ -141,6 +165,47 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [speed],
   );
+
+  const playQueue = useCallback((items: PlayableItem[]) => {
+    if (items.length === 0) return;
+    setQueue(items);
+    setQueueIndex(0);
+    const first = items[0];
+    setCurrentItem(first);
+    setIsPlaying(true);
+    setPositionState(0);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.src = first.audioUrl;
+      audio.playbackRate = speed;
+      audio.currentTime = 0;
+      audio.play().catch(console.error);
+    }
+  }, [speed]);
+
+  const skipToNext = useCallback(() => {
+    const nextIndex = queueIndexRef.current + 1;
+    if (nextIndex >= queueRef.current.length) return;
+    const nextItem = queueRef.current[nextIndex];
+    setQueueIndex(nextIndex);
+    setCurrentItem(nextItem);
+    setPositionState(0);
+    setIsPlaying(true);
+    const audio = audioRef.current;
+    if (audio) { audio.src = nextItem.audioUrl; audio.currentTime = 0; audio.play().catch(console.error); }
+  }, []);
+
+  const skipToPrevious = useCallback(() => {
+    const prevIndex = queueIndexRef.current - 1;
+    if (prevIndex < 0) return;
+    const prevItem = queueRef.current[prevIndex];
+    setQueueIndex(prevIndex);
+    setCurrentItem(prevItem);
+    setPositionState(0);
+    setIsPlaying(true);
+    const audio = audioRef.current;
+    if (audio) { audio.src = prevItem.audioUrl; audio.currentTime = 0; audio.play().catch(console.error); }
+  }, []);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => {
@@ -198,7 +263,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlayerContext.Provider
-      value={{ currentItem, isPlaying, position, speed, audioRef, play, togglePlay, setSpeed, setPosition, skipForward, skipBack }}
+      value={{ currentItem, isPlaying, position, speed, audioRef, play, togglePlay, setSpeed, setPosition, skipForward, skipBack, queue, queueIndex, playQueue, skipToNext, skipToPrevious }}
     >
       {children}
       <audio ref={audioRef} preload="auto" />
