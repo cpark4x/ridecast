@@ -482,6 +482,78 @@ describe("PlayerContext — extended PlayableItem fields", () => {
   });
 });
 
+describe("PlayerContext — sleep timer", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function SleepTestComponent() {
+    const { sleepTimer, setSleepTimer, isPlaying, play, togglePlay } = usePlayer();
+    return (
+      <div>
+        <span data-testid="sleep-timer">{sleepTimer === null ? "off" : String(sleepTimer)}</span>
+        <span data-testid="is-playing">{isPlaying ? "yes" : "no"}</span>
+        <button onClick={() => play({ id: "s1", title: "Sleep Test", duration: 3600, format: "narrator", audioUrl: "/a.mp3" })}>Play</button>
+        <button onClick={() => setSleepTimer(15)}>Set 15</button>
+        <button onClick={() => setSleepTimer("end")}>Set End</button>
+        <button onClick={() => setSleepTimer(null)}>Cancel</button>
+      </div>
+    );
+  }
+
+  it("sleepTimer defaults to null (off)", () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("off");
+  });
+
+  it("setSleepTimer(15) sets the timer value to 15", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Set 15")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("15");
+  });
+
+  it("setSleepTimer(null) cancels the timer", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Set 15")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("15");
+    await act(async () => { fireEvent.click(screen.getByText("Cancel")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("off");
+  });
+
+  it("setSleepTimer('end') sets timer to 'end'", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Set End")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("end");
+  });
+
+  it("pauses playback after sleep timer minutes elapse", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play")); });
+    expect(screen.getByTestId("is-playing").textContent).toBe("yes");
+
+    await act(async () => { fireEvent.click(screen.getByText("Set 15")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("15");
+
+    // Advance past the 15-minute mark
+    await act(async () => {
+      vi.advanceTimersByTime(15 * 60 * 1000 + 100);
+    });
+
+    // Timer should have auto-cleared and playback should be paused
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("off");
+  });
+});
+
 describe("Smart Resume", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 

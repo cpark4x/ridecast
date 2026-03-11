@@ -43,6 +43,8 @@ interface PlayerState {
   playQueue: (items: PlayableItem[]) => void;
   skipToNext: () => void;
   skipToPrevious: () => void;
+  sleepTimer: number | "end" | null;
+  setSleepTimer: (value: number | "end" | null) => void;
 }
 
 const PlayerContext = createContext<PlayerState | null>(null);
@@ -58,6 +60,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const queueIndexRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pausedAtRef = useRef<number | null>(null);
+
+  // --- Sleep timer ---
+  const [sleepTimer, setSleepTimerState] = useState<number | "end" | null>(null);
+  const sleepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { queueIndexRef.current = queueIndex; }, [queueIndex]);
@@ -266,6 +272,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setSleepTimer = useCallback((value: number | "end" | null) => {
+    // Clear any existing timer
+    if (sleepTimeoutRef.current) { clearTimeout(sleepTimeoutRef.current); sleepTimeoutRef.current = null; }
+    setSleepTimerState(value);
+    if (value === null || value === "end") return;
+    // Set a timeout to pause audio after value minutes
+    const totalMs = value * 60_000;
+    sleepTimeoutRef.current = setTimeout(() => {
+      const audio = audioRef.current;
+      if (audio) { audio.pause(); }
+      setIsPlaying(false);
+      setSleepTimerState(null);
+      sleepTimeoutRef.current = null;
+    }, totalMs);
+  }, []);
+
+  // Clean up sleep timer on unmount
+  useEffect(() => () => { if (sleepTimeoutRef.current) clearTimeout(sleepTimeoutRef.current); }, []);
+
   const skipBack = useCallback((seconds: number) => {
     const audio = audioRef.current;
     if (audio) {
@@ -276,7 +301,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlayerContext.Provider
-      value={{ currentItem, isPlaying, position, speed, audioRef, play, togglePlay, setSpeed, setPosition, skipForward, skipBack, queue, queueIndex, playQueue, skipToNext, skipToPrevious }}
+      value={{ currentItem, isPlaying, position, speed, audioRef, play, togglePlay, setSpeed, setPosition, skipForward, skipBack, queue, queueIndex, playQueue, skipToNext, skipToPrevious, sleepTimer, setSleepTimer }}
     >
       {children}
       <audio ref={audioRef} preload="auto" />
