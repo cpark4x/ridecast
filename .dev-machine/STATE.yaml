@@ -40,10 +40,10 @@ health_gates:
 - id: test
   command: npm run test
   status: PASS
-  duration: 1.86s
-  notes: 'Vitest: 151/158 tests passing, 7 intentionally skipped (DB-dependent).
+  duration: 3.21s
+  notes: 'Vitest: 257/264 tests passing, 7 intentionally skipped (DB-dependent).
 
-    All tests green as of Session 8 (Phase 0 complete).'
+    All tests green as of Session 12.'
 - id: build
   command: npm run build
   status: PASS
@@ -81,6 +81,16 @@ known_issues:
 
     '
 recently_shipped:
+- session: '12'
+  date: '2026-03-11'
+  commits:
+  - fadc894 feat(library): add useLibraryFilter hook
+  - f7b87ac feat(library): add library-progress utilities
+  - 4d220f6 feat(home): complete rewrite — greeting, Play All, queue cards, progress bars
+  - 28904c1 feat(player): update PlayerBar with dynamic gradient and richer subtitle
+  - 88d4852 fix(library): respect completed flag + guard unplayed vacuous truth
+  title: 'Session 12: 4 features — home-screen-rewrite, minibar, search-filter, progress-display'
+  notes: 4 features completed (8 pts). 4 features remaining. Antagonistic review caught 2 bugs (fixed).
 - session: '11'
   date: '2026-03-11'
   commits:
@@ -131,9 +141,9 @@ recently_shipped:
     '
 phase: 3
 phase_name: phase-3-home-expanded-library
-epoch: 11
+epoch: 12
 next_action: >
-  3 large rewrites + 5 supporting features remaining — home-screen-rewrite (L), expanded-player-rewrite (L) + minibar (S), library rewrites (search M, progress M, upload-modal M, process-new-version S, screen-rewrite L). ~17 points, estimated 2-3 sessions.
+  4 features remaining — expanded-player-rewrite (L), library-upload-modal (M), library-process-new-version (S), library-screen-rewrite (L). ~9 points, estimated 1-2 sessions. Next: expanded-player-rewrite + library-upload-modal + library-process-new-version (8 pts).
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -170,27 +180,43 @@ completed_features:
 - expanded-player-playable-item
 - expanded-player-sleep-timer
 - library-card-enhancement
+- home-screen-rewrite
+- expanded-player-minibar
+- library-search-filter
+- library-progress-display
 features:
   home-screen-rewrite:
-    status: "ready"
+    status: "done"
     size: L
     depends_on: ["home-screen-api", "home-screen-playercontext-queue", "home-screen-content-display-utils", "home-screen-nav-restructure"]
+    started_at: "2026-03-11T02:58:00Z"
+    completed_at: "2026-03-11T03:00:00Z"
+    commit: "4d220f6"
   expanded-player-rewrite:
     status: "ready"
     size: L
     depends_on: ["expanded-player-playable-item"]
   expanded-player-minibar:
-    status: "ready"
+    status: "done"
     size: S
     depends_on: ["expanded-player-playable-item"]
+    started_at: "2026-03-11T03:01:00Z"
+    completed_at: "2026-03-11T03:02:00Z"
+    commit: "28904c1"
   library-search-filter:
-    status: "ready"
+    status: "done"
     size: M
     depends_on: ["home-screen-api"]
+    started_at: "2026-03-11T02:54:00Z"
+    completed_at: "2026-03-11T02:56:00Z"
+    commit: "fadc894"
   library-progress-display:
-    status: "ready"
+    status: "done"
     size: M
     depends_on: ["home-screen-api", "home-screen-content-display-utils"]
+    started_at: "2026-03-11T02:56:00Z"
+    completed_at: "2026-03-11T02:57:00Z"
+    commit: "f7b87ac"
   library-upload-modal:
     status: "ready"
     size: M
@@ -205,13 +231,16 @@ features:
     depends_on: ["library-search-filter", "library-progress-display", "library-card-enhancement", "library-upload-modal", "library-process-new-version"]
 next_steps:
 - step: 1
-  task: Execute home-screen-rewrite (all deps satisfied)
-  action: "Run dev machine on specs/features/phase3/home-screen-redesign.md — rewrite task remains"
+  task: Execute expanded-player-rewrite + library-upload-modal + library-process-new-version (8 pts)
+  action: "Run dev machine — expanded-player-rewrite (L=3), library-upload-modal (M=2), library-process-new-version (S=1) = 6 pts fits one session"
+- step: 2
+  task: Execute library-screen-rewrite (L=3 pts)
+  action: "All deps will be satisfied after step 1. Final feature of Phase 3."
 last_session: '2026-03-11'
 meta:
   project: ridecast2
   created: "2026-03-05"
-  total_features_completed: 35
+  total_features_completed: 39
   last_updated: "2026-03-11"
-  session_count: 11
+  session_count: 12
   zero_change_sessions: 0

@@ -1,8 +1,8 @@
 # Context Transfer — ridecast2 Dev Machine
 
-**Date:** 2026-03-06
+**Date:** 2026-03-11
 **Project:** ridecast2
-**Status:** Phase 0 iOS foundation — ALL 6 specs COMPLETE. All gates green.
+**Status:** Phase 3 — 39 features shipped. 4 remaining (expanded-player-rewrite, library-upload-modal, library-process-new-version, library-screen-rewrite).
 
 ---
 
@@ -12,86 +12,50 @@
 
 | Gate | Status | Notes |
 |------|--------|-------|
-| `npm run lint` | ✅ PASS | 11 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **151 passing**, 7 skipped |
-| `npm run build` | ✅ PASS | All routes including /upgrade, /api/webhook |
+| `npm run lint` | ✅ PASS | ~10 warnings (non-blocking) |
+| `npm run test` | ✅ PASS | **257 passing**, 7 skipped |
+| `npm run build` | ✅ PASS | All routes build successfully |
 | `npm run test:e2e` | ✅ PASS | 5/5 (last run 2026-03-06) |
 
-### Total shipped to date: 22 features across 8 machine sessions
+### Total shipped to date: 39 features across 12 machine sessions
 
 ---
 
-## Phase 0 Context
+## Session 12 Summary — 2026-03-11
 
-**Target:** iOS app on Azure. Microsoft subscription, East US 2.
+**Completed (4 features, 8 pts):**
+- `library-search-filter` (fadc894) — useLibraryFilter hook: 200ms debounced search (title+author), 5 chip filters (All/Unplayed/InProgress/Completed/Generating), AND composition. 16 tests.
+- `library-progress-display` (f7b87ac) — Pure utility functions: getMostListenedVersion, getCardProgress, getVersionProgress, isItemPlayed. Respects completed flag even when position=0. 21 tests.
+- `home-screen-rewrite` (4d220f6) — Full Daily Drive redesign: time-based greeting, Play All (uses playQueue), Up Next section with gradient thumbnails/sourceType·timeAgo/progress bars, filters out completed episodes. 12 tests.
+- `expanded-player-minibar` (28904c1) — PlayerBar dynamic content-type gradients (8 types), richer subtitle (sourceType·timeAgo, falls back to format·duration). 8 tests.
 
-**Architecture decisions:**
-- Hosting: Azure Container Apps (no function timeout — pipeline takes 60-180s)
-- Auth: Clerk (drop-in Next.js middleware, free up to 10K MAU)
-- Database: Azure Database for PostgreSQL (replace Docker local)
-- Audio storage: Azure Blob Storage (replace `public/audio/` local filesystem)
-- TTS default: Google Cloud TTS Studio voices (same as NotebookLM, GCP access available)
-- Pricing: Free catalog (no login) / $10/mo own-content (Stripe)
-- BYOK: still supported — BYOK instances skip subscription gate
+**Review fixes (88d4852):**
+- Bug: progress utils ignored `completed` flag when `position=0` — fixed with early `v.completed ? 1 : ...` check
+- Bug: useLibraryFilter "unplayed" chip matched empty `versions[]` via vacuous truth — added `vs.length > 0` guard
 
----
-
-## Phase 0 Specs — Build Order
-
-6 specs in `specs/features/phase0/`. All DONE.
-
-| Priority | Feature | Status |
-|----------|---------|--------|
-| 1 | google-cloud-tts | ✅ DONE (de483d0) |
-| 2 | clerk-auth | ✅ DONE (40c35f7) |
-| 3 | azure-blob-storage | ✅ DONE (41f81e8) |
-| 4 | multi-user-schema | ✅ DONE (a476a7b) |
-| 5 | stripe-subscription | ✅ DONE (7750c49) |
-| 6 | azure-deployment | ✅ DONE (3b39547) |
-
-**Phase 0 is complete.** Next session should begin Phase 1 specs.
+**Key decisions:**
+- CONTENT_GRADIENTS map lives in PlayerBar.tsx for now. When expanded-player-rewrite is done, extract to shared `content-display.ts` to keep in sync.
+- HomeScreen uses `playQueue()` for "Play All" (not single `play()`) — enables auto-advance through all unlistened episodes.
+- HomeScreen filters at the item level: items where ALL ready versions are completed are excluded; items with mixed completed/non-completed versions show the first non-completed version.
 
 ---
 
-## Session 8 Summary — 2026-03-06
+## What's Next
 
-**Completed:**
+**4 features remaining (~9 pts, 1-2 sessions):**
 
-- `multi-user-schema` (a476a7b) — Removed `@default(uuid())` from `User.id` (Clerk provides ID); added `stripeCustomerId String?` and `subscriptionStatus String @default("free")` to User model; ran migration `20260307061942_add_stripe_fields_to_user`; replaced `DEFAULT_USER_ID = "default-user"` with `await getCurrentUserId()` in all 5 routes (upload, library, playback, process, audio/generate); created `GET /api/me` → `{ userId }`; updated `PlayerContext.tsx` to fetch `/api/me` on mount and gate `savePosition` on `userIdRef.current`; updated all route tests with `vi.mock('@/lib/auth')`.
+| Feature | Size | Deps Satisfied? |
+|---------|------|-----------------|
+| expanded-player-rewrite | L (3) | ✅ Yes |
+| library-upload-modal | M (2) | ✅ Yes |
+| library-process-new-version | S (1) | ❌ Needs library-upload-modal |
+| library-screen-rewrite | L (3) | ❌ Needs upload-modal + process-new-version |
 
-- `azure-deployment` (3b39547) — Multi-stage `Dockerfile` (node:20-alpine, deps/builder/runner stages); `.dockerignore`; `next.config.ts` + `output: "standalone"`; `.github/workflows/deploy-azure.yml` CI/CD pipeline to ACR + Container Apps; `docs/deployment.md` one-time Azure CLI setup guide; `.env.example` with complete Phase 0 env vars.
-
-- `stripe-subscription` (7750c49) — `src/lib/stripe.ts` lazy singleton (avoids build-time failure when key absent); `src/lib/subscription.ts` with `isByokInstance()`, `hasActiveSubscription()`, `requireSubscription()`; gated upload/process/audio-generate with `requireSubscription`; `GET /api/create-checkout-session`; `POST /api/webhook` (checkout.session.completed, customer.subscription.deleted/paused); `/app/upgrade/page.tsx` upgrade UI; 10 subscription tests passing; route tests mock `@/lib/subscription` pass-through.
-
-**Health gates:** lint ✅ test ✅ (151 passing) build ✅
-
-**Key decisions made:**
-- Stripe client uses lazy singleton pattern (same as Prisma DB) — prevents Next.js build error when `STRIPE_SECRET_KEY` absent. Uses `getStripeClient()` function, not a direct module-level `new Stripe(...)`.
-- Stripe API version: `"2026-02-25.clover"` (matches installed stripe@latest)
-- `PlayerContext.tsx` savePosition now guarded by `userIdRef.current` being non-null — fetch `/api/me` on mount first, then persisting works. Silent fail if `/api/me` unavailable.
-- Subscription gate tests use top-level `vi.mock('@/lib/db')` + env var manipulation per test (no `vi.resetModules()` complexity) — simpler and reliable.
-- Route tests mock `@/lib/subscription` with `requireSubscription: vi.fn().mockResolvedValue(null)` — subscription logic fully tested in `subscription.test.ts`, not in every route test.
+**Recommended next session:** expanded-player-rewrite (L=3) + library-upload-modal (M=2) + library-process-new-version (S=1) = 6 pts. Then final session: library-screen-rewrite (L=3).
 
 ---
 
-## What's Next: Phase 1
-
-**Next session should start with Phase 1 specs:**
-
-5 specs in `specs/features/phase1/`:
-1. `duration-accuracy.md` — Tighten ±15%, 2nd retry, durationAdvisory
-2. `pipeline-error-resilience.md` — retryWithBackoff, truncation warning, maxDuration
-3. `processing-screen-upgrade.md` — 4-stage Analyzing→Scripting→Generating→Ready
-4. `playback-state-persistence.md` — Wire /api/playback into PlayerContext
-5. `audio-duration-measurement.md` — Replace buffer-size estimate with real measurement
-
-**Note:** Items 1, 2, 4, 5 are already marked `done` in completed_features (they were shipped in earlier sessions). Verify before re-implementing.
-
-Actually, looking at STATE.yaml, all 5 Phase 1 specs are already in `completed_features`. **The machine should check what Phase 1 specs REMAIN** before starting. The `next_steps` in STATE.yaml points to Phase 1 as the next target.
-
----
-
-## Test Mock Patterns for Phase 0
+## Test Mock Patterns
 
 ```typescript
 // Mock Clerk auth
@@ -109,38 +73,13 @@ vi.mock("@/lib/subscription", () => ({
   requireSubscription: vi.fn().mockResolvedValue(null),
 }));
 
-// Mock Prisma user operations
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    user: { upsert: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-    content: { findMany: vi.fn(), create: vi.fn() },
-    // ... etc
-  },
-}));
-
-// Mock Azure Blob
-vi.mock("@azure/storage-blob", () => ({
-  BlobServiceClient: {
-    fromConnectionString: vi.fn().mockReturnValue({
-      getContainerClient: vi.fn().mockReturnValue({
-        getBlockBlobClient: vi.fn().mockReturnValue({
-          uploadData: vi.fn().mockResolvedValue({}),
-          url: "https://account.blob.core.windows.net/ridecast-audio/test.mp3",
-        }),
-      }),
-    }),
-  },
-}));
-
-// Mock Stripe (use getStripeClient pattern)
-vi.mock("@/lib/stripe", () => ({
-  getStripeClient: vi.fn().mockReturnValue({
-    checkout: {
-      sessions: { create: vi.fn().mockResolvedValue({ url: "https://checkout.stripe.com/test" }) },
-    },
-    webhooks: { constructEvent: vi.fn() },
-  }),
-  SUBSCRIPTION_PRICE_ID: "price_test",
+// Mock content-display utils (use in component tests)
+vi.mock("@/lib/ui/content-display", () => ({
+  gradients: ["from-a to-b", "from-c to-d", "from-e to-f", "from-g to-h"],
+  getGradient: (i: number) => ["from-a to-b", "from-c to-d"][i % 2],
+  sourceIcons: { pdf: "M14 2H6", url: "M12 2a10", epub: "M4 19.5", txt: "M14 2H6" },
+  timeAgo: () => "2h ago",
+  getTitleFallback: (title: string) => title || "fallback.com",
 }));
 ```
 
@@ -151,5 +90,4 @@ vi.mock("@/lib/stripe", () => ({
 ```bash
 npm run lint && npm run test && npm run build   # standard verification
 npm run db:migrate && npm run db:generate       # after schema changes
-amplifier recipe execute .dev-machine/recipes/build.yaml
 ```
