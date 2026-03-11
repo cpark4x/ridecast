@@ -2,8 +2,20 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { formatDuration } from "@/lib/utils/duration";
-import { gradients, sourceIcons, timeAgo } from "@/lib/ui/content-display";
 import { usePlayer } from "./PlayerContext";
+import {
+  getGradient,
+  sourceIcons,
+  timeAgo,
+  getTitleFallback,
+} from "@/lib/ui/content-display";
+import {
+  getCardProgress,
+  getVersionProgress,
+  isItemPlayed,
+} from "@/lib/ui/library-progress";
+import { useLibraryFilter, type FilterChip } from "@/hooks/useLibraryFilter";
+import { ProcessNewVersionModal } from "./ProcessNewVersionModal";
 
 interface AudioVersion {
   scriptId: string;
@@ -41,11 +53,39 @@ interface LibraryScreenProps {
   visible?: boolean;
 }
 
+const CHIPS: { id: FilterChip; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "unplayed", label: "Unplayed" },
+  { id: "in-progress", label: "In Progress" },
+  { id: "completed", label: "Completed" },
+  { id: "generating", label: "Generating" },
+];
+
+const FILTER_EMPTY: Record<FilterChip, string> = {
+  all: "Your library is empty",
+  unplayed: "No unplayed content",
+  "in-progress": "Nothing in progress",
+  completed: "No completed content",
+  generating: "Nothing generating",
+};
+
 export function LibraryScreen({ visible }: LibraryScreenProps) {
-  const [items, setItems] = useState<LibraryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [processModalContentId, setProcessModalContentId] = useState<
+    string | null
+  >(null);
+  const [processModalTitle, setProcessModalTitle] = useState("");
   const { play } = usePlayer();
+
+  // Coerce null/undefined versions to [] for each item (defensive against API)
+  const safeItems = (items ?? []).map((item) => ({
+    ...item,
+    versions: Array.isArray(item.versions) ? item.versions : [],
+  }));
+
+  const { query, setQuery, activeFilter, setActiveFilter, filtered } =
+    useLibraryFilter(safeItems);
 
   const loadLibrary = useCallback(async () => {
     try {
@@ -53,22 +93,39 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
     } catch {
-      console.error("Failed to load library");
-    } finally {
-      setLoading(false);
+      setItems([]);
     }
   }, []);
 
-  // Fetch on mount and re-fetch whenever the tab becomes visible.
   useEffect(() => {
-    loadLibrary();
-  }, [loadLibrary, visible]);
+    if (visible) loadLibrary();
+  }, [visible, loadLibrary]);
+
+  // Loading state — all hooks have been called above
+  if (items === null) {
+    return (
+      <div className="p-6 pt-16 text-center text-[var(--text-dim)]">
+        Loading...
+      </div>
+    );
+  }
+
+  const isEmpty = filtered.length === 0;
+  const emptyMsg = query.trim()
+    ? `No results for "${query}"`
+    : FILTER_EMPTY[activeFilter];
 
   function handlePlay(item: LibraryItem, version: AudioVersion) {
-    if (version.status !== "ready" || !version.audioUrl || !version.audioId) return;
+    if (version.status !== "ready" || !version.audioUrl || !version.audioId)
+      return;
     play({
       id: version.audioId,
-      title: item.title,
+      title: getTitleFallback(
+        item.title,
+        item.sourceUrl,
+        item.sourceType,
+        item.createdAt,
+      ),
       duration: version.durationSecs ?? 0,
       format: version.format ?? "narrator",
       audioUrl: version.audioUrl,
@@ -87,87 +144,165 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
     });
   }
 
-  /** Derived: the first ready version (or first version overall) for inline display */
-  function primaryVersion(versions: AudioVersion[]): AudioVersion | undefined {
-    return versions.find((v) => v.status === "ready") ?? versions[0];
+  function handleCardTap(item: (typeof safeItems)[number]) {
+    const versions = item.versions;
+    const hasMultiple = versions.length > 1;
+    if (hasMultiple) {
+      setExpandedId(expandedId === item.id ? null : item.id);
+    } else {
+      const pv =
+        versions.find((v) => v.status === "ready") ?? versions[0];
+      if (pv) handlePlay(item, pv);
+    }
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-5 pb-32">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-[26px] font-extrabold tracking-tight">Library</h1>
-        <span className="text-[13px] text-[var(--text-mid)]">{items.length} item{items.length !== 1 ? "s" : ""}</span>
+        <span className="text-[13px] text-[var(--text-mid)]">
+          {safeItems.length} item{safeItems.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
-      {loading ? (
-        <div className="text-center text-[var(--text-dim)] py-20">Loading...</div>
-      ) : items.length === 0 ? (
+      {/* Search bar */}
+      <div className="relative mb-3">
+        <svg
+          viewBox="0 0 24 24"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 stroke-[var(--text-dim)] fill-none"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by title or author\u2026"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--surface)] border border-black/[0.07] text-sm placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
+        />
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
+        {CHIPS.map((chip) => (
+          <button
+            key={chip.id}
+            onClick={() => setActiveFilter(chip.id)}
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
+              activeFilter === chip.id
+                ? "bg-gradient-to-br from-[#EA580C] to-[#F97316] text-white shadow-[0_2px_8px_rgba(234,88,12,0.2)]"
+                : "bg-[var(--surface)] text-[var(--text-mid)] border border-black/[0.07]"
+            }`}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {isEmpty ? (
         <div className="text-center py-16">
-          <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-[var(--text-dim)] fill-none mx-auto mb-5" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            className="w-16 h-16 stroke-[var(--text-dim)] fill-none mx-auto mb-5"
+            strokeWidth="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
             <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
           </svg>
-          <h3 className="text-lg font-bold mb-1.5">No episodes yet</h3>
-          <p className="text-sm text-[var(--text-mid)]">Upload content to create your first audio episode.</p>
+          <p className="text-base font-semibold mb-1.5">{emptyMsg}</p>
+          {activeFilter === "all" && !query.trim() && (
+            <p className="text-sm text-[var(--text-mid)]">
+              Tap the <strong>+</strong> button to add content.
+            </p>
+          )}
         </div>
       ) : (
         <div>
-          {items.map((item, i) => {
-            const versions = item.versions ?? [];
-            const pv = primaryVersion(versions);
-            const hasMultiple = versions.length > 1;
+          {filtered.map((item, i) => {
+            const versions = item.versions;
             const isExpanded = expandedId === item.id;
+            const played = isItemPlayed(versions);
+            const cardProgress = getCardProgress(versions);
+            const gradient = getGradient(i);
+            const displayTitle = getTitleFallback(
+              item.title,
+              item.sourceUrl,
+              item.sourceType,
+              item.createdAt,
+            );
+            const primaryVersion =
+              versions.find((v) => v.status === "ready") ?? versions[0];
 
             return (
               <div key={item.id} className="mb-2.5">
-                {/* Main card row */}
+                {/* Main card */}
                 <div
                   data-testid="library-item"
-                  onClick={() => {
-                    if (hasMultiple) {
-                      setExpandedId(isExpanded ? null : item.id);
-                    } else if (pv) {
-                      handlePlay(item, pv);
-                    }
-                  }}
-                  className="flex items-center gap-3.5 p-4 rounded-[14px] bg-[var(--surface)] border border-black/[0.07] cursor-pointer transition-all hover:bg-[var(--surface-2)] active:scale-[0.98]"
+                  onClick={() => handleCardTap(item)}
+                  className={`flex items-center gap-3.5 p-4 rounded-[14px] bg-[var(--surface)] border border-black/[0.07] cursor-pointer active:scale-[0.98] transition-all ${played ? "opacity-70" : ""} relative overflow-hidden`}
                 >
-                  <div className={`w-[52px] h-[52px] rounded-xl bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center shrink-0`}>
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white opacity-85">
-                      <path d={sourceIcons[item.sourceType] || sourceIcons.txt} />
+                  {/* Gradient thumbnail */}
+                  <div
+                    className={`w-[52px] h-[52px] rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0`}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="w-6 h-6 fill-white opacity-85"
+                    >
+                      <path
+                        d={sourceIcons[item.sourceType] ?? sourceIcons.txt}
+                      />
                     </svg>
                   </div>
+
+                  {/* Content info */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate mb-0.5">{item.title}</div>
-                    <div className="text-xs text-[var(--text-mid)] flex items-center gap-2 flex-wrap">
-                      {item.author && <><span>{item.author}</span><span>&middot;</span></>}
+                    <div className="text-sm font-semibold truncate mb-0.5">
+                      {displayTitle}
+                    </div>
+                    <div className="text-xs text-[var(--text-mid)] flex items-center gap-1.5 flex-wrap">
+                      {item.author && (
+                        <>
+                          <span>{item.author}</span>
+                          <span>&middot;</span>
+                        </>
+                      )}
                       <span className="uppercase">{item.sourceType}</span>
                       <span>&middot;</span>
                       <span>{timeAgo(item.createdAt)}</span>
                     </div>
                   </div>
+
+                  {/* Status badges */}
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    {versions.length === 0 ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
-                        Processing
+                    {played ? (
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--green-dim)] text-[var(--green)]">
+                        &#10003; Played
                       </span>
-                    ) : pv?.status === "ready" ? (
-                      <>
-                        {pv.durationSecs && (
-                          <span className="text-[13px] font-semibold text-[var(--text-mid)]">{formatDuration(pv.durationSecs)}</span>
-                        )}
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--green-dim)] text-[var(--green)]">
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
-                          {hasMultiple ? `${versions.length} versions` : "Ready"}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
+                    ) : primaryVersion?.status === "generating" ? (
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
                         Generating
                       </span>
+                    ) : versions.length === 0 ? (
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
+                        Processing
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--green-dim)] text-[var(--green)]">
+                        {versions.length > 1
+                          ? `${versions.length} versions`
+                          : "Ready"}
+                      </span>
                     )}
-                    {/* Chevron for expandable */}
-                    {hasMultiple && (
+                    {versions.length > 1 && (
                       <svg
                         viewBox="0 0 24 24"
                         className={`w-4 h-4 stroke-[var(--text-dim)] fill-none transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -179,52 +314,115 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                       </svg>
                     )}
                   </div>
+
+                  {/* Card-level progress bar */}
+                  {cardProgress > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-black/[0.05] rounded-b-[14px]">
+                      <div
+                        className="h-full rounded-b-[14px] bg-gradient-to-r from-[var(--accent)] to-[#F97316]"
+                        style={{
+                          width: `${Math.round(cardProgress * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Expanded version rows */}
                 {isExpanded && (
-                  <div className="mt-1 ml-4 border-l border-black/[0.07] pl-3">
-                    {versions.map((version) => (
-                      <div
-                        key={version.scriptId}
-                        onClick={() => handlePlay(item, version)}
-                        className={`flex items-center gap-3 p-3 mb-1 rounded-[10px] transition-all ${
-                          version.status === "ready"
-                            ? "bg-[var(--surface)] hover:bg-[var(--surface-2)] cursor-pointer active:scale-[0.98]"
-                            : "bg-[var(--surface-2)] cursor-default opacity-60"
-                        }`}
-                      >
-                        <div className="flex-1 flex items-center gap-2 flex-wrap">
-                          <span className="text-[12px] font-semibold text-[var(--text)]">
-                            {version.targetDuration} min
-                          </span>
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.06] text-[var(--text-mid)]">
-                            {version.format === "conversation" ? "Chat" : "Narrator"}
-                          </span>
-                          {version.durationSecs && (
-                            <span className="text-[11px] text-[var(--text-dim)]">{formatDuration(version.durationSecs)}</span>
-                          )}
+                  <div className="mt-1 ml-4 border-l-2 border-[var(--accent)]/20 pl-3">
+                    {versions.map((version) => {
+                      const vPct = Math.round(
+                        getVersionProgress(version) * 100,
+                      );
+                      return (
+                        <div
+                          key={version.scriptId}
+                          className={`flex items-center gap-3 p-3 mb-1 rounded-[10px] ${
+                            version.status === "ready"
+                              ? "bg-[var(--surface)] cursor-pointer active:scale-[0.98]"
+                              : "bg-[var(--surface-2)] opacity-60"
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[12px] font-semibold">
+                                {version.targetDuration} min
+                              </span>
+                              {version.durationSecs != null &&
+                                version.durationSecs > 0 && (
+                                  <span className="text-[11px] text-[var(--text-dim)]">
+                                    {formatDuration(version.durationSecs)}
+                                  </span>
+                                )}
+                              {version.completed && (
+                                <span className="text-[10px] font-semibold text-[var(--green)]">
+                                  &#10003; Done
+                                </span>
+                              )}
+                            </div>
+                            {vPct > 0 && (
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1 bg-black/[0.08] rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-[var(--accent)] rounded-full"
+                                    style={{ width: `${vPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] tabular-nums">
+                                  {vPct}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlay(item, version);
+                            }}
+                            aria-label="Play"
+                            disabled={version.status !== "ready"}
+                            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--green-dim)] text-[var(--green)] disabled:opacity-40"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="w-4 h-4 fill-current"
+                            >
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </button>
                         </div>
-                        <div className="shrink-0">
-                          {version.status === "ready" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--green-dim)] text-[var(--green)]">
-                              <svg width="6" height="6" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
-                              Play
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--amber-dim)] text-[var(--amber)]">
-                              Generating
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                    <button
+                      onClick={() => {
+                        setProcessModalContentId(item.id);
+                        setProcessModalTitle(displayTitle);
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-[12px] font-semibold text-[var(--accent-text)]"
+                    >
+                      + Process new version
+                    </button>
                   </div>
                 )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Process New Version Modal */}
+      {processModalContentId && (
+        <ProcessNewVersionModal
+          isOpen={true}
+          contentId={processModalContentId}
+          contentTitle={processModalTitle}
+          onClose={() => setProcessModalContentId(null)}
+          onVersionCreated={() => {
+            setProcessModalContentId(null);
+            loadLibrary();
+          }}
+        />
       )}
     </div>
   );

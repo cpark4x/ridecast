@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-11
 **Project:** ridecast2
-**Status:** Phase 3 — 42 features shipped. 1 remaining (library-screen-rewrite).
+**Status:** Phase 3 COMPLETE — 43 features shipped across 15 sessions.
 
 ---
 
@@ -12,28 +12,29 @@
 
 | Gate | Status | Notes |
 |------|--------|-------|
-| `npm run lint` | ✅ PASS | ~10 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **296 passing**, 7 skipped |
-| `npm run build` | ✅ PASS | All routes build successfully |
-| `npm run test:e2e` | ✅ PASS | 5/5 (last run 2026-03-06) |
+| `npm run lint` | PASS | ~10 warnings (non-blocking) |
+| `npm run test` | PASS | **316 passing**, 7 skipped |
+| `npm run build` | PASS | All routes build successfully |
+| `npm run test:e2e` | PASS | 5/5 (last run 2026-03-06) |
 
-### Total shipped to date: 42 features across 13 machine sessions
+### Total shipped to date: 43 features across 15 machine sessions
+
+---
+
+## Session 15 Summary — 2026-03-11
+
+**Completed (1 feature, 3 pts) — FINAL PHASE 3 FEATURE:**
+- `library-screen-rewrite` (ccfd6fa) — Full rewrite: search bar (200ms debounce via useLibraryFilter), 5 filter chips (All/Unplayed/In Progress/Completed/Generating), card-level progress bars (getCardProgress), played/dimmed state + badge (isItemPlayed), expanded version list with per-version progress + percentage, "+ Process new version" link opening ProcessNewVersionModal, smart title fallback (getTitleFallback), per-filter empty states, defensive null/undefined version handling. 25 tests.
+
+**Antagonistic review findings (none actionable):**
+- Single-version items can't access "Process new version" — by-design per spec (only in expanded view for multi-version items). Added as proposed_features in STATE.yaml.
+- All other findings matched spec implementation or were covered by separate test files.
 
 ---
 
 ## Session 13 Summary — 2026-03-11
 
-**Completed (3 features, 6 pts):**
-- `expanded-player-rewrite` (9c2c7e0) — Complete rewrite: scrollable 3-section layout, dynamic content-type gradients (8 types), rich metadata (author, contentType badge, theme chips, About/summary, source domain, word count), 5s/15s skip intervals, sleep timer cycling. 30 tests.
-- `library-upload-modal` (7dec82c) — Extracted inline upload JSX from AppShell into reusable UploadModal: bottom sheet with drag handle, backdrop dismiss, "Add Content" heading, close button. 7 tests.
-- `library-process-new-version` (6dc8857) — Duration preset picker modal (2/3/5/15/30 min), default 5 min, POSTs to /api/process, loading state, error handling, onVersionCreated callback. 10 tests.
-
-**Review fix (3864ac0):**
-- Bug: ExpandedPlayer sleep timer local state desynced from context when timer fired externally — added `useEffect` sync from context's `sleepTimer`.
-
-**Key decisions:**
-- ExpandedPlayer keeps its own CONTENT_GRADIENTS map (duplicated from PlayerBar). Both need to stay in sync. Future: extract to shared `content-display.ts`.
-- Sleep timer uses local state + useEffect sync pattern: local state for UI cycling, useEffect syncs when context changes externally.
+3 features (6 pts): expanded-player-rewrite, upload-modal, process-new-version. Review caught sleep timer desync bug (fixed).
 
 ---
 
@@ -45,13 +46,12 @@
 
 ## What's Next
 
-**1 feature remaining (L=3, 1 session):**
+**Phase 3 is COMPLETE.** All features from home-screen-redesign, expanded-player, and library-redesign specs are shipped.
 
-| Feature | Size | Deps Satisfied? |
-|---------|------|-----------------|
-| library-screen-rewrite | L (3) | ✅ Yes — all 5 deps done |
-
-**Recommended next session:** library-screen-rewrite (L=3). Final feature of Phase 3.
+**Human decision required:** Choose next phase direction. Options from ROADMAP.md:
+- Multi-Source Synthesis, Episode Sharing, Scheduled Production
+- Voice Selection, RSS/Podcast Feed Output
+- CarPlay integration, Word-level transcript seek
 
 ---
 

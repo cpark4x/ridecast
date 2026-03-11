@@ -181,3 +181,27 @@ features:
     started_at: '2026-03-11T02:56:00Z'
     completed_at: '2026-03-11T02:57:00Z'
     commit: f7b87ac
+  expanded-player-rewrite:
+    status: done
+    size: L
+    started_at: '2026-03-11T09:11:00Z'
+    completed_at: '2026-03-11T09:22:00Z'
+    commit: 9c2c7e0
+    depends_on:
+    - expanded-player-playable-item
+  library-upload-modal:
+    status: done
+    size: M
+    started_at: '2026-03-11T09:22:00Z'
+    completed_at: '2026-03-11T09:24:00Z'
+    commit: 7dec82c
+    depends_on:
+    - home-screen-nav-restructure
+  library-process-new-version:
+    status: done
+    size: S
+    started_at: '2026-03-11T09:24:00Z'
+    completed_at: '2026-03-11T09:25:00Z'
+    commit: 6dc8857
+    depends_on:
+    - library-upload-modal
