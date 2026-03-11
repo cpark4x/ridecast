@@ -47,7 +47,11 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
 
   const [undoPosition, setUndoPosition] = useState<number | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Local sleep value for UI cycling; syncs from context when context changes
+  // (e.g., timer fires in PlayerContext and resets to null)
   const [sleepValue, setSleepValue] = useState<number | "end" | null>(sleepTimer);
+  useEffect(() => { setSleepValue(sleepTimer); }, [sleepTimer]);
 
   // Clean up undo timer on unmount
   useEffect(() => {
