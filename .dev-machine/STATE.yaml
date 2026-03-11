@@ -17,6 +17,7 @@ specs:
   - specs/features/phase0/stripe-subscription.md
   - specs/features/phase0/azure-deployment.md
   - specs/features/phase3/home-screen-redesign.md
+  - specs/features/phase3/expanded-player.md
 commands:
   build: npm run build
   test: npm run test
@@ -109,7 +110,7 @@ phase: 2
 phase_name: phase-2-pwa-features
 epoch: 9
 next_action: >
-  Execute home screen redesign — 8 features queued, ~12 points, estimated 2 sessions.
+  Execute home screen redesign (12 pts) + expanded player (10 pts) — ~22 points total, estimated 3-4 sessions.
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -166,6 +167,34 @@ features:
     status: "ready"
     size: S
     depends_on: ["home-screen-content-display-utils"]
+  expanded-player-schema:
+    status: "ready"
+    size: S
+    depends_on: []
+  expanded-player-save-summary:
+    status: "ready"
+    size: S
+    depends_on: ["expanded-player-schema"]
+  expanded-player-api:
+    status: "ready"
+    size: S
+    depends_on: ["expanded-player-schema"]
+  expanded-player-playable-item:
+    status: "ready"
+    size: S
+    depends_on: ["expanded-player-api"]
+  expanded-player-rewrite:
+    status: "ready"
+    size: L
+    depends_on: ["expanded-player-playable-item"]
+  expanded-player-minibar:
+    status: "ready"
+    size: S
+    depends_on: ["expanded-player-playable-item"]
+  expanded-player-sleep-timer:
+    status: "ready"
+    size: M
+    depends_on: []
 next_steps:
 - step: 1
   task: Begin Phase 1 feature implementation
