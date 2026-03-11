@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ridecast — Home (Mockup)</title>
+  <style>
+    /* ─── Reset ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Design tokens ─────────────────────────────────────────────── */
+    :root {
+      --bg:           #F7F6F3;
+      --surface:      #FFFFFF;
+      --surface-2:    #F0EEE9;
+      --text:         #18181A;
+      --text-mid:     rgba(24,24,26,0.50);
+      --text-dim:     rgba(24,24,26,0.30);
+      --accent:       #EA580C;
+      --accent-text:  #C2410C;
+      --accent-light: rgba(234,88,12,0.10);
+      --green:        #16A34A;
+      --amber:        #D97706;
+      --card-shadow:  0 1px 3px rgba(0,0,0,0.08);
+      --card-radius:  12px;
+      --font:         system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+
+    /* ─── Viewport shell ─────────────────────────────────────────────── */
+    body {
+      background: #E8E5DF;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Phone frame ──────────────────────────────────────────────── */
+    .phone {
+      width: 390px;
+      min-height: 844px;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.08),
+        0 8px 40px rgba(0,0,0,0.18),
+        0 2px 8px rgba(0,0,0,0.10);
+      border-radius: 44px;
+      margin: 32px 0 64px;
+    }
+
+    /* ─── Status bar (sticky at top) ──────────────────────────────── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 28px 6px;
+      flex-shrink: 0;
+      /* Sticky inside the flex column — stays above scroll-area */
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--bg);
+    }
+    .status-bar .time {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+    }
+
+    /* ─── Scrollable content ──────────────────────────────────────── */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      /* Extra bottom padding: tab bar (84px) + some breathing room */
+      padding: 0 0 104px;
+      scrollbar-width: none;
+    }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* ─── Header ─────────────────────────────────────────────────── */
+    .header {
+      padding: 10px 20px 4px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .header-text {}
+    .greeting {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.6px;
+      line-height: 1.15;
+    }
+    .commute-meta {
+      margin-top: 4px;
+      font-size: 14px;
+      color: var(--text-mid);
+      font-weight: 450;
+      letter-spacing: -0.1px;
+    }
+    .commute-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .dot-sep {
+      display: inline-block;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      margin: 0 4px;
+      vertical-align: middle;
+    }
+    .gear-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 4px;
+      cursor: pointer;
+      color: var(--text-mid);
+    }
+
+    /* ─── Play CTA ──────────────────────────────────────────────── */
+    .cta-wrap {
+      padding: 16px 20px 4px;
+    }
+    .cta-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-family: var(--font);
+      font-size: 17px;
+      font-weight: 650;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow:
+        0 1px 2px rgba(234,88,12,0.20),
+        0 4px 16px rgba(234,88,12,0.28),
+        0 1px 0 rgba(255,255,255,0.12) inset;
+      transition: filter 0.15s;
+    }
+    .cta-btn:hover { filter: brightness(1.06); }
+    .cta-play-icon {
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.22);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ─── Section label ──────────────────────────────────────────── */
+    .section-label {
+      padding: 20px 20px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-mid);
+      background: var(--surface-2);
+      border-radius: 20px;
+      padding: 3px 8px;
+      letter-spacing: 0.1px;
+      border: 1px solid rgba(24,24,26,0.07);
+    }
+    /* "Popular" pill gets accent treatment */
+    .pill-popular {
+      color: var(--accent-text);
+      background: var(--accent-light);
+      border-color: rgba(234,88,12,0.15);
+    }
+
+    /* Section subtitle (used under For You header) */
+    .section-subtitle {
+      padding: 0 20px 12px;
+      font-size: 13px;
+      color: var(--text-mid);
+      font-weight: 400;
+      margin-top: -8px;
+      letter-spacing: -0.1px;
+    }
+
+    /* ─── Currently Playing Card ─────────────────────────────────── */
+    .now-playing-card {
+      margin: 8px 20px 0;
+      background: var(--surface);
+      border-radius: var(--card-radius);
+      padding: 14px;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid rgba(24,24,26,0.06);
+      position: relative;
+    }
+
+    /* Live indicator badge */
+    .now-playing-badge {
+      position: absolute;
+      top: -1px;
+      left: 14px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 0 0 7px 7px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    .np-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .np-art {
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #EA580C 0%, #FB923C 60%, #FDE68A 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(234,88,12,0.25);
+    }
+    .np-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .np-title {
+      font-size: 15px;
+      font-weight: 650;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .np-meta {
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--text-mid);
+      font-weight: 450;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .np-meta .source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-text);
+      background: var(--accent-light);
+      padding: 2px 6px;
+      border-radius: 5px;
+      margin-right: 6px;
+    }
+    .np-controls {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(234,88,12,0.30);
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    /* Progress bar */
+    .np-progress {
+      margin-top: 12px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 3px;
+      background: var(--surface-2);
+      border-radius: 99px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, #FB923C 100%);
+      border-radius: 99px;
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+    .progress-labels span {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+    .progress-labels .time-left {
+      color: var(--text-mid);
+      font-weight: 550;
+    }
+
+    /* ─── Queue episode cards ─────────────────────────────────────── */
+    .episode-list {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ep-card {
+      background: var(--surface);
+      border-radius: var(--card-radius);
+      padding: 12px 14px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(24,24,26,0.05);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ep-art {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ep-art.grad-orange {
+      background: linear-gradient(135deg, #EA580C 0%, #FB923C 100%);
+      box-shadow: 0 2px 5px rgba(234,88,12,0.22);
+    }
+    .ep-art.grad-pink {
+      background: linear-gradient(135deg, #DB2777 0%, #F472B6 100%);
+      box-shadow: 0 2px 5px rgba(219,39,119,0.20);
+    }
+    .ep-art.grad-teal {
+      background: linear-gradient(135deg, #0D9488 0%, #2DD4BF 100%);
+      box-shadow: 0 2px 5px rgba(13,148,136,0.22);
+    }
+    .ep-art.grad-amber {
+      background: linear-gradient(135deg, #D97706 0%, #FCD34D 100%);
+      box-shadow: 0 2px 5px rgba(217,119,6,0.22);
+    }
+
+    .ep-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .ep-title {
+      font-size: 14px;
+      font-weight: 650;
+      color: var(--text);
+      letter-spacing: -0.2px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ep-meta {
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .ep-type {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-mid);
+    }
+    .ep-age {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Partial progress on a queue card */
+    .ep-mini-progress {
+      margin-top: 5px;
+    }
+    .ep-mini-track {
+      width: 100%;
+      height: 2px;
+      background: var(--surface-2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .ep-mini-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, #FB923C 100%);
+      border-radius: 99px;
+    }
+
+    .ep-duration {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mid);
+      background: var(--surface-2);
+      border-radius: 7px;
+      padding: 4px 8px;
+      letter-spacing: -0.1px;
+      font-variant-numeric: tabular-nums;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+
+    /* ─── Section divider ─────────────────────────────────────────── */
+    .section-divider {
+      margin: 20px 20px 0;
+      height: 1px;
+      background: rgba(24,24,26,0.07);
+    }
+
+    /* ─── Discovery cards (For You) ──────────────────────────────── */
+    .discovery-list {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /*
+      Intentionally different from .ep-card:
+      - Left border color instead of gradient square
+      - Category tag + source/duration in meta row
+      - "+" add button instead of duration chip
+    */
+    .disc-card {
+      background: var(--surface);
+      border-radius: var(--card-radius);
+      /* Remove left border-radius so the colored border sits flush */
+      border-radius: 0 var(--card-radius) var(--card-radius) 0;
+      padding: 12px 12px 12px 14px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(24,24,26,0.05);
+      border-left-width: 3px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .disc-card.border-teal  { border-left-color: #0D9488; }
+    .disc-card.border-pink  { border-left-color: #DB2777; }
+    .disc-card.border-amber { border-left-color: #D97706; }
+
+    .disc-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Category tag */
+    .disc-cat {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    .disc-cat.cat-teal  { color: #0D9488; background: rgba(13,148,136,0.10); }
+    .disc-cat.cat-pink  { color: #BE185D; background: rgba(219,39,119,0.10); }
+    .disc-cat.cat-amber { color: #B45309; background: rgba(217,119,6,0.10);  }
+
+    .disc-title {
+      font-size: 13.5px;
+      font-weight: 650;
+      color: var(--text);
+      letter-spacing: -0.2px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .disc-meta {
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .disc-source {
+      font-size: 11px;
+      font-weight: 550;
+      color: var(--text-mid);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .disc-dur {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* "+" add-to-library button */
+    .disc-add {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(24,24,26,0.16);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-mid);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .disc-add:hover {
+      background: var(--accent-light);
+      border-color: rgba(234,88,12,0.30);
+      color: var(--accent);
+    }
+
+    /* ─── Tab bar (fixed at bottom of phone) ─────────────────────── */
+    .tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 84px;
+      background: rgba(247,246,243,0.92);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+      backdrop-filter: blur(20px) saturate(1.6);
+      border-top: 1px solid rgba(24,24,26,0.08);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-around;
+      padding: 10px 20px 0;
+      border-radius: 0 0 44px 44px;
+      z-index: 10;
+    }
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      flex: 1;
+    }
+    .tab-icon-wrap {
+      width: 44px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+    .tab-item.active .tab-icon-wrap {
+      background: var(--accent-light);
+    }
+    .tab-label {
+      font-size: 10px;
+      font-weight: 550;
+      letter-spacing: 0.1px;
+      color: var(--text-dim);
+    }
+    .tab-item.active .tab-label {
+      color: var(--accent);
+    }
+
+    /* Floating add button (fixed above tab bar) */
+    .fab {
+      position: absolute;
+      bottom: 56px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 2px 8px rgba(234,88,12,0.35),
+        0 6px 20px rgba(234,88,12,0.20);
+      cursor: pointer;
+      z-index: 11;
+      border: 2px solid rgba(255,255,255,0.25);
+    }
+
+    /* ─── Icon helper ─────────────────────────────────────────────── */
+    .icon { display: block; }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     Phone frame
+══════════════════════════════════════════════════════ -->
+<div class="phone">
+
+  <!-- ── Status bar (sticky top) ── -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="status-icons">
+      <!-- Signal bars -->
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
+        <rect x="0"    y="8"   width="3" height="4"   rx="1" fill="currentColor" opacity="0.3"/>
+        <rect x="4.5"  y="5.5" width="3" height="6.5" rx="1" fill="currentColor" opacity="0.3"/>
+        <rect x="9"    y="3"   width="3" height="9"   rx="1" fill="currentColor"/>
+        <rect x="13.5" y="0"   width="3" height="12"  rx="1" fill="currentColor"/>
+      </svg>
+      <!-- WiFi -->
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M8 9.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" fill="currentColor"/>
+        <path d="M3.5 6.4A6.53 6.53 0 0 1 8 4.6c1.7 0 3.24.65 4.5 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M1 3.6A10.3 10.3 0 0 1 8 1c2.66 0 5.1.99 6.99 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45"/>
+      </svg>
+      <!-- Battery -->
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+        <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/>
+        <rect x="2"   y="2"   width="15" height="8"  rx="2"   fill="currentColor"/>
+        <path d="M22.5 4v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ── Scrollable area ── -->
+  <div class="scroll-area">
+
+    <!-- ── 1 · Header ──────────────────────────────────────── -->
+    <div class="header">
+      <div class="header-text">
+        <div class="greeting">Good evening</div>
+        <div class="commute-meta">
+          <span>
+            <!-- Clock icon -->
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-bottom:-1px">
+              <circle cx="6" cy="6" r="5" stroke="rgba(24,24,26,0.40)" stroke-width="1.2"/>
+              <path d="M6 3.5V6l1.75 1.75" stroke="rgba(24,24,26,0.40)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            45 min
+          </span>
+          <span class="dot-sep"></span>
+          <span>3 episodes</span>
+        </div>
+      </div>
+      <!-- Gear / Settings -->
+      <div class="gear-btn" title="Settings">
+        <svg class="icon" width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M8.24 2.41a.75.75 0 0 1 .74-.65h2.04a.75.75 0 0 1 .74.65l.2 1.4c.43.16.83.38 1.2.64l1.32-.53a.75.75 0 0 1 .91.34l1.02 1.77a.75.75 0 0 1-.17.95l-1.1.87c.04.29.06.59.06.9s-.02.61-.06.9l1.1.87a.75.75 0 0 1 .17.95l-1.02 1.77a.75.75 0 0 1-.91.34l-1.32-.53c-.37.26-.77.48-1.2.64l-.2 1.4a.75.75 0 0 1-.74.65H8.98a.75.75 0 0 1-.74-.65l-.2-1.4a5.27 5.27 0 0 1-1.2-.64l-1.32.53a.75.75 0 0 1-.91-.34L3.59 12.2a.75.75 0 0 1 .17-.95l1.1-.87A5.42 5.42 0 0 1 4.8 9.5c0-.31.02-.61.06-.9l-1.1-.87a.75.75 0 0 1-.17-.95L4.61 5a.75.75 0 0 1 .91-.34l1.32.53c.37-.26.77-.48 1.2-.64l.2-1.14ZM10 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+            fill="rgba(24,24,26,0.45)"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ── 2 · Play CTA ──────────────────────────────────────── -->
+    <div class="cta-wrap">
+      <button class="cta-btn">
+        <div class="cta-play-icon">
+          <!-- Play triangle -->
+          <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
+            <path d="M2 1.5l7 4-7 4V1.5Z" fill="white"/>
+          </svg>
+        </div>
+        Play All
+      </button>
+    </div>
+
+    <!-- ── 3 · Currently Playing ─────────────────────────────── -->
+    <div class="section-label">
+      <h2>Now Playing</h2>
+    </div>
+
+    <div class="now-playing-card">
+      <!-- Live badge -->
+      <div class="now-playing-badge">
+        <span class="live-dot"></span>
+        Playing
+      </div>
+
+      <div class="np-top">
+        <!-- Artwork: orange gradient, link/URL icon -->
+        <div class="np-art">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+              stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+              stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <!-- Info -->
+        <div class="np-info">
+          <div class="np-title">How AI Is Reshaping Enterprise Software</div>
+          <div class="np-meta">
+            <span class="source-chip">
+              <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+                <path d="M5 7a3 3 0 0 0 4.24.15l1.67-1.67A3 3 0 0 0 6.67 1.4L5.74 2.33" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M7 5a3 3 0 0 0-4.24-.15L1.09 6.52A3 3 0 0 0 5.33 10.6l.92-.93" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              URL
+            </span>
+            <span style="font-size:12px; color:var(--text-dim);">2h ago</span>
+          </div>
+        </div>
+
+        <!-- Play/Pause control -->
+        <div class="np-controls">
+          <!-- Pause icon -->
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="2.5" y="2" width="3.5" height="10" rx="1.5" fill="white"/>
+            <rect x="8"   y="2" width="3.5" height="10" rx="1.5" fill="white"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="np-progress">
+        <div class="progress-track">
+          <div class="progress-fill" style="width: 40%"></div>
+        </div>
+        <div class="progress-labels">
+          <span>3:08</span>
+          <span class="time-left">4:32 left</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 4 · Up Next (Your Queue) ──────────────────────────── -->
+    <div class="section-label">
+      <h2>Up Next</h2>
+      <span class="pill">Recent</span>
+    </div>
+
+    <div class="episode-list">
+
+      <!-- Episode 1: URL · orange grad -->
+      <div class="ep-card">
+        <div class="ep-art grad-orange">
+          <!-- Link / URL icon -->
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <path d="M9.5 12.5a4.5 4.5 0 0 0 6.36.22l2.5-2.5A4.5 4.5 0 0 0 12 3.86l-1.43 1.42"
+              stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12.5 9.5a4.5 4.5 0 0 0-6.36-.22l-2.5 2.5A4.5 4.5 0 0 0 10 18.14l1.42-1.42"
+              stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="ep-body">
+          <div class="ep-title">Sam Altman's Latest Newsletter: Scaling Startups</div>
+          <div class="ep-meta">
+            <span class="ep-type">URL</span>
+            <span class="dot-sep"></span>
+            <span class="ep-age">3h ago</span>
+          </div>
+        </div>
+        <div class="ep-duration">12:45</div>
+      </div>
+
+      <!-- Episode 2: PDF · pink grad · 20% progress -->
+      <div class="ep-card">
+        <div class="ep-art grad-pink">
+          <!-- PDF / document icon -->
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <path d="M6 2h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"
+              stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M13 2v5h5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 13h6M8 16.5h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="ep-body">
+          <div class="ep-title">The Psychology of Decision Making</div>
+          <div class="ep-meta">
+            <span class="ep-type">PDF</span>
+            <span class="dot-sep"></span>
+            <span class="ep-age">1d ago</span>
+          </div>
+          <!-- Resume progress bar: 20% -->
+          <div class="ep-mini-progress">
+            <div class="ep-mini-track">
+              <div class="ep-mini-fill" style="width: 20%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ep-duration">8:20</div>
+      </div>
+
+      <!-- Episode 3: URL · teal grad -->
+      <div class="ep-card">
+        <div class="ep-art grad-teal">
+          <!-- Code/systems icon -->
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <path d="M8 7L4 11l4 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 7l4 4-4 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5l-2 12" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="ep-body">
+          <div class="ep-title">Building Resilient Distributed Systems</div>
+          <div class="ep-meta">
+            <span class="ep-type">URL</span>
+            <span class="dot-sep"></span>
+            <span class="ep-age">2d ago</span>
+          </div>
+        </div>
+        <div class="ep-duration">15:30</div>
+      </div>
+
+    </div>
+    <!-- end episode-list -->
+
+    <!-- ── Section divider ──────────────────────────────────── -->
+    <div class="section-divider"></div>
+
+    <!-- ── 5 · For You (Discovery) ──────────────────────────── -->
+    <div class="section-label">
+      <h2>For You</h2>
+      <span class="pill pill-popular">Popular</span>
+    </div>
+    <div class="section-subtitle">Trending articles to listen to</div>
+
+    <div class="discovery-list">
+
+      <!-- Discovery 1: Technology / teal border -->
+      <div class="disc-card border-teal">
+        <div class="disc-body">
+          <div class="disc-cat cat-teal">Technology</div>
+          <div class="disc-title">The Rise of Local-First Software</div>
+          <div class="disc-meta">
+            <span class="disc-source">Ink &amp; Switch Blog</span>
+            <span class="dot-sep"></span>
+            <span class="disc-dur">8 min</span>
+          </div>
+        </div>
+        <button class="disc-add" title="Add to library">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 2v9M2 6.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Discovery 2: Business / pink border -->
+      <div class="disc-card border-pink">
+        <div class="disc-body">
+          <div class="disc-cat cat-pink">Business</div>
+          <div class="disc-title">Why Most Startups Die at 50 Employees</div>
+          <div class="disc-meta">
+            <span class="disc-source">First Round Review</span>
+            <span class="dot-sep"></span>
+            <span class="disc-dur">12 min</span>
+          </div>
+        </div>
+        <button class="disc-add" title="Add to library">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 2v9M2 6.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Discovery 3: Science / amber border -->
+      <div class="disc-card border-amber">
+        <div class="disc-body">
+          <div class="disc-cat cat-amber">Science</div>
+          <div class="disc-title">The Neuroscience of Habit Formation</div>
+          <div class="disc-meta">
+            <span class="disc-source">Nature Reviews</span>
+            <span class="dot-sep"></span>
+            <span class="disc-dur">6 min</span>
+          </div>
+        </div>
+        <button class="disc-add" title="Add to library">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 2v9M2 6.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+    <!-- end discovery-list -->
+
+  </div>
+  <!-- end scroll-area -->
+
+  <!-- ── Floating add button (fixed above tab bar) ── -->
+  <div class="fab" title="Upload / Add">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M10 4v12M4 10h12" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <!-- ── 6 · Tab bar (fixed at bottom) ─────────────────────── -->
+  <div class="tab-bar">
+
+    <!-- Home (active) -->
+    <div class="tab-item active">
+      <div class="tab-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M3 9.5L11 3l8 6.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"
+            fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round"/>
+          <path d="M8 20v-7h6v7" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="tab-label" style="color:var(--accent);">Home</span>
+    </div>
+
+    <!-- Library -->
+    <div class="tab-item">
+      <div class="tab-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="3"  y="4" width="4" height="14" rx="1.5" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" fill="none"/>
+          <rect x="9"  y="4" width="4" height="14" rx="1.5" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" fill="none"/>
+          <rect x="15" y="4" width="4" height="14" rx="1.5" stroke="rgba(24,24,26,0.30)" stroke-width="1.6" fill="none"/>
+        </svg>
+      </div>
+      <span class="tab-label">Library</span>
+    </div>
+
+  </div>
+  <!-- end tab-bar -->
+
+</div>
+<!-- end phone -->
+
+<!-- ── Small design-note watermark ── -->
+<div style="
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: rgba(0,0,0,0.35);
+  background: rgba(255,255,255,0.70);
+  padding: 4px 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  pointer-events: none;
+">
+  Ridecast · Home · Static Mockup · 2026
+</div>
+
+</body>
+</html>
