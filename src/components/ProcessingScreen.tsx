@@ -285,7 +285,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
 
           {/* Duration Advisory */}
           {durationAdvisory && (
-            <div className="text-xs text-amber-400/80 text-center mt-3 leading-snug">{durationAdvisory}</div>
+            <div className="text-xs text-[var(--amber)] text-center mt-3 leading-snug">{durationAdvisory}</div>
           )}
         </div>
       )}
@@ -293,7 +293,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
       {/* Error State */}
       {error && (
         <div className="w-full max-w-[280px] mb-6 text-center">
-          <p className="text-red-400 text-sm mb-4">
+          <p className="text-red-600 text-sm mb-4">
             Something went wrong during {errorStage === "audio" ? "audio generation" : "script generation"}.
           </p>
           <p className="text-[var(--text-dim)] text-xs mb-4">{error}</p>

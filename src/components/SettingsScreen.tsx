@@ -70,7 +70,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
               />
             </div>
             {elevenLabsKey && (
-              <p className="text-[11px] text-amber-400/70">
+              <p className="text-[11px] text-[var(--amber)]">
                 Stored locally on this device. Never sent to any server except
                 ElevenLabs.
               </p>

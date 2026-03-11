@@ -174,7 +174,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
       </div>
 
       {error && (
-        <div className="text-red-400 text-sm mb-4 text-center">{error}</div>
+        <div className="text-red-600 text-sm mb-4 text-center">{error}</div>
       )}
 
       {/* Works with — shown only when no preview is active */}
@@ -234,7 +234,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
           </div>
 
           {preview.truncationWarning && (
-            <div className="text-xs text-amber-400/80 mt-2 leading-snug">
+            <div className="text-xs text-[var(--amber)] mt-2 leading-snug">
               ⚠ {preview.truncationWarning}
             </div>
           )}

@@ -158,7 +158,7 @@ export function PocketImportScreen({ onComplete }: PocketImportScreenProps) {
       {/* Error */}
       {state.phase === 'error' && (
         <div className="text-center py-8">
-          <p className="text-red-400 font-semibold text-[15px] mb-2">Import failed</p>
+          <p className="text-red-600 font-semibold text-[15px] mb-2">Import failed</p>
           <p className="text-sm text-[var(--text-mid)] mb-6">{state.message}</p>
           <button
             onClick={() => setState({ phase: 'idle' })}
