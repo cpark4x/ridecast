@@ -96,6 +96,7 @@ export async function POST(request: Request) {
         scriptText: generated.text,
         contentType: analysis.contentType,
         themes: analysis.themes,
+        summary: analysis.summary?.trim() || null,
       },
     });
 

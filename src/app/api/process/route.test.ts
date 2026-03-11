@@ -231,6 +231,58 @@ describe('POST /api/process', () => {
     expect(data.durationAdvisory).toBeNull();
   });
 
+  it('saves summary from AI analysis to the script record', async () => {
+    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000 };
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: 'A fascinating exploration of technology.',
+    });
+    mockGenerateScript.mockResolvedValue({
+      text: 'word '.repeat(720),
+      wordCount: 720,
+      format: 'narrator',
+    });
+    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    await POST(request);
+
+    expect(mockScriptCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        summary: 'A fascinating exploration of technology.',
+      }),
+    });
+  });
+
+  it('saves null when analysis returns empty summary', async () => {
+    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000 };
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: '',
+    });
+    mockGenerateScript.mockResolvedValue({
+      text: 'word '.repeat(720),
+      wordCount: 720,
+      format: 'narrator',
+    });
+    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    await POST(request);
+
+    expect(mockScriptCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        summary: null,
+      }),
+    });
+  });
+
   it('returns 500 when API key is not configured', async () => {
     delete process.env.ANTHROPIC_API_KEY;
 
