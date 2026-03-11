@@ -96,7 +96,7 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-extrabold tracking-tight">Library</h1>
-        <span className="text-[13px] text-[var(--text-mid)]">{items.length} episode{items.length !== 1 ? "s" : ""}</span>
+        <span className="text-[13px] text-[var(--text-mid)]">{items.length} item{items.length !== 1 ? "s" : ""}</span>
       </div>
 
       {loading ? (

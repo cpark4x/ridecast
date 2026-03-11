@@ -29,17 +29,20 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
   const progress = currentItem.duration > 0 ? (position / currentItem.duration) * 100 : 0;
   const [gradFrom, gradTo] = getIconGradient(currentItem.contentType);
 
-  // Subtitle: sourceType·timeAgo preferred; falls back to format·duration
+  // Subtitle: sourceType·timeAgo preferred; falls back to format·duration.
+  // Guard against rendering a raw duration number when duration is 0/unknown.
   const subtitle =
     currentItem.sourceType && currentItem.createdAt
       ? `${currentItem.sourceType} · ${timeAgo(currentItem.createdAt)}`
-      : `${currentItem.format} · ${formatDuration(currentItem.duration)}`;
+      : currentItem.duration > 0
+        ? `${currentItem.format} · ${formatDuration(currentItem.duration)}`
+        : currentItem.format ?? "";
 
   return (
     <div
       onClick={onExpand}
       data-testid="player-bar"
-      className="absolute bottom-16 left-2 right-2 h-[58px] flex items-center gap-3 px-3 z-[60] cursor-pointer rounded-[14px] border border-[#EA580C]/20 transition-all"
+      className="relative mx-2 h-[58px] flex items-center gap-3 px-3 z-[60] cursor-pointer rounded-[14px] border border-[#EA580C]/20 transition-all"
       style={{
         background: `linear-gradient(135deg, ${gradFrom}26, ${gradTo}1a)`,
         backdropFilter: "blur(24px)",

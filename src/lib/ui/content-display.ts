@@ -39,7 +39,8 @@ export function timeAgo(dateStr: string): string {
 
 /**
  * Generate a display title with fallback logic:
- * 1. Use title if non-empty
+ * 1. Use title if non-empty — clean up raw filenames by stripping extensions,
+ *    replacing underscores/hyphens with spaces, and removing trailing year parens
  * 2. Extract domain from sourceUrl (strip www.)
  * 3. Fall back to "SOURCETYPE · Mon D, YYYY"
  */
@@ -49,7 +50,18 @@ export function getTitleFallback(
   sourceType: string,
   createdAt: string,
 ): string {
-  if (title.trim()) return title;
+  let cleaned = title.trim();
+  if (cleaned) {
+    // Strip common file extensions
+    cleaned = cleaned.replace(/\.(pdf|docx?|epub|txt|rtf)$/i, "");
+    // Replace underscores and hyphens with spaces
+    cleaned = cleaned.replace(/[_-]+/g, " ");
+    // Strip trailing parenthetical content like "(2026)" or "(final)"
+    cleaned = cleaned.replace(/\s*\([^)]*\)\s*$/, "");
+    // Collapse multiple spaces and trim
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
+    if (cleaned) return cleaned;
+  }
 
   if (sourceUrl) {
     try {

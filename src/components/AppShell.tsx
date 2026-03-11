@@ -36,59 +36,59 @@ export function AppShell() {
   const hasPlayerBar = !!currentItem && !showExpandedPlayer && !showCarMode;
 
   return (
-    <div className="max-w-[430px] w-full mx-auto h-[100dvh] relative overflow-hidden bg-[var(--bg)] border-l border-r border-black/[0.07]">
-      {/* Home Screen */}
-      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "home" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
-        style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        <HomeScreen visible={activeTab === "home"} onUpload={() => setShowUploadModal(true)} />
-      </div>
-
-      {/* Upload Modal Overlay */}
-      {showUploadModal && (
-        <div className="absolute inset-0 z-[60] flex flex-col">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowUploadModal(false)} />
-          <div className="relative mt-auto bg-[var(--bg)] rounded-t-[20px] max-h-[90%] overflow-y-auto animate-[slideUp_0.3s_ease]">
-            <div className="flex items-center justify-between p-4 pb-0">
-              <h2 className="text-lg font-bold">Add Content</h2>
-              <button onClick={() => setShowUploadModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-2)]">
-                <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--text-mid)] fill-none" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <UploadScreen onProcess={handleProcess} onImportPocket={() => { setShowUploadModal(false); setActiveTab("pocket-import"); }} />
-          </div>
+    <div className="max-w-[430px] w-full mx-auto h-[100dvh] relative overflow-hidden bg-[var(--bg)] border-l border-r border-black/[0.07] flex flex-col">
+      {/* ── Scrollable content area ── all screen tabs live inside here so they
+           can never bleed over the PlayerBar / BottomNav chrome below */}
+      <div className="flex-1 relative overflow-hidden min-h-0">
+        {/* Home Screen */}
+        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-all duration-300 ${activeTab === "home" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+          <HomeScreen visible={activeTab === "home"} onUpload={() => setShowUploadModal(true)} />
         </div>
-      )}
 
-      {/* Processing Screen */}
-      <div className={`absolute inset-0 overflow-hidden transition-all duration-300 ${activeTab === "processing" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
-        style={{ bottom: "64px" }}>
-        {processing && (
-          <ProcessingScreen
-            contentId={processing.contentId}
-            targetMinutes={processing.targetMinutes}
-            onComplete={handleProcessComplete}
-          />
+        {/* Processing Screen */}
+        <div className={`absolute inset-0 overflow-hidden transition-all duration-300 ${activeTab === "processing" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+          {processing && (
+            <ProcessingScreen
+              contentId={processing.contentId}
+              targetMinutes={processing.targetMinutes}
+              onComplete={handleProcessComplete}
+            />
+          )}
+        </div>
+
+        {/* Library Screen */}
+        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-all duration-300 ${activeTab === "library" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+          <LibraryScreen visible={activeTab === "library"} />
+        </div>
+
+        {/* Pocket Import Screen */}
+        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-all duration-300 ${activeTab === "pocket-import" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+          <PocketImportScreen onComplete={() => setActiveTab("library")} />
+        </div>
+
+        {/* Upload Modal Overlay — scoped inside content area */}
+        {showUploadModal && (
+          <div className="absolute inset-0 z-[60] flex flex-col">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowUploadModal(false)} />
+            <div className="relative mt-auto bg-[var(--bg)] rounded-t-[20px] max-h-[90%] overflow-y-auto animate-[slideUp_0.3s_ease]">
+              <div className="flex items-center justify-between p-4 pb-0">
+                <h2 className="text-lg font-bold">Add Content</h2>
+                <button onClick={() => setShowUploadModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-2)]">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--text-mid)] fill-none" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <UploadScreen onProcess={handleProcess} onImportPocket={() => { setShowUploadModal(false); setActiveTab("pocket-import"); }} />
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Library Screen */}
-      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "library" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
-        style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        <LibraryScreen visible={activeTab === "library"} />
-      </div>
-
-      {/* Pocket Import Screen */}
-      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "pocket-import" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
-        style={{ bottom: "64px" }}>
-        <PocketImportScreen onComplete={() => setActiveTab("library")} />
-      </div>
-
-      {/* Player Bar */}
+      {/* ── Chrome: PlayerBar then BottomNav ── these are in-flow flex children
+           so they are always outside the scrollable area and never scroll away */}
       {hasPlayerBar && (
         <PlayerBar onExpand={() => setShowExpandedPlayer(true)} />
       )}
 
-      {/* Bottom Nav */}
       {!showExpandedPlayer && !showCarMode && (
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} onFabClick={() => setShowUploadModal(true)} />
       )}

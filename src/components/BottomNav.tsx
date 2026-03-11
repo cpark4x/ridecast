@@ -34,7 +34,7 @@ export function BottomNav({ activeTab, onTabChange, onFabClick }: BottomNavProps
   return (
     <>
       <nav
-        className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-around border-t border-black/[0.07] z-50 pb-[env(safe-area-inset-bottom)]"
+        className="relative w-full h-16 flex items-center justify-around border-t border-black/[0.07] z-50 pb-[env(safe-area-inset-bottom)]"
         style={{ background: "linear-gradient(to top, rgba(247,246,243,0.98) 60%, rgba(247,246,243,0.85))", backdropFilter: "blur(20px)" }}
       >
         {tabs.map((tab) => (
