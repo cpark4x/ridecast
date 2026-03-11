@@ -18,15 +18,15 @@ vi.mock("dexie", () => {
       },
     };
 
-    version(_n: number) {
-      return { stores: (_schema: Record<string, string>) => this };
+    version() {
+      return { stores: () => this };
     }
   }
 
   return { default: MockDexie };
 });
 
-import { cacheAudio, getCachedAudio, removeCachedAudio } from "./cache";
+import { cacheAudio, getCachedAudio } from "./cache";
 
 describe("Audio cache", () => {
   it("caches and retrieves audio data", async () => {

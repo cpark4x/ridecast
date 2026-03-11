@@ -4,12 +4,9 @@ import { UploadModal } from "./UploadModal";
 
 // Mock UploadScreen — renders stub content and a button that triggers onProcess
 let capturedOnProcess: ((contentId: string, targetMinutes: number) => void) | null = null;
-let capturedOnImportPocket: (() => void) | null = null;
-
 vi.mock("./UploadScreen", () => ({
-  UploadScreen: ({ onProcess, onImportPocket }: { onProcess: (id: string, mins: number) => void; onImportPocket: () => void }) => {
+  UploadScreen: ({ onProcess }: { onProcess: (id: string, mins: number) => void; onImportPocket: () => void }) => {
     capturedOnProcess = onProcess;
-    capturedOnImportPocket = onImportPocket;
     return <div data-testid="upload-form">Upload Form Content</div>;
   },
 }));
@@ -21,7 +18,6 @@ const mockOnImportPocket = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   capturedOnProcess = null;
-  capturedOnImportPocket = null;
 });
 
 describe("UploadModal", () => {

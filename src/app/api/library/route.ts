@@ -106,7 +106,7 @@ export async function GET() {
     }));
 
     return NextResponse.json(library);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to load library" }, { status: 500 });
   }
 }

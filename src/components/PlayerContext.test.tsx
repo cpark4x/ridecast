@@ -498,7 +498,7 @@ describe("PlayerContext — sleep timer", () => {
   });
 
   function SleepTestComponent() {
-    const { sleepTimer, setSleepTimer, isPlaying, play, togglePlay } = usePlayer();
+    const { sleepTimer, setSleepTimer, isPlaying, play } = usePlayer();
     return (
       <div>
         <span data-testid="sleep-timer">{sleepTimer === null ? "off" : String(sleepTimer)}</span>

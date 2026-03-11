@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(state);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to save playback state" }, { status: 500 });
   }
 }
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(state);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to get playback state" }, { status: 500 });
   }
 }

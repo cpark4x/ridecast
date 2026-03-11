@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 // Mock auth
 vi.mock("@/lib/auth", () => ({
@@ -38,7 +39,7 @@ describe("Playback state API", () => {
   });
 
   it("saves playback position and speed", async () => {
-    const request = new Request("http://localhost:3000/api/playback", {
+    const request = new NextRequest("http://localhost:3000/api/playback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ audioId: "audio-1", position: 120.5, speed: 1.5 }),
@@ -64,7 +65,7 @@ describe("Playback state API", () => {
       completed: false,
     });
 
-    const request = new Request("http://localhost:3000/api/playback?audioId=audio-1");
+    const request = new NextRequest("http://localhost:3000/api/playback?audioId=audio-1");
     const response = await GET(request);
     const body = await response.json();
 
@@ -76,7 +77,7 @@ describe("Playback state API", () => {
   it("uses authenticated user ID (not hardcoded default-user)", async () => {
     vi.mocked(getCurrentUserId).mockResolvedValueOnce("user_clerk_abc");
 
-    const request = new Request("http://localhost:3000/api/playback", {
+    const request = new NextRequest("http://localhost:3000/api/playback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ audioId: "audio-2", position: 30, speed: 1.0 }),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseConversationScript, ScriptSegment } from "./script-parser";
+import { parseConversationScript } from "./script-parser";
 
 describe("parseConversationScript", () => {
   it("splits conversation by speaker labels", () => {

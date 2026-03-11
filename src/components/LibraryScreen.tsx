@@ -302,17 +302,40 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                           : "Ready"}
                       </span>
                     )}
-                    {versions.length > 1 && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className={`w-4 h-4 stroke-[var(--text-dim)] fill-none transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                    <div className="flex items-center gap-1.5">
+                      {versions.length > 1 && (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className={`w-4 h-4 stroke-[var(--text-dim)] fill-none transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      )}
+                      {/* Process new version — available on every card */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProcessModalContentId(item.id);
+                          setProcessModalTitle(displayTitle);
+                        }}
+                        aria-label="Process new version"
+                        title="Process new version"
+                        className="w-5 h-5 flex items-center justify-center rounded-full text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors"
                       >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    )}
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="w-3.5 h-3.5 stroke-current fill-none"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Card-level progress bar */}
