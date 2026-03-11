@@ -6,7 +6,19 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": ["/node_modules/", "/android/", "/ios/"],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind)"
+    ],
+    "moduleNameMapper": {
+      "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expo-import-meta-registry.js"
+    }
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.31",
