@@ -421,6 +421,67 @@ describe("PlayerContext — queue support", () => {
   });
 });
 
+describe("PlayerContext — extended PlayableItem fields", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function RichItemComponent() {
+    const { currentItem, play } = usePlayer();
+    return (
+      <div>
+        <span data-testid="summary">{currentItem?.summary ?? "no-summary"}</span>
+        <span data-testid="author">{currentItem?.author ?? "no-author"}</span>
+        <span data-testid="content-type">{currentItem?.contentType ?? "no-type"}</span>
+        <span data-testid="source-url">{currentItem?.sourceUrl ?? "no-url"}</span>
+        <span data-testid="themes">{currentItem?.themes?.join(",") ?? "no-themes"}</span>
+        <span data-testid="compression">{currentItem?.compressionRatio ?? "no-compression"}</span>
+        <button onClick={() => play({
+          id: "rich1", title: "Rich Item", duration: 600, format: "narrator",
+          audioUrl: "/audio/rich.mp3",
+          author: "Daniel Kahneman", sourceType: "url",
+          sourceUrl: "https://example.com/article",
+          contentType: "science_article",
+          themes: ["psychology", "decision making"],
+          summary: "An exploration of cognitive biases.",
+          compressionRatio: 0.15,
+        })}>Play Rich</button>
+        <button onClick={() => play({
+          id: "basic1", title: "Basic Item", duration: 300, format: "narrator",
+          audioUrl: "/audio/basic.mp3",
+        })}>Play Basic</button>
+      </div>
+    );
+  }
+
+  it("accepts and exposes extended PlayableItem fields on currentItem", async () => {
+    render(<PlayerProvider><RichItemComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Rich")); });
+    expect(screen.getByTestId("summary").textContent).toBe("An exploration of cognitive biases.");
+    expect(screen.getByTestId("author").textContent).toBe("Daniel Kahneman");
+    expect(screen.getByTestId("content-type").textContent).toBe("science_article");
+    expect(screen.getByTestId("source-url").textContent).toBe("https://example.com/article");
+    expect(screen.getByTestId("themes").textContent).toBe("psychology,decision making");
+    expect(screen.getByTestId("compression").textContent).toBe("0.15");
+  });
+
+  it("existing play() calls without new fields still work (backward compat)", async () => {
+    render(<PlayerProvider><RichItemComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Basic")); });
+    expect(screen.getByTestId("summary").textContent).toBe("no-summary");
+    expect(screen.getByTestId("author").textContent).toBe("no-author");
+    expect(screen.getByTestId("content-type").textContent).toBe("no-type");
+  });
+});
+
 describe("Smart Resume", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 

@@ -8,11 +8,22 @@ import { formatDuration } from "@/lib/utils/duration";
 interface ReadyEpisode {
   contentId: string;
   title: string;
+  author: string | null;
+  sourceType: string;
+  sourceUrl: string | null;
   audioId: string;
   audioUrl: string;
   durationSecs: number;
   targetDuration: number;
   format: string;
+  wordCount: number;
+  contentType: string | null;
+  themes: string[];
+  summary: string | null;
+  compressionRatio: number | null;
+  voices: string[];
+  ttsProvider: string | null;
+  createdAt: string | null;
 }
 
 interface HomeScreenProps {
@@ -42,11 +53,22 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
               ready.push({
                 contentId: item.id,
                 title: item.title,
+                author: item.author ?? null,
+                sourceType: item.sourceType,
+                sourceUrl: item.sourceUrl ?? null,
                 audioId: v.audioId,
                 audioUrl: v.audioUrl,
                 durationSecs: v.durationSecs ?? 0,
                 targetDuration: v.targetDuration,
                 format: v.format,
+                wordCount: item.wordCount,
+                contentType: v.contentType ?? null,
+                themes: v.themes ?? [],
+                summary: v.summary ?? null,
+                compressionRatio: v.compressionRatio ?? null,
+                voices: v.voices ?? [],
+                ttsProvider: v.ttsProvider ?? null,
+                createdAt: v.createdAt ?? null,
               });
             }
           }
@@ -66,15 +88,31 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
   const commuteSecs = commuteDuration * 60;
   const fitsCommute = episodes.filter((ep) => ep.durationSecs <= commuteSecs);
 
+  function toPlayableItem(ep: ReadyEpisode) {
+    return {
+      id: ep.audioId,
+      title: ep.title,
+      duration: ep.durationSecs,
+      format: ep.format,
+      audioUrl: ep.audioUrl,
+      author: ep.author,
+      sourceType: ep.sourceType,
+      sourceUrl: ep.sourceUrl,
+      contentType: ep.contentType,
+      themes: ep.themes,
+      summary: ep.summary,
+      targetDuration: ep.targetDuration,
+      wordCount: ep.wordCount,
+      compressionRatio: ep.compressionRatio,
+      voices: ep.voices,
+      ttsProvider: ep.ttsProvider,
+      createdAt: ep.createdAt,
+    };
+  }
+
   function playAll() {
     if (fitsCommute.length > 0) {
-      play({
-        id: fitsCommute[0].audioId,
-        title: fitsCommute[0].title,
-        duration: fitsCommute[0].durationSecs,
-        format: fitsCommute[0].format,
-        audioUrl: fitsCommute[0].audioUrl,
-      });
+      play(toPlayableItem(fitsCommute[0]));
     }
   }
 
@@ -127,14 +165,7 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
         {episodes.map((ep) => (
           <div
             key={ep.audioId}
-            onClick={() =>
-              play({
-                id: ep.audioId,
-                title: ep.title,
-                duration: ep.durationSecs,
-                format: ep.format,
-                audioUrl: ep.audioUrl,
-              })
+            onClick={() => play(toPlayableItem(ep))
             }
             className="flex items-center gap-3.5 p-4 rounded-[14px] bg-[var(--surface)] border border-black/[0.07] cursor-pointer hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
           >

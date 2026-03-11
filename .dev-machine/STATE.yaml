@@ -173,12 +173,15 @@ features:
     size: S
     depends_on: ["expanded-player-schema"]
   expanded-player-api:
-    status: "in-progress"
+    status: "done"
     started_at: "2026-03-11T01:49:00Z"
+    completed_at: "2026-03-11T01:50:00Z"
+    commit: "bc69055"
     size: S
     depends_on: ["expanded-player-schema"]
   expanded-player-playable-item:
-    status: "ready"
+    status: "in-progress"
+    started_at: "2026-03-11T01:51:00Z"
     size: S
     depends_on: ["expanded-player-api"]
   expanded-player-rewrite:

@@ -11,6 +11,19 @@ export interface PlayableItem {
   duration: number; // seconds
   format: string;
   audioUrl: string;
+  // Extended — all optional for backward compat
+  author?: string | null;
+  sourceType?: string | null;
+  sourceUrl?: string | null;
+  contentType?: string | null;
+  themes?: string[];
+  summary?: string | null;
+  targetDuration?: number | null;
+  wordCount?: number | null;
+  compressionRatio?: number | null;
+  voices?: string[];
+  ttsProvider?: string | null;
+  createdAt?: string | null;
 }
 
 interface PlayerState {
