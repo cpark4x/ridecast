@@ -132,6 +132,20 @@ describe("useLibraryFilter — filter chips", () => {
     expect(result.current.filtered[0].id).toBe("c4");
   });
 
+  it("'unplayed': excludes items with empty versions array", () => {
+    const EMPTY_VERSIONS = {
+      id: "c5",
+      title: "Empty Item",
+      author: null,
+      versions: [] as { status: string; completed: boolean; position: number }[],
+    };
+    const items = [...ALL_ITEMS, EMPTY_VERSIONS];
+    const { result } = renderHook(() => useLibraryFilter(items));
+    act(() => result.current.setActiveFilter("unplayed"));
+    // Should NOT include EMPTY_VERSIONS (vacuous truth guard)
+    expect(result.current.filtered.map((i) => i.id)).not.toContain("c5");
+  });
+
   it("'all': shows everything", () => {
     const { result } = renderHook(() => useLibraryFilter(ALL_ITEMS));
     act(() => result.current.setActiveFilter("completed"));

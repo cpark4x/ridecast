@@ -36,7 +36,7 @@ export function useLibraryFilter<T extends FilterableItem>(items: T[]) {
         const vs = item.versions ?? [];
         switch (activeFilter) {
           case "unplayed":
-            return vs.every((v) => v.position === 0 && !v.completed);
+            return vs.length > 0 && vs.every((v) => v.position === 0 && !v.completed);
           case "in-progress":
             return vs.some((v) => v.position > 0 && !v.completed);
           case "completed":

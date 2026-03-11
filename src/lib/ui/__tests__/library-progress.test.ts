@@ -59,6 +59,12 @@ describe("getMostListenedVersion", () => {
   it("returns null when all versions have null duration", () => {
     expect(getMostListenedVersion([NO_DURATION])).toBeNull();
   });
+
+  it("ranks completed version with position=0 above partial version", () => {
+    const completedReset = { ...COMPLETED_V, position: 0 };
+    const result = getMostListenedVersion([PARTIAL, completedReset]);
+    expect(result).toBe(completedReset);
+  });
 });
 
 describe("getCardProgress", () => {
@@ -86,6 +92,11 @@ describe("getCardProgress", () => {
     const overshot = { ...PARTIAL, position: 800, durationSecs: 600 };
     expect(getCardProgress([overshot])).toBe(1.0);
   });
+
+  it("returns 1.0 for completed version with position reset to 0", () => {
+    const completedReset = { ...COMPLETED_V, position: 0 };
+    expect(getCardProgress([completedReset])).toBe(1.0);
+  });
 });
 
 describe("getVersionProgress", () => {
@@ -103,6 +114,11 @@ describe("getVersionProgress", () => {
 
   it("returns 0 when durationSecs null", () => {
     expect(getVersionProgress(NO_DURATION)).toBe(0);
+  });
+
+  it("returns 1.0 for completed version even when position is 0", () => {
+    const completedReset = { ...COMPLETED_V, position: 0 };
+    expect(getVersionProgress(completedReset)).toBe(1.0);
   });
 });
 

@@ -13,7 +13,7 @@ export function getMostListenedVersion<T extends ProgressVersion>(
   let bestRatio = -1;
   for (const v of versions) {
     if (!v.durationSecs || v.durationSecs <= 0) continue;
-    const ratio = Math.min(1, v.position / v.durationSecs);
+    const ratio = v.completed ? 1 : Math.min(1, v.position / v.durationSecs);
     if (ratio > bestRatio) {
       bestRatio = ratio;
       best = v;
@@ -24,11 +24,14 @@ export function getMostListenedVersion<T extends ProgressVersion>(
 
 export function getCardProgress(versions: ProgressVersion[]): number {
   const v = getMostListenedVersion(versions);
-  if (!v || !v.durationSecs || v.durationSecs <= 0) return 0;
+  if (!v) return 0;
+  if (v.completed) return 1;
+  if (!v.durationSecs || v.durationSecs <= 0) return 0;
   return Math.min(1, v.position / v.durationSecs);
 }
 
 export function getVersionProgress(v: ProgressVersion): number {
+  if (v.completed) return 1;
   if (!v.durationSecs || v.durationSecs <= 0) return 0;
   return Math.min(1, v.position / v.durationSecs);
 }
