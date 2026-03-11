@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-11
 **Project:** ridecast2
-**Status:** Phase 3 — 39 features shipped. 4 remaining (expanded-player-rewrite, library-upload-modal, library-process-new-version, library-screen-rewrite).
+**Status:** Phase 3 — 42 features shipped. 1 remaining (library-screen-rewrite).
 
 ---
 
@@ -13,45 +13,45 @@
 | Gate | Status | Notes |
 |------|--------|-------|
 | `npm run lint` | ✅ PASS | ~10 warnings (non-blocking) |
-| `npm run test` | ✅ PASS | **257 passing**, 7 skipped |
+| `npm run test` | ✅ PASS | **296 passing**, 7 skipped |
 | `npm run build` | ✅ PASS | All routes build successfully |
 | `npm run test:e2e` | ✅ PASS | 5/5 (last run 2026-03-06) |
 
-### Total shipped to date: 39 features across 12 machine sessions
+### Total shipped to date: 42 features across 13 machine sessions
+
+---
+
+## Session 13 Summary — 2026-03-11
+
+**Completed (3 features, 6 pts):**
+- `expanded-player-rewrite` (9c2c7e0) — Complete rewrite: scrollable 3-section layout, dynamic content-type gradients (8 types), rich metadata (author, contentType badge, theme chips, About/summary, source domain, word count), 5s/15s skip intervals, sleep timer cycling. 30 tests.
+- `library-upload-modal` (7dec82c) — Extracted inline upload JSX from AppShell into reusable UploadModal: bottom sheet with drag handle, backdrop dismiss, "Add Content" heading, close button. 7 tests.
+- `library-process-new-version` (6dc8857) — Duration preset picker modal (2/3/5/15/30 min), default 5 min, POSTs to /api/process, loading state, error handling, onVersionCreated callback. 10 tests.
+
+**Review fix (3864ac0):**
+- Bug: ExpandedPlayer sleep timer local state desynced from context when timer fired externally — added `useEffect` sync from context's `sleepTimer`.
+
+**Key decisions:**
+- ExpandedPlayer keeps its own CONTENT_GRADIENTS map (duplicated from PlayerBar). Both need to stay in sync. Future: extract to shared `content-display.ts`.
+- Sleep timer uses local state + useEffect sync pattern: local state for UI cycling, useEffect syncs when context changes externally.
 
 ---
 
 ## Session 12 Summary — 2026-03-11
 
-**Completed (4 features, 8 pts):**
-- `library-search-filter` (fadc894) — useLibraryFilter hook: 200ms debounced search (title+author), 5 chip filters (All/Unplayed/InProgress/Completed/Generating), AND composition. 16 tests.
-- `library-progress-display` (f7b87ac) — Pure utility functions: getMostListenedVersion, getCardProgress, getVersionProgress, isItemPlayed. Respects completed flag even when position=0. 21 tests.
-- `home-screen-rewrite` (4d220f6) — Full Daily Drive redesign: time-based greeting, Play All (uses playQueue), Up Next section with gradient thumbnails/sourceType·timeAgo/progress bars, filters out completed episodes. 12 tests.
-- `expanded-player-minibar` (28904c1) — PlayerBar dynamic content-type gradients (8 types), richer subtitle (sourceType·timeAgo, falls back to format·duration). 8 tests.
-
-**Review fixes (88d4852):**
-- Bug: progress utils ignored `completed` flag when `position=0` — fixed with early `v.completed ? 1 : ...` check
-- Bug: useLibraryFilter "unplayed" chip matched empty `versions[]` via vacuous truth — added `vs.length > 0` guard
-
-**Key decisions:**
-- CONTENT_GRADIENTS map lives in PlayerBar.tsx for now. When expanded-player-rewrite is done, extract to shared `content-display.ts` to keep in sync.
-- HomeScreen uses `playQueue()` for "Play All" (not single `play()`) — enables auto-advance through all unlistened episodes.
-- HomeScreen filters at the item level: items where ALL ready versions are completed are excluded; items with mixed completed/non-completed versions show the first non-completed version.
+4 features (8 pts): search-filter, progress-display, home-screen-rewrite, minibar. Review caught 2 bugs (completed flag, vacuous truth).
 
 ---
 
 ## What's Next
 
-**4 features remaining (~9 pts, 1-2 sessions):**
+**1 feature remaining (L=3, 1 session):**
 
 | Feature | Size | Deps Satisfied? |
 |---------|------|-----------------|
-| expanded-player-rewrite | L (3) | ✅ Yes |
-| library-upload-modal | M (2) | ✅ Yes |
-| library-process-new-version | S (1) | ❌ Needs library-upload-modal |
-| library-screen-rewrite | L (3) | ❌ Needs upload-modal + process-new-version |
+| library-screen-rewrite | L (3) | ✅ Yes — all 5 deps done |
 
-**Recommended next session:** expanded-player-rewrite (L=3) + library-upload-modal (M=2) + library-process-new-version (S=1) = 6 pts. Then final session: library-screen-rewrite (L=3).
+**Recommended next session:** library-screen-rewrite (L=3). Final feature of Phase 3.
 
 ---
 

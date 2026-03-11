@@ -40,10 +40,10 @@ health_gates:
 - id: test
   command: npm run test
   status: PASS
-  duration: 3.21s
-  notes: 'Vitest: 257/264 tests passing, 7 intentionally skipped (DB-dependent).
+  duration: 4.67s
+  notes: 'Vitest: 296/303 tests passing, 7 intentionally skipped (DB-dependent).
 
-    All tests green as of Session 12.'
+    All tests green as of Session 13.'
 - id: build
   command: npm run build
   status: PASS
@@ -81,6 +81,15 @@ known_issues:
 
     '
 recently_shipped:
+- session: '13'
+  date: '2026-03-11'
+  commits:
+  - 9c2c7e0 feat(player): rewrite ExpandedPlayer — scrollable layout, rich metadata, 5s/15s skips, sleep timer, dynamic gradients
+  - 7dec82c feat(library): extract UploadModal component from AppShell
+  - 6dc8857 feat(library): add ProcessNewVersionModal — duration preset picker
+  - 3864ac0 fix(player): sync sleep timer local state from context to prevent desync
+  title: "Session 13: 3 features \u2014 expanded-player-rewrite, upload-modal, process-new-version"
+  notes: 3 features completed (6 pts). 1 feature remaining (library-screen-rewrite). Antagonistic review caught 1 bug (sleep timer desync, fixed).
 - session: '12'
   date: '2026-03-11'
   commits:
@@ -141,10 +150,8 @@ recently_shipped:
     '
 phase: 3
 phase_name: phase-3-home-expanded-library
-epoch: 13
-next_action: "4 features remaining \u2014 expanded-player-rewrite (L), library-upload-modal (M), library-process-new-version\
-  \ (S), library-screen-rewrite (L). ~9 points, estimated 1-2 sessions. Next: expanded-player-rewrite + library-upload-modal\
-  \ + library-process-new-version (8 pts).\n"
+epoch: 14
+next_action: "1 feature remaining \u2014 library-screen-rewrite (L=3). All deps satisfied. Final feature of Phase 3.\n"
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -185,20 +192,32 @@ completed_features:
 - expanded-player-minibar
 - library-search-filter
 - library-progress-display
+- expanded-player-rewrite
+- library-upload-modal
+- library-process-new-version
 features:
   expanded-player-rewrite:
-    status: ready
+    status: done
     size: L
+    started_at: "2026-03-11T09:11:00Z"
+    completed_at: "2026-03-11T09:22:00Z"
+    commit: 9c2c7e0
     depends_on:
     - expanded-player-playable-item
   library-upload-modal:
-    status: ready
+    status: done
     size: M
+    started_at: "2026-03-11T09:22:00Z"
+    completed_at: "2026-03-11T09:24:00Z"
+    commit: 7dec82c
     depends_on:
     - home-screen-nav-restructure
   library-process-new-version:
-    status: ready
+    status: done
     size: S
+    started_at: "2026-03-11T09:24:00Z"
+    completed_at: "2026-03-11T09:25:00Z"
+    commit: 6dc8857
     depends_on:
     - library-upload-modal
   library-screen-rewrite:
@@ -212,18 +231,14 @@ features:
     - library-process-new-version
 next_steps:
 - step: 1
-  task: Execute expanded-player-rewrite + library-upload-modal + library-process-new-version (8 pts)
-  action: "Run dev machine \u2014 expanded-player-rewrite (L=3), library-upload-modal (M=2), library-process-new-version (S=1)\
-    \ = 6 pts fits one session"
-- step: 2
   task: Execute library-screen-rewrite (L=3 pts)
-  action: All deps will be satisfied after step 1. Final feature of Phase 3.
-last_session: '2026-03-11T10:31:16.757336+00:00'
+  action: All deps satisfied. Final feature of Phase 3. One session.
+last_session: '2026-03-11T09:52:00Z'
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 39
+  total_features_completed: 42
   last_updated: '2026-03-11'
-  session_count: 13
+  session_count: 14
   zero_change_sessions: 0
-  last_session_head: 699a81d534bbd0bf29719a1d6c679831ecc45013
+  last_session_head: 3864ac0
