@@ -10,6 +10,8 @@ interface AudioVersion {
   targetDuration: number;
   format: string;
   status: "ready" | "generating" | "processing";
+  completed: boolean;
+  position: number;
   createdAt: string;
 }
 
@@ -22,7 +24,14 @@ export async function GET() {
       include: {
         scripts: {
           include: {
-            audio: true,
+            audio: {
+              include: {
+                playbackState: {
+                  where: { userId },
+                  take: 1,
+                },
+              },
+            },
           },
         },
       },
@@ -32,7 +41,9 @@ export async function GET() {
     const library = items.map((item) => ({
       id: item.id,
       title: item.title,
+      author: item.author ?? null,
       sourceType: item.sourceType,
+      sourceUrl: item.sourceUrl ?? null,
       createdAt: item.createdAt.toISOString(),
       wordCount: item.wordCount,
       versions: item.scripts
@@ -48,20 +59,27 @@ export async function GET() {
                 targetDuration: script.targetDuration,
                 format: script.format,
                 status: "generating",
+                completed: false,
+                position: 0,
                 createdAt: script.createdAt.toISOString(),
               },
             ];
           }
-          return script.audio.map((audio) => ({
-            scriptId: script.id,
-            audioId: audio.id,
-            audioUrl: audio.filePath,
-            durationSecs: audio.durationSecs,
-            targetDuration: script.targetDuration,
-            format: script.format,
-            status: "ready" as const,
-            createdAt: audio.createdAt.toISOString(),
-          }));
+          return script.audio.map((audio) => {
+            const pb = audio.playbackState?.[0];
+            return {
+              scriptId: script.id,
+              audioId: audio.id,
+              audioUrl: audio.filePath,
+              durationSecs: audio.durationSecs,
+              targetDuration: script.targetDuration,
+              format: script.format,
+              status: "ready" as const,
+              completed: pb?.completed ?? false,
+              position: pb?.position ?? 0,
+              createdAt: audio.createdAt.toISOString(),
+            };
+          });
         })
         .sort((a, b) => a.targetDuration - b.targetDuration), // shortest first
     }));
