@@ -3,6 +3,7 @@
 interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onFabClick: () => void;
 }
 
 const tabs = [
@@ -17,60 +18,49 @@ const tabs = [
     ),
   },
   {
-    id: "upload",
-    label: "Upload",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-[22px] h-[22px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    ),
-  },
-  {
     id: "library",
     label: "Library",
     icon: (
       <svg viewBox="0 0 24 24" className="w-[22px] h-[22px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6" />
-        <line x1="8" y1="12" x2="21" y2="12" />
-        <line x1="8" y1="18" x2="21" y2="18" />
-        <line x1="3" y1="6" x2="3.01" y2="6" />
-        <line x1="3" y1="12" x2="3.01" y2="12" />
-        <line x1="3" y1="18" x2="3.01" y2="18" />
-      </svg>
-    ),
-  },
-  {
-    id: "player",
-    label: "Player",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-[22px] h-[22px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+        <rect x="3" y="4" width="4" height="16" rx="1.5" />
+        <rect x="10" y="4" width="4" height="16" rx="1.5" />
+        <rect x="17" y="4" width="4" height="16" rx="1.5" />
       </svg>
     ),
   },
 ];
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, onFabClick }: BottomNavProps) {
   return (
-    <nav
-      className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-around border-t border-black/[0.07] z-50 pb-[env(safe-area-inset-bottom)]"
-      style={{ background: "linear-gradient(to top, rgba(247,246,243,0.98) 60%, rgba(247,246,243,0.85))", backdropFilter: "blur(20px)" }}
-    >
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all select-none ${
-            activeTab === tab.id ? "text-[var(--accent-text)]" : "text-[var(--text-dim)]"
-          }`}
-        >
-          {tab.icon}
-          <span className="text-[10px] font-medium tracking-wide">{tab.label}</span>
-        </button>
-      ))}
-    </nav>
+    <>
+      <nav
+        className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-around border-t border-black/[0.07] z-50 pb-[env(safe-area-inset-bottom)]"
+        style={{ background: "linear-gradient(to top, rgba(247,246,243,0.98) 60%, rgba(247,246,243,0.85))", backdropFilter: "blur(20px)" }}
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all select-none ${
+              activeTab === tab.id ? "text-[var(--accent-text)]" : "text-[var(--text-dim)]"
+            }`}
+          >
+            {tab.icon}
+            <span className="text-[10px] font-medium tracking-wide">{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Floating Action Button — Upload */}
+      <button
+        onClick={onFabClick}
+        aria-label="Upload content"
+        className="absolute bottom-[56px] right-5 z-[51] w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-[0_2px_8px_rgba(234,88,12,0.35),0_6px_20px_rgba(234,88,12,0.20)] border-2 border-white/25 active:scale-95 transition-transform"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 4v12M4 10h12" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </button>
+    </>
   );
 }

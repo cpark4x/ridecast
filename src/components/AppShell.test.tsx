@@ -1,11 +1,10 @@
 "use client";
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { PlayerProvider } from "./PlayerContext";
 import { AppShell } from "./AppShell";
 
-// Mock fetch — HomeScreen will try to call /api/library on mount
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
@@ -26,24 +25,75 @@ function renderWithPlayer() {
 }
 
 describe("AppShell", () => {
-  it("renders bottom nav with four tabs (Home, Upload, Library, Player)", () => {
+  it("renders bottom nav with exactly 2 tabs: Home and Library", () => {
     renderWithPlayer();
-    expect(screen.getAllByText("Home").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Upload").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Library").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Player").length).toBeGreaterThan(0);
+    const nav = screen.getByRole("navigation");
+    const navButtons = within(nav).getAllByRole("button");
+    expect(navButtons).toHaveLength(2);
+    expect(within(nav).getByText("Home")).toBeInTheDocument();
+    expect(within(nav).getByText("Library")).toBeInTheDocument();
   });
 
-  it("shows upload screen by default", () => {
+  it("Upload tab no longer exists in bottom nav", () => {
     renderWithPlayer();
-    // Default tab is "upload" — UploadScreen heading should be visible
-    expect(screen.getByText("Drop files here")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByText("Upload")).not.toBeInTheDocument();
+  });
+
+  it("Player tab no longer exists in bottom nav", () => {
+    renderWithPlayer();
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByText("Player")).not.toBeInTheDocument();
+  });
+
+  it("Settings tab does not exist in bottom nav", () => {
+    renderWithPlayer();
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByText("Settings")).not.toBeInTheDocument();
+  });
+
+  it("shows home screen by default (not upload)", async () => {
+    renderWithPlayer();
+    await waitFor(() => {
+      expect(screen.queryByText("Drop files here")).not.toBeInTheDocument();
+    });
   });
 
   it("switches to library screen when Library tab is clicked", () => {
     renderWithPlayer();
     const navButtons = screen.getAllByText("Library");
-    fireEvent.click(navButtons[navButtons.length - 1]); // BottomNav tab is last
+    fireEvent.click(navButtons[navButtons.length - 1]);
     expect(screen.getAllByText("Library").length).toBeGreaterThan(0);
+  });
+
+  it("FAB '+' button exists above the tab bar", () => {
+    renderWithPlayer();
+    const fab = screen.getByRole("button", { name: /upload content/i });
+    expect(fab).toBeInTheDocument();
+  });
+
+  it("clicking FAB '+' button opens Upload as a modal overlay with 'Add Content' heading", async () => {
+    renderWithPlayer();
+    const fab = screen.getByRole("button", { name: /upload content/i });
+    fireEvent.click(fab);
+    await waitFor(() => {
+      expect(screen.getByText("Add Content")).toBeInTheDocument();
+    });
+  });
+
+  it("gear icon button exists", () => {
+    renderWithPlayer();
+    const gearButton = screen.getByRole("button", { name: /settings/i });
+    expect(gearButton).toBeInTheDocument();
+  });
+
+  it("clicking gear icon opens Settings overlay showing 'Settings' heading", async () => {
+    renderWithPlayer();
+    const gearButton = screen.getByRole("button", { name: /settings/i });
+    fireEvent.click(gearButton);
+    await waitFor(() => {
+      const allSettings = screen.getAllByText("Settings");
+      expect(allSettings.length).toBeGreaterThan(0);
+    });
   });
 });

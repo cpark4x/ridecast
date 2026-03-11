@@ -14,15 +14,17 @@ import { usePlayer } from "./PlayerContext";
 import { PocketImportScreen } from "./PocketImportScreen";
 
 export function AppShell() {
-  const [activeTab, setActiveTab] = useState("upload");
+  const [activeTab, setActiveTab] = useState("home");
   const [processing, setProcessing] = useState<{ contentId: string; targetMinutes: number } | null>(null);
   const [showExpandedPlayer, setShowExpandedPlayer] = useState(false);
   const [showCarMode, setShowCarMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const { currentItem } = usePlayer();
 
   const handleProcess = useCallback((contentId: string, targetMinutes: number) => {
     setProcessing({ contentId, targetMinutes });
+    setShowUploadModal(false);
     setActiveTab("processing");
   }, []);
 
@@ -38,14 +40,24 @@ export function AppShell() {
       {/* Home Screen */}
       <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "home" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
         style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        <HomeScreen visible={activeTab === "home"} onUpload={() => setActiveTab("upload")} />
+        <HomeScreen visible={activeTab === "home"} onUpload={() => setShowUploadModal(true)} />
       </div>
 
-      {/* Upload Screen */}
-      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "upload" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
-        style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        <UploadScreen onProcess={handleProcess} onImportPocket={() => setActiveTab("pocket-import")} />
-      </div>
+      {/* Upload Modal Overlay */}
+      {showUploadModal && (
+        <div className="absolute inset-0 z-[60] flex flex-col">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowUploadModal(false)} />
+          <div className="relative mt-auto bg-[var(--bg)] rounded-t-[20px] max-h-[90%] overflow-y-auto animate-[slideUp_0.3s_ease]">
+            <div className="flex items-center justify-between p-4 pb-0">
+              <h2 className="text-lg font-bold">Add Content</h2>
+              <button onClick={() => setShowUploadModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-2)]">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--text-mid)] fill-none" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <UploadScreen onProcess={handleProcess} onImportPocket={() => { setShowUploadModal(false); setActiveTab("pocket-import"); }} />
+          </div>
+        </div>
+      )}
 
       {/* Processing Screen */}
       <div className={`absolute inset-0 overflow-hidden transition-all duration-300 ${activeTab === "processing" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
@@ -71,25 +83,6 @@ export function AppShell() {
         <PocketImportScreen onComplete={() => setActiveTab("library")} />
       </div>
 
-      {/* Player Tab (empty state) */}
-      <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden transition-all duration-300 ${activeTab === "player" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}
-        style={{ bottom: hasPlayerBar ? "130px" : "64px" }}>
-        {currentItem ? (
-          <div className="p-6 text-center pt-8">
-            <p className="text-[var(--text-mid)]">Tap the player bar to expand</p>
-          </div>
-        ) : (
-          <div className="p-6 text-center pt-16">
-            <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-[var(--text-dim)] fill-none mx-auto mb-5" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-            </svg>
-            <h3 className="text-lg font-bold mb-1.5">Nothing playing</h3>
-            <p className="text-sm text-[var(--text-mid)]">Pick something from your library<br />and it&apos;ll appear here.</p>
-          </div>
-        )}
-      </div>
-
       {/* Player Bar */}
       {hasPlayerBar && (
         <PlayerBar onExpand={() => setShowExpandedPlayer(true)} />
@@ -97,7 +90,7 @@ export function AppShell() {
 
       {/* Bottom Nav */}
       {!showExpandedPlayer && !showCarMode && (
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} onFabClick={() => setShowUploadModal(true)} />
       )}
 
       {/* Expanded Player Overlay */}
