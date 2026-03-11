@@ -1,5 +1,6 @@
 // Player
 export const SMART_RESUME_REWIND_SECS = 3;
+export const CAR_MODE_SKIP_SECS = 30; // Larger skip interval for eyes-off driving
 export const SMART_RESUME_THRESHOLD_MS = 10_000;
 export const POSITION_SAVE_INTERVAL_MS = 5_000;
 export const TTS_WPM = 150;

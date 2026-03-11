@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayer } from "../lib/usePlayer";
 import { formatDuration, nextSpeed } from "../lib/utils";
+import CarMode from "./CarMode";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -73,6 +74,8 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
     skipBack,
     setSpeed,
     setSleepTimer,
+    carModeVisible,
+    setCarModeVisible,
   } = usePlayer();
 
   // Local scrub position — only used while the user is dragging the slider
@@ -244,9 +247,10 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
 
             {/* Car mode */}
             <TouchableOpacity
-              onPress={() => console.log("car mode")}
+              onPress={() => setCarModeVisible(true)}
               className="bg-gray-100 p-2 rounded-full"
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              accessibilityLabel="Car mode"
             >
               <Ionicons name="car-outline" size={22} color="#374151" />
             </TouchableOpacity>
@@ -336,6 +340,12 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* ── Car Mode overlay ─────────────────────────────────────────────── */}
+      <CarMode
+        visible={carModeVisible}
+        onDismiss={() => setCarModeVisible(false)}
+      />
     </Modal>
   );
 }

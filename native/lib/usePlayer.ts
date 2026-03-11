@@ -46,6 +46,8 @@ interface PlayerContextType {
   setSleepTimer: (value: number | "end" | null) => void;
   expandedPlayerVisible: boolean;
   setExpandedPlayerVisible: (visible: boolean) => void;
+  carModeVisible: boolean;
+  setCarModeVisible: (visible: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -82,6 +84,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     null,
   );
   const [expandedPlayerVisible, setExpandedPlayerVisible] = useState(false);
+  const [carModeVisible, setCarModeVisible] = useState(false);
 
   const playbackState = usePlaybackState();
   const progress = useProgress(500);
@@ -346,6 +349,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setSleepTimer,
     expandedPlayerVisible,
     setExpandedPlayerVisible,
+    carModeVisible,
+    setCarModeVisible,
   };
 
   return React.createElement(PlayerContext.Provider, { value }, children);
