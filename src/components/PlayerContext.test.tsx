@@ -190,7 +190,7 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
     vi.restoreAllMocks();
   });
 
-  it("POSTs to /api/playback with userId=default-user when the pause event fires", async () => {
+  it("POSTs to /api/playback WITHOUT userId in body", async () => {
     render(<PlayerProvider><TestComponent /></PlayerProvider>);
 
     await act(async () => {
@@ -208,7 +208,7 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
       );
       expect(postCall).toBeDefined();
       const body = JSON.parse(postCall![1].body);
-      expect(body.userId).toBe("default-user");
+      expect(body).not.toHaveProperty("userId");
       expect(body.audioId).toBe("1");
       expect(body.completed).toBe(false);
     });
@@ -240,7 +240,7 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
     });
   });
 
-  it("POSTs to /api/playback with userId=default-user when the seeked event fires", async () => {
+  it("POSTs to /api/playback WITHOUT userId in body when the seeked event fires", async () => {
     render(<PlayerProvider><TestComponent /></PlayerProvider>);
 
     await act(async () => {
@@ -258,7 +258,7 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
       );
       expect(postCall).toBeDefined();
       const body = JSON.parse(postCall![1].body);
-      expect(body.userId).toBe("default-user");
+      expect(body).not.toHaveProperty("userId");
     });
   });
 
@@ -305,7 +305,7 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
     ).resolves.not.toThrow();
   });
 
-  it("includes userId=default-user in the GET restore URL when a new item loads", async () => {
+  it("does NOT include userId in the GET restore URL", async () => {
     render(<PlayerProvider><TestComponent /></PlayerProvider>);
 
     await act(async () => {
@@ -315,10 +315,10 @@ describe("PlayerContext — persistence: event-triggered saves", () => {
     await waitFor(() => {
       const getCall = fetchMock.mock.calls.find(
         (c) => typeof c[0] === "string" && c[0].includes("/api/playback") &&
-               c[0].includes("userId=default-user") &&
                c[0].includes("audioId=1")
       );
       expect(getCall).toBeDefined();
+      expect(getCall![0]).not.toContain("userId");
     });
   });
 });

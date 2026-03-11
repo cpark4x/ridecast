@@ -52,7 +52,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: "default-user",
         audioId: currentItemIdRef.current,
         position: audioRef.current.currentTime,
         speed: audioRef.current.playbackRate,
@@ -65,7 +64,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentItem?.id) return;
 
-    fetch(`/api/playback?userId=default-user&audioId=${currentItem.id}`)
+    fetch(`/api/playback?audioId=${currentItem.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((state) => {
         if (state?.position && audioRef.current) {
