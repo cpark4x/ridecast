@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { BottomNav } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
-import { UploadScreen } from "./UploadScreen";
+import { UploadModal } from "./UploadModal";
 import { ProcessingScreen } from "./ProcessingScreen";
 import { LibraryScreen } from "./LibraryScreen";
 import { PlayerBar } from "./PlayerBar";
@@ -67,20 +67,12 @@ export function AppShell() {
         </div>
 
         {/* Upload Modal Overlay — scoped inside content area */}
-        {showUploadModal && (
-          <div className="absolute inset-0 z-[60] flex flex-col">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setShowUploadModal(false)} />
-            <div className="relative mt-auto bg-[var(--bg)] rounded-t-[20px] max-h-[90%] overflow-y-auto animate-[slideUp_0.3s_ease]">
-              <div className="flex items-center justify-between p-4 pb-0">
-                <h2 className="text-lg font-bold">Add Content</h2>
-                <button onClick={() => setShowUploadModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-2)]">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--text-mid)] fill-none" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <UploadScreen onProcess={handleProcess} onImportPocket={() => { setShowUploadModal(false); setActiveTab("pocket-import"); }} />
-            </div>
-          </div>
-        )}
+        <UploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onProcess={handleProcess}
+          onImportPocket={() => { setShowUploadModal(false); setActiveTab("pocket-import"); }}
+        />
       </div>
 
       {/* ── Chrome: PlayerBar then BottomNav ── these are in-flow flex children
