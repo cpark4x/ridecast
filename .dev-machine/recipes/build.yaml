@@ -1,6 +1,6 @@
 name: "ridecast2-build"
 description: "Outer orchestration loop for the ridecast2 development machine. Reads state, dispatches working sessions, persists progress across context windows."
-version: "1.0.0"
+version: "2.0.0"
 tags: ["orchestration", "development-machine", "ridecast2"]
 
 context:
@@ -11,6 +11,31 @@ context:
   session_count: "0"
 
 steps:
+  # ---------------------------------------------------------------------------
+  # Step 0: Container safety check -- refuse to run on bare host unless bypassed
+  # ---------------------------------------------------------------------------
+  - id: "container-check"
+    type: "bash"
+    command: |
+      if [ ! -f /.dockerenv ] && [ ! -f /run/.containerenv ]; then
+          if [ -z "${DEV_MACHINE_ALLOW_HOST:-}" ]; then
+              echo "=========================================="
+              echo "ERROR: DEV MACHINE NOT RUNNING IN CONTAINER"
+              echo "=========================================="
+              echo ""
+              echo "Running dev-machine recipes outside a container is not recommended."
+              echo "Autonomous agents have unrestricted filesystem access."
+              echo ""
+              echo "To bypass this check:"
+              echo "  export DEV_MACHINE_ALLOW_HOST=1"
+              echo "=========================================="
+              exit 1
+          fi
+          echo "WARNING: DEV_MACHINE_ALLOW_HOST is set. Proceeding on bare host."
+      fi
+      echo "Container check passed."
+    on_error: "fail"
+
   # ---------------------------------------------------------------------------
   # Step 1: Read STATE.yaml and check for blockers
   # ---------------------------------------------------------------------------
@@ -30,6 +55,8 @@ steps:
           total = len(features)
           result = {
               "phase": state.get("phase", 1),
+              "phase_name": state.get("phase_name", "unknown"),
+              "epoch": state.get("epoch", 0),
               "next_action": state.get("next_action", ""),
               "blocker_count": len(blockers),
               "blockers": blockers,
@@ -52,42 +79,25 @@ steps:
     parse_json: true
 
   # ---------------------------------------------------------------------------
-  # Step 2: Report initial state
-  # ---------------------------------------------------------------------------
-  - id: "report-state"
-    type: "bash"
-    command: |
-      echo "=================================================="
-      echo "  ridecast2 Dev Machine — Starting"
-      echo "=================================================="
-      echo ""
-      echo "  Features ready:     {{initial_state.ready_count}}"
-      echo "  Features completed: {{initial_state.done_count}}"
-      echo "  Total features:     {{initial_state.total_features}}"
-      echo "  Blockers:           {{initial_state.blocker_count}}"
-      echo "  Status:             {{initial_state.status}}"
-      echo ""
-      echo "  State:   .dev-machine/STATE.yaml"
-      echo "  Context: .dev-machine/CONTEXT-TRANSFER.md"
-      echo "=================================================="
-
-  # ---------------------------------------------------------------------------
-  # Step 3: If blockers exist, print them and fail
+  # Step 2: If blockers exist, print them and fail
   # ---------------------------------------------------------------------------
   - id: "check-health"
     type: "bash"
     condition: "{{initial_state.status}} == 'blocked'"
     command: |
-      echo "BLOCKED: Cannot proceed. Resolve blockers in .dev-machine/STATE.yaml and re-run."
+      echo "BLOCKED: Cannot proceed. Blockers found:"
+      printf '%s\n' '{{initial_state.blockers}}'
+      echo ""
+      echo "Resolve blockers in .dev-machine/STATE.yaml and re-run."
       exit 1
     on_error: "fail"
 
   # ---------------------------------------------------------------------------
-  # Step 4: Main work loop
+  # Step 3: Main work loop
   # ---------------------------------------------------------------------------
   - id: "work-loop"
     type: "recipe"
-    recipe: "iteration.yaml"
+    recipe: "./.dev-machine/recipes/iteration.yaml"
     context:
       state_file: ".dev-machine/STATE.yaml"
       context_file: ".dev-machine/CONTEXT-TRANSFER.md"
@@ -105,7 +115,7 @@ steps:
       session_count: "{{iteration_result.iteration_result.session_count}}"
 
   # ---------------------------------------------------------------------------
-  # Step 5: Final summary
+  # Step 4: Final summary
   # ---------------------------------------------------------------------------
   - id: "final-summary"
     type: "bash"
