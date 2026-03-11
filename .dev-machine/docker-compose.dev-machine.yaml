@@ -1,0 +1,57 @@
+# ridecast2 Dev Machine -- Sandboxed Execution
+# The ONLY writable host path is the project directory.
+
+services:
+  dev-machine:
+    build:
+      context: .
+      dockerfile: dev-machine.Dockerfile
+      args:
+        USER_UID: "501"
+        USER_GID: "20"
+    container_name: "ridecast2-dev-machine"
+    image: "ridecast2-dev-machine:latest"
+
+    # NOTE: network_mode: host is NOT used on macOS Docker Desktop
+    # (Docker runs in a Linux VM, so host networking doesn't help).
+    # Standard bridge networking works fine on macOS.
+    restart: unless-stopped
+
+    volumes:
+      # Project directory -- READ-WRITE
+      - "/Users/chrispark/Projects/ridecast2:/Users/chrispark/Projects/ridecast2"
+
+      # SSH agent socket -- for git push from recipe infrastructure
+      - "${SSH_AUTH_SOCK:-/dev/null}:/run/ssh-agent.sock:ro"
+
+      # SSH known_hosts
+      - "${HOME}/.ssh/known_hosts:${HOME}/.ssh/known_hosts:ro"
+
+      # Host config files (read-only, entrypoint copies them)
+      - "${HOME}/.amplifier/keys.env:/config/keys.env:ro"
+      - "${HOME}/.amplifier/settings.yaml:/config/settings.yaml:ro"
+
+      # Amplifier runtime -- named volume (container's own cache)
+      - "ridecast2-amplifier-home:${HOME}/.amplifier"
+
+    environment:
+      - SSH_AUTH_SOCK=/run/ssh-agent.sock
+      # PostgreSQL access via Docker Desktop's host gateway
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5433/ridecast2?schema=public
+
+    env_file:
+      - "${HOME}/.amplifier/keys.env"
+
+    tmpfs:
+      - /tmp:size=1G
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    stdin_open: true
+    tty: true
+
+volumes:
+  ridecast2-amplifier-home:

@@ -1,0 +1,97 @@
+name: "ridecast2-fix-iteration"
+description: "Single iteration of the health check fix cycle -- read errors, fix them, verify."
+version: "1.0.0"
+tags: ["ridecast2", "health-check", "fix-iteration"]
+
+context:
+  project_dir: "/Users/chrispark/Projects/ridecast2"
+  iteration: "0"
+
+steps:
+  - id: "read-errors"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      ITER=$(({{iteration}} + 1))
+      echo "=== FIX ITERATION $ITER ==="
+
+      BUILD_OUTPUT=$(npm run build 2>&1) || true
+      BUILD_ERRORS=$(echo "$BUILD_OUTPUT" | tail -30 | tr '\n' ' ' | sed 's/"/\\"/g')
+
+      echo "{\"iteration\": \"$ITER\", \"scratch\": \"see SCRATCH.md\", \"build_errors_summary\": \"$BUILD_ERRORS\"}"
+    output: "error_context"
+    parse_json: true
+    timeout: 180
+    on_error: "continue"
+
+  - id: "fix-session"
+    agent: "self"
+    prompt: |
+      You are a HEALTH CHECK FIX SESSION for the ridecast2 project.
+      Working directory: /Users/chrispark/Projects/ridecast2
+      This is fix iteration {{error_context.iteration}}.
+
+      YOUR MISSION: Fix all build errors and test failures.
+
+      START BY READING:
+      1. .dev-machine/SCRATCH.md -- contains the specific errors found by the health check
+      2. The specific files mentioned in the error output
+
+      FIXING STRATEGY:
+      - Parse each error from SCRATCH.md
+      - Group errors by file
+      - For each file: read it, fix ALL errors, run npm run build to verify
+      - After all files fixed, run npm run test
+
+      COMMIT:
+      - Once build and tests pass, commit:
+        git add -A && git commit -m "fix: resolve build errors and test failures (health-check iteration {{error_context.iteration}})"
+
+      IMPORTANT:
+      - Do NOT add new features. Only fix existing errors.
+      - Be surgical -- minimal changes to resolve each error.
+
+      SAFETY CONSTRAINTS:
+      - Work only in /Users/chrispark/Projects/ridecast2
+      - Do NOT git push
+      - Do NOT install global packages
+    output: "fix_result"
+    timeout: 1800
+
+  - id: "verify"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      ITER={{error_context.iteration}}
+      echo "=== POST-FIX VERIFICATION (iteration $ITER) ==="
+
+      BUILD_OUTPUT=$(npm run build 2>&1) || true
+      BUILD_EXIT=$?
+
+      TEST_OUTPUT=$(npm run test 2>&1) || true
+      TEST_EXIT=$?
+
+      echo "" >> .dev-machine/SCRATCH.md
+      echo "## Verification After Iteration $ITER" >> .dev-machine/SCRATCH.md
+      echo "- Build exit code: $BUILD_EXIT" >> .dev-machine/SCRATCH.md
+      echo "- Test exit code: $TEST_EXIT" >> .dev-machine/SCRATCH.md
+
+      if [ "$BUILD_EXIT" -ne 0 ]; then
+        echo "" >> .dev-machine/SCRATCH.md
+        echo "### Remaining Build Errors" >> .dev-machine/SCRATCH.md
+        echo '```' >> .dev-machine/SCRATCH.md
+        echo "$BUILD_OUTPUT" | tail -30 >> .dev-machine/SCRATCH.md
+        echo '```' >> .dev-machine/SCRATCH.md
+      fi
+
+      if [ "$BUILD_EXIT" -eq 0 ] && [ "$TEST_EXIT" -eq 0 ]; then
+        echo "{\"status\": \"done\", \"iteration\": \"$ITER\"}"
+      elif [ "$ITER" -ge 5 ]; then
+        echo "{\"status\": \"max-iterations\", \"iteration\": \"$ITER\"}"
+      else
+        echo "{\"status\": \"checking\", \"iteration\": \"$ITER\"}"
+      fi
+    output: "verify_result"
+    parse_json: true
+    timeout: 180
+    on_error: "continue"
