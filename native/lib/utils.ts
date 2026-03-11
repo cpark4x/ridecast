@@ -53,6 +53,18 @@ export function estimateReadingTime(wordCount: number): number {
   return Math.max(1, Math.ceil(wordCount / 250));
 }
 
+/**
+ * Format a byte count as a human-readable storage size string.
+ * Values < 1 MB → "X KB"
+ * Values ≥ 1 MB → "X.Y MB"
+ */
+export function formatStorageSize(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  const kb = Math.floor(bytes / 1024);
+  return `${kb} KB`;
+}
+
 export function formatDurationMinutes(secs: number): string {
   const totalMinutes = Math.floor(secs / 60);
   const h = Math.floor(totalMinutes / 60);
