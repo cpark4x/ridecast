@@ -4,8 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
 
 export default function PlayerBar() {
-  const { currentItem, isPlaying, togglePlay, position, duration } =
-    usePlayer();
+  const {
+    currentItem,
+    isPlaying,
+    togglePlay,
+    position,
+    duration,
+    setExpandedPlayerVisible,
+  } = usePlayer();
 
   if (!currentItem) return null;
 
@@ -24,7 +30,7 @@ export default function PlayerBar() {
 
       {/* Bar body */}
       <TouchableOpacity
-        onPress={() => console.log("open expanded player")}
+        onPress={() => setExpandedPlayerVisible(true)}
         activeOpacity={0.8}
         className="flex-row items-center px-4 py-3 gap-3"
         style={{ height: 64 }}

@@ -44,6 +44,8 @@ interface PlayerContextType {
   setSpeed: (speed: number) => Promise<void>;
   sleepTimer: number | "end" | null;
   setSleepTimer: (value: number | "end" | null) => void;
+  expandedPlayerVisible: boolean;
+  setExpandedPlayerVisible: (visible: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -79,6 +81,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [sleepTimer, setSleepTimerState] = useState<number | "end" | null>(
     null,
   );
+  const [expandedPlayerVisible, setExpandedPlayerVisible] = useState(false);
 
   const playbackState = usePlaybackState();
   const progress = useProgress(500);
@@ -341,6 +344,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setSpeed,
     sleepTimer,
     setSleepTimer,
+    expandedPlayerVisible,
+    setExpandedPlayerVisible,
   };
 
   return React.createElement(PlayerContext.Provider, { value }, children);

@@ -8,8 +8,9 @@ import { tokenCache } from "../lib/auth";
 import { setTokenProvider } from "../lib/api";
 import { setupPlayer } from "../lib/player";
 import { PlaybackService } from "../lib/player";
-import { PlayerProvider } from "../lib/usePlayer";
+import { PlayerProvider, usePlayer } from "../lib/usePlayer";
 import PlayerBar from "../components/PlayerBar";
+import ExpandedPlayer from "../components/ExpandedPlayer";
 import TrackPlayer from "react-native-track-player";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
@@ -42,6 +43,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
+  const { expandedPlayerVisible, setExpandedPlayerVisible } = usePlayer();
+
   // Set up RNTP once on mount
   useEffect(() => {
     setupPlayer().catch((err) =>
@@ -53,6 +56,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <View style={{ flex: 1 }}>
       {children}
       <PlayerBar />
+      <ExpandedPlayer
+        visible={expandedPlayerVisible}
+        onDismiss={() => setExpandedPlayerVisible(false)}
+      />
     </View>
   );
 }
