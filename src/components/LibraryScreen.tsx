@@ -13,13 +13,24 @@ interface AudioVersion {
   targetDuration: number;
   format: string;
   status: "ready" | "generating" | "processing";
+  completed: boolean;
+  position: number;
   createdAt: string;
+  summary?: string | null;
+  contentType?: string | null;
+  themes?: string[];
+  compressionRatio?: number | null;
+  actualWordCount?: number | null;
+  voices?: string[];
+  ttsProvider?: string | null;
 }
 
 interface LibraryItem {
   id: string;
   title: string;
+  author: string | null;
   sourceType: string;
+  sourceUrl: string | null;
   createdAt: string;
   wordCount: number;
   versions: AudioVersion[];
@@ -61,6 +72,18 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
       duration: version.durationSecs ?? 0,
       format: version.format ?? "narrator",
       audioUrl: version.audioUrl,
+      author: item.author ?? null,
+      sourceType: item.sourceType,
+      sourceUrl: item.sourceUrl ?? null,
+      targetDuration: version.targetDuration,
+      wordCount: item.wordCount,
+      summary: version.summary ?? null,
+      contentType: version.contentType ?? null,
+      themes: version.themes ?? [],
+      compressionRatio: version.compressionRatio ?? null,
+      voices: version.voices ?? [],
+      ttsProvider: version.ttsProvider ?? null,
+      createdAt: version.createdAt,
     });
   }
 
@@ -116,7 +139,8 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate mb-0.5">{item.title}</div>
-                    <div className="text-xs text-[var(--text-mid)] flex items-center gap-2">
+                    <div className="text-xs text-[var(--text-mid)] flex items-center gap-2 flex-wrap">
+                      {item.author && <><span>{item.author}</span><span>&middot;</span></>}
                       <span className="uppercase">{item.sourceType}</span>
                       <span>&middot;</span>
                       <span>{timeAgo(item.createdAt)}</span>

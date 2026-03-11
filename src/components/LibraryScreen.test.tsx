@@ -76,7 +76,9 @@ describe("LibraryScreen", () => {
       {
         id: "c3",
         title: "Good Article",
+        author: null,
         sourceType: "pdf",
+        sourceUrl: null,
         createdAt: new Date().toISOString(),
         wordCount: 800,
         versions: [
@@ -106,5 +108,83 @@ describe("LibraryScreen", () => {
     );
     expect(screen.getByText("Good Article")).toBeInTheDocument();
     expect(screen.getByText("Ready")).toBeInTheDocument();
+  });
+});
+
+describe("LibraryScreen — author display", () => {
+  it("shows author name in subtitle when present", async () => {
+    const items = [
+      {
+        id: "c1",
+        title: "Thinking Fast",
+        author: "Daniel Kahneman",
+        sourceType: "pdf",
+        sourceUrl: null,
+        createdAt: new Date().toISOString(),
+        wordCount: 5000,
+        versions: [
+          {
+            scriptId: "s1",
+            audioId: "a1",
+            audioUrl: "/audio/a1.mp3",
+            durationSecs: 900,
+            targetDuration: 15,
+            format: "narrator",
+            status: "ready",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => items,
+    });
+
+    render(<LibraryScreen visible={true} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Daniel Kahneman")).toBeInTheDocument()
+    );
+  });
+
+  it("does not show 'By null' when author absent", async () => {
+    const items = [
+      {
+        id: "c2",
+        title: "A PDF",
+        author: null,
+        sourceType: "pdf",
+        sourceUrl: null,
+        createdAt: new Date().toISOString(),
+        wordCount: 1000,
+        versions: [
+          {
+            scriptId: "s2",
+            audioId: "a2",
+            audioUrl: "/audio/a2.mp3",
+            durationSecs: 300,
+            targetDuration: 5,
+            format: "narrator",
+            status: "ready",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => items,
+    });
+
+    render(<LibraryScreen visible={true} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("A PDF")).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/By null/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("null")).not.toBeInTheDocument();
   });
 });

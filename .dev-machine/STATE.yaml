@@ -195,8 +195,10 @@ features:
     size: S
     depends_on: ["expanded-player-playable-item"]
   expanded-player-sleep-timer:
-    status: "in-progress"
+    status: "done"
     started_at: "2026-03-11T01:53:00Z"
+    completed_at: "2026-03-11T01:56:00Z"
+    commit: "85fe472"
     size: M
     depends_on: []
   library-search-filter:
@@ -208,7 +210,8 @@ features:
     size: M
     depends_on: ["home-screen-api", "home-screen-content-display-utils"]
   library-card-enhancement:
-    status: "ready"
+    status: "in-progress"
+    started_at: "2026-03-11T01:56:00Z"
     size: S
     depends_on: ["home-screen-api", "home-screen-content-display-utils"]
   library-upload-modal:
