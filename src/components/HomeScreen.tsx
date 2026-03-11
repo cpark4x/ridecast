@@ -1,29 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useCommuteDuration } from "@/hooks/useCommuteDuration";
-import { usePlayer } from "./PlayerContext";
+import { usePlayer, PlayableItem } from "./PlayerContext";
 import { formatDuration } from "@/lib/utils/duration";
+import { getGradient, sourceIcons, timeAgo, getTitleFallback } from "@/lib/ui/content-display";
 
-interface ReadyEpisode {
-  contentId: string;
+interface AudioVersion {
+  scriptId: string;
+  audioId: string | null;
+  audioUrl: string | null;
+  durationSecs: number | null;
+  targetDuration: number;
+  format: string;
+  status: "ready" | "generating" | "processing";
+  createdAt: string;
+  completed: boolean;
+  position: number;
+  // Extended fields (optional — populated when API returns them)
+  contentType?: string | null;
+  themes?: string[];
+  summary?: string | null;
+  compressionRatio?: number | null;
+  actualWordCount?: number | null;
+  voices?: string[];
+  ttsProvider?: string | null;
+}
+
+interface LibraryItem {
+  id: string;
   title: string;
   author: string | null;
   sourceType: string;
   sourceUrl: string | null;
-  audioId: string;
-  audioUrl: string;
-  durationSecs: number;
-  targetDuration: number;
-  format: string;
+  createdAt: string;
   wordCount: number;
-  contentType: string | null;
-  themes: string[];
-  summary: string | null;
-  compressionRatio: number | null;
-  voices: string[];
-  ttsProvider: string | null;
-  createdAt: string | null;
+  versions: AudioVersion[];
 }
 
 interface HomeScreenProps {
@@ -31,103 +42,93 @@ interface HomeScreenProps {
   onUpload: () => void;
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
 export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
-  // null = not yet fetched (shows Loading...), [] = fetched but empty, [...] = has episodes
-  const [queue, setQueue] = useState<ReadyEpisode[] | null>(null);
-  const { commuteDuration } = useCommuteDuration();
-  const { play } = usePlayer();
+  const [items, setItems] = useState<LibraryItem[] | null>(null);
+  const { play, playQueue, currentItem, isPlaying, position, togglePlay } = usePlayer();
 
   useEffect(() => {
     if (!visible) return;
-
     let cancelled = false;
     fetch("/api/library")
       .then((r) => r.json())
-      .then((items) => {
-        if (cancelled) return;
-        // Flatten all ready versions into a queue
-        const ready: ReadyEpisode[] = [];
-        for (const item of items) {
-          for (const v of item.versions ?? []) {
-            if (v.status === "ready" && v.audioId && v.audioUrl) {
-              ready.push({
-                contentId: item.id,
-                title: item.title,
-                author: item.author ?? null,
-                sourceType: item.sourceType,
-                sourceUrl: item.sourceUrl ?? null,
-                audioId: v.audioId,
-                audioUrl: v.audioUrl,
-                durationSecs: v.durationSecs ?? 0,
-                targetDuration: v.targetDuration,
-                format: v.format,
-                wordCount: item.wordCount,
-                contentType: v.contentType ?? null,
-                themes: v.themes ?? [],
-                summary: v.summary ?? null,
-                compressionRatio: v.compressionRatio ?? null,
-                voices: v.voices ?? [],
-                ttsProvider: v.ttsProvider ?? null,
-                createdAt: v.createdAt ?? null,
-              });
-            }
-          }
-        }
-        setQueue(ready);
+      .then((data) => {
+        if (!cancelled) setItems(Array.isArray(data) ? data : []);
       })
-      .catch(() => { if (!cancelled) setQueue([]); });
-
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setItems([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [visible]);
 
-  // null means the first fetch hasn't completed yet
-  const loading = queue === null;
-  const episodes = queue ?? [];
+  // Build unlistened list: filter to items with at least one non-completed ready version
+  // Pick first non-completed ready version per item
+  const unlistened = (items ?? [])
+    .map((item) => {
+      const readyVersions = item.versions.filter(
+        (v) => v.status === "ready" && v.audioId && v.audioUrl,
+      );
+      if (readyVersions.length > 0 && readyVersions.every((v) => v.completed)) return null;
+      const version = readyVersions.find((v) => !v.completed) ?? readyVersions[0];
+      return version ? { ...item, version } : null;
+    })
+    .filter(Boolean) as (LibraryItem & { version: AudioVersion })[];
 
-  const totalQueueSecs = episodes.reduce((s, ep) => s + ep.durationSecs, 0);
-  const commuteSecs = commuteDuration * 60;
-  const fitsCommute = episodes.filter((ep) => ep.durationSecs <= commuteSecs);
+  const totalMins = Math.round(
+    unlistened.reduce((s, ep) => s + (ep.version.durationSecs ?? 0), 0) / 60,
+  );
 
-  function toPlayableItem(ep: ReadyEpisode) {
+  function toPlayableItem(ep: LibraryItem & { version: AudioVersion }): PlayableItem {
+    const displayTitle = getTitleFallback(ep.title, ep.sourceUrl, ep.sourceType, ep.createdAt);
     return {
-      id: ep.audioId,
-      title: ep.title,
-      duration: ep.durationSecs,
-      format: ep.format,
-      audioUrl: ep.audioUrl,
-      author: ep.author,
+      id: ep.version.audioId!,
+      title: displayTitle,
+      duration: ep.version.durationSecs ?? 0,
+      format: ep.version.format,
+      audioUrl: ep.version.audioUrl!,
+      author: ep.author ?? null,
       sourceType: ep.sourceType,
-      sourceUrl: ep.sourceUrl,
-      contentType: ep.contentType,
-      themes: ep.themes,
-      summary: ep.summary,
-      targetDuration: ep.targetDuration,
+      sourceUrl: ep.sourceUrl ?? null,
+      contentType: ep.version.contentType ?? null,
+      themes: ep.version.themes ?? [],
+      summary: ep.version.summary ?? null,
+      targetDuration: ep.version.targetDuration,
       wordCount: ep.wordCount,
-      compressionRatio: ep.compressionRatio,
-      voices: ep.voices,
-      ttsProvider: ep.ttsProvider,
-      createdAt: ep.createdAt,
+      compressionRatio: ep.version.compressionRatio ?? null,
+      voices: ep.version.voices ?? [],
+      ttsProvider: ep.version.ttsProvider ?? null,
+      createdAt: ep.version.createdAt,
     };
   }
 
-  function playAll() {
-    if (fitsCommute.length > 0) {
-      play(toPlayableItem(fitsCommute[0]));
-    }
+  function handlePlayAll() {
+    playQueue(unlistened.map(toPlayableItem));
   }
 
-  if (loading) {
-    return <div className="p-6 text-center text-[var(--text-dim)] pt-16">Loading...</div>;
-  }
+  if (items === null) return <div className="p-6 text-center pt-16">Loading...</div>;
 
-  if (episodes.length === 0) {
+  if (unlistened.length === 0)
     return (
       <div className="p-6 pt-12 flex flex-col items-center text-center gap-4">
-        <svg viewBox="0 0 24 24" className="w-16 h-16 stroke-[var(--text-dim)] fill-none" strokeWidth="1">
-          <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+        <svg
+          viewBox="0 0 24 24"
+          className="w-16 h-16 stroke-[var(--text-dim)] fill-none"
+          strokeWidth="1"
+        >
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
         </svg>
         <h2 className="text-xl font-bold">Nothing queued</h2>
-        <p className="text-sm text-[var(--text-mid)]">Upload an article or PDF to generate your first episode.</p>
+        <p className="text-sm text-[var(--text-mid)]">
+          Upload an article or PDF to generate your first episode.
+        </p>
         <button
           onClick={onUpload}
           className="mt-2 px-6 py-3 rounded-[12px] bg-gradient-to-br from-[#EA580C] to-[#F97316] text-sm font-semibold text-white"
@@ -136,49 +137,141 @@ export function HomeScreen({ visible, onUpload }: HomeScreenProps) {
         </button>
       </div>
     );
-  }
 
   return (
-    <div className="p-6 pt-6">
-      {/* Commute summary */}
-      <div className="mb-5">
-        <h1 className="text-[26px] font-extrabold tracking-tight mb-1">Your Queue</h1>
-        <p className="text-sm text-[var(--text-mid)]">
-          {episodes.length} episode{episodes.length !== 1 ? "s" : ""} · {formatDuration(totalQueueSecs)} total
-          {" · "}Your commute: <span className="text-[var(--text)] font-semibold">{commuteDuration} min</span>
-        </p>
+    <div className="pb-6">
+      {/* HEADER */}
+      <div className="px-5 pt-6 pb-1 flex items-start justify-between">
+        <div>
+          <h1 className="text-[26px] font-bold tracking-tight">{getGreeting()}</h1>
+          <p className="text-sm text-[var(--text-mid)] mt-1">
+            {totalMins} min &middot; {unlistened.length} episode
+            {unlistened.length !== 1 ? "s" : ""}
+          </p>
+        </div>
       </div>
 
-      {/* Start Commute button */}
-      {fitsCommute.length > 0 && (
+      {/* PLAY ALL */}
+      <div className="px-5 pt-4 pb-1">
         <button
-          onClick={playAll}
-          className="w-full py-4 rounded-[14px] bg-gradient-to-br from-[#EA580C] to-[#F97316] text-[15px] font-semibold text-white mb-6 shadow-[0_4px_20px_rgba(234,88,12,0.35)] flex items-center justify-center gap-2"
+          onClick={handlePlayAll}
+          className="w-full py-4 rounded-[16px] bg-[var(--accent)] text-[17px] font-semibold text-white flex items-center justify-center gap-2.5 shadow-[0_4px_16px_rgba(234,88,12,0.28)] active:scale-[0.98] transition-all"
         >
-          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><polygon points="8,5 19,12 8,19" /></svg>
-          Start Commute
+          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+            <polygon points="8,5 19,12 8,19" />
+          </svg>
+          Play All
         </button>
-      )}
+      </div>
 
-      {/* Episode list */}
-      <div className="flex flex-col gap-2.5">
-        {episodes.map((ep) => (
-          <div
-            key={ep.audioId}
-            onClick={() => play(toPlayableItem(ep))
-            }
-            className="flex items-center gap-3.5 p-4 rounded-[14px] bg-[var(--surface)] border border-black/[0.07] cursor-pointer hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
-          >
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#EA580C]/20 to-[#F97316]/15 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#EA580C]/70"><polygon points="8,5 19,12 8,19" /></svg>
+      {/* NOW PLAYING — shown when currentItem is active */}
+      {currentItem && (
+        <div className="mx-5 mt-5 bg-[var(--surface)] rounded-[var(--radius)] p-3.5 border border-black/[0.06] relative">
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+            <span className="text-[11px] font-semibold text-[var(--accent)]">Playing</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EA580C] to-[#F97316] flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white opacity-85">
+                <path d={sourceIcons[currentItem.sourceType ?? "txt"] || sourceIcons.txt} />
+              </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold truncate">{ep.title}</div>
-              <div className="text-xs text-[var(--text-mid)] mt-0.5">{ep.format} · {ep.targetDuration} min target</div>
+              <div className="text-sm font-semibold leading-snug line-clamp-1">
+                {currentItem.title}
+              </div>
+              <div className="text-[11px] text-[var(--text-mid)] mt-0.5">
+                {currentItem.duration > 0 && formatDuration(currentItem.duration)}
+              </div>
             </div>
-            <span className="text-[13px] font-semibold text-[var(--text-mid)] shrink-0">{formatDuration(ep.durationSecs)}</span>
+            <button
+              onClick={togglePlay}
+              className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0"
+            >
+              {isPlaying ? (
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                  <rect x="7" y="6" width="3.5" height="12" rx="1" />
+                  <rect x="13.5" y="6" width="3.5" height="12" rx="1" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                  <polygon points="9,6 18,12 9,18" />
+                </svg>
+              )}
+            </button>
           </div>
-        ))}
+          {currentItem.duration > 0 && (
+            <div className="mt-2.5 w-full h-[2px] bg-[var(--surface-2)] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[var(--accent)] to-[#FB923C]"
+                style={{
+                  width: `${Math.min(100, (position / currentItem.duration) * 100)}%`,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* UP NEXT */}
+      <div className="px-5 pt-5 pb-2.5 flex items-center gap-2">
+        <h2 className="text-base font-bold">Up Next</h2>
+        <span className="text-[11px] font-semibold bg-[var(--surface-2)] rounded-full px-2 py-0.5">
+          Recent
+        </span>
+      </div>
+
+      <div className="px-5 flex flex-col gap-2">
+        {unlistened.map((ep, i) => {
+          const v = ep.version;
+          const displayTitle = getTitleFallback(
+            ep.title,
+            ep.sourceUrl,
+            ep.sourceType,
+            ep.createdAt,
+          );
+          const progressPct =
+            v.durationSecs && v.position > 0
+              ? Math.min(100, (v.position / v.durationSecs) * 100)
+              : 0;
+          return (
+            <div
+              key={ep.id}
+              onClick={() => play(toPlayableItem(ep))}
+              className="flex items-center gap-3 p-3 rounded-[var(--radius)] bg-[var(--surface)] border border-black/[0.05] cursor-pointer active:scale-[0.98]"
+            >
+              <div
+                className={`w-11 h-11 rounded-[9px] bg-gradient-to-br ${getGradient(i)} flex items-center justify-center shrink-0`}
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white opacity-85">
+                  <path d={sourceIcons[ep.sourceType] || sourceIcons.txt} />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold leading-snug line-clamp-2">
+                  {displayTitle}
+                </div>
+                <div className="text-[11px] text-[var(--text-mid)] mt-0.5">
+                  <span className="font-semibold">{ep.sourceType.toUpperCase()}</span>
+                  <span className="mx-1.5">&middot;</span>
+                  <span>{timeAgo(ep.createdAt)}</span>
+                </div>
+                {progressPct > 0 && (
+                  <div className="mt-1.5 w-full h-[2px] bg-[var(--surface-2)] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[var(--accent)] to-[#FB923C]"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+              <span className="text-xs font-semibold text-[var(--text-mid)] bg-[var(--surface-2)] rounded-[7px] px-2 py-1 shrink-0">
+                {formatDuration(v.durationSecs ?? 0)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
