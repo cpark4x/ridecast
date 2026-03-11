@@ -41,6 +41,18 @@ export function formatDuration(secs: number): string {
  *      formatDurationMinutes(3900) → "1 hr 5 min"
  *      formatDurationMinutes(3600) → "1 hr"
  */
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Estimate reading time in minutes (ceiling) at 250 WPM.
+ * Returns at least 1 minute.
+ */
+export function estimateReadingTime(wordCount: number): number {
+  return Math.max(1, Math.ceil(wordCount / 250));
+}
+
 export function formatDurationMinutes(secs: number): string {
   const totalMinutes = Math.floor(secs / 60);
   const h = Math.floor(totalMinutes / 60);

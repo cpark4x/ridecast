@@ -18,6 +18,7 @@ import { syncLibrary } from "../../lib/sync";
 import { getUnlistenedItems, libraryItemToPlayable } from "../../lib/libraryHelpers";
 import { formatDuration, formatDurationMinutes, timeAgo } from "../../lib/utils";
 import type { LibraryItem, PlayableItem } from "../../lib/types";
+import UploadModal from "../../components/UploadModal";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -168,6 +169,7 @@ export default function HomeScreen() {
 
   const [episodes, setEpisodes] = useState<LibraryItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   const firstName = user?.firstName ?? null;
 
@@ -307,6 +309,22 @@ export default function HomeScreen() {
             </Text>
           </View>
         }
+      />
+
+      {/* FAB */}
+      <TouchableOpacity
+        onPress={() => setUploadModalVisible(true)}
+        className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
+        style={{ elevation: 6 }}
+        accessibilityLabel="Add content"
+      >
+        <Ionicons name="add" size={28} color="white" />
+      </TouchableOpacity>
+
+      {/* Upload Modal */}
+      <UploadModal
+        visible={uploadModalVisible}
+        onDismiss={() => setUploadModalVisible(false)}
       />
     </SafeAreaView>
   );

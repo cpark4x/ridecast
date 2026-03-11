@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import EpisodeCard from "../../components/EpisodeCard";
+import UploadModal from "../../components/UploadModal";
 import { filterEpisodes } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
@@ -33,6 +34,7 @@ export default function LibraryScreen() {
   const [filter, setFilter] = useState<LibraryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -206,12 +208,19 @@ export default function LibraryScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        onPress={() => console.log("upload")}
+        onPress={() => setUploadModalVisible(true)}
         className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
         style={{ elevation: 6 }}
+        accessibilityLabel="Add content"
       >
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
+
+      {/* Upload Modal */}
+      <UploadModal
+        visible={uploadModalVisible}
+        onDismiss={() => setUploadModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
