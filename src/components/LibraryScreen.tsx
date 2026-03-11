@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { formatDuration } from "@/lib/utils/duration";
+import { gradients, sourceIcons, timeAgo } from "@/lib/ui/content-display";
 import { usePlayer } from "./PlayerContext";
 
 interface AudioVersion {
@@ -23,20 +24,6 @@ interface LibraryItem {
   wordCount: number;
   versions: AudioVersion[];
 }
-
-const gradients = [
-  "from-[#EA580C] to-[#F97316]",
-  "from-pink-500 to-rose-500",
-  "from-teal-500 to-cyan-500",
-  "from-amber-500 to-red-500",
-];
-
-const sourceIcons: Record<string, string> = {
-  pdf: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
-  epub: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
-  url: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z",
-  txt: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
-};
 
 interface LibraryScreenProps {
   /** When true the screen is the active tab — triggers a data refresh. */
@@ -75,18 +62,6 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
       format: version.format ?? "narrator",
       audioUrl: version.audioUrl,
     });
-  }
-
-  function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return `${Math.floor(days / 7)}w ago`;
   }
 
   /** Derived: the first ready version (or first version overall) for inline display */
