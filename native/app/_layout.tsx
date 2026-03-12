@@ -1,6 +1,6 @@
 import "../global.css";
 import { useEffect } from "react";
-import { View } from "react-native";
+import { AppState, View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
@@ -11,8 +11,10 @@ import { PlaybackService } from "../lib/player";
 import { PlayerProvider, usePlayer } from "../lib/usePlayer";
 import PlayerBar from "../components/PlayerBar";
 import ExpandedPlayer from "../components/ExpandedPlayer";
+import OfflineBanner from "../components/OfflineBanner";
 import TrackPlayer from "react-native-track-player";
 import { initializeCarPlay } from "../lib/carplay";
+import { syncLibrary, syncPlayback } from "../lib/sync";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -53,8 +55,20 @@ function AppShell({ children }: { children: React.ReactNode }) {
       .catch((err) => console.warn("[player] setup error:", err));
   }, []);
 
+  // Sync library + playback every time the app returns to the foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        syncLibrary().catch(console.warn);
+        syncPlayback().catch(console.warn);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
   return (
     <View style={{ flex: 1 }}>
+      <OfflineBanner />
       {children}
       <PlayerBar />
       <ExpandedPlayer

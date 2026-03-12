@@ -236,9 +236,9 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
               />
             </TouchableOpacity>
 
-            {/* Queue */}
+            {/* Queue — TODO: show current queue list in a Modal (future sprint) */}
             <TouchableOpacity
-              onPress={() => console.log("open queue")}
+              onPress={() => { /* TODO: open queue modal */ }}
               className="bg-gray-100 p-2 rounded-full"
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
