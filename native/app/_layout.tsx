@@ -12,6 +12,7 @@ import { PlayerProvider, usePlayer } from "../lib/usePlayer";
 import PlayerBar from "../components/PlayerBar";
 import ExpandedPlayer from "../components/ExpandedPlayer";
 import TrackPlayer from "react-native-track-player";
+import { initializeCarPlay } from "../lib/carplay";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -45,11 +46,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function AppShell({ children }: { children: React.ReactNode }) {
   const { expandedPlayerVisible, setExpandedPlayerVisible } = usePlayer();
 
-  // Set up RNTP once on mount
+  // Set up RNTP once on mount, then initialize CarPlay (fire-and-forget)
   useEffect(() => {
-    setupPlayer().catch((err) =>
-      console.warn("[player] setupPlayer error:", err),
-    );
+    setupPlayer()
+      .then(() => initializeCarPlay())
+      .catch((err) => console.warn("[player] setup error:", err));
   }, []);
 
   return (
