@@ -158,10 +158,10 @@ recently_shipped:
     ROADMAP.md + VISION.md updated to reflect iOS strategy.
 
     '
-phase: 3
-phase_name: phase-3-home-expanded-library
+phase: 4
+phase_name: phase-4-native-intelligence-polish
 epoch: 14
-next_action: "All Phase 3 features complete. 43 features shipped across 14 sessions."
+next_action: "Phase 4 begins. Night 1: critical fixes + foundations (8 pts). Night 2: polish + pocket (7 pts)."
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -206,16 +206,160 @@ completed_features:
 - library-upload-modal
 - library-process-new-version
 - library-screen-rewrite
-features: {}
-proposed_features:
-- id: proposed-001
-  name: "Single-version process new version access"
-  rationale: "Currently 'Process new version' is only accessible in the expanded view for multi-version items. Single-version items play on tap with no path to create a second version from the library screen. Add a long-press or context menu for single-version cards."
-  proposed_at: "2026-03-11T18:50:00Z"
+features:
+  # ── Night 1: Critical Fixes + Foundations (8 pts) ──
+  delete-episodes:
+    status: ready
+    spec: specs/features/phase4/delete-episodes.md
+    description: "Fix stubbed delete, add swipe-to-delete, remove non-functional queue button"
+    size: S
+  generating-feedback:
+    status: ready
+    spec: specs/features/phase4/generating-feedback.md
+    description: "Toast feedback when tapping a generating episode instead of silent failure"
+    size: S
+  offline-guards:
+    status: ready
+    spec: specs/features/phase4/offline-guards.md
+    description: "Network connectivity guards on upload flow with clear error messaging"
+    size: S
+  episode-identity:
+    status: ready
+    spec: specs/features/phase4/episode-identity.md
+    description: "Source icons, attribution metadata, SourceIcon component — foundational for all visual redesigns"
+    size: M
+  smart-titles:
+    status: ready
+    spec: specs/features/phase4/smart-titles.md
+    description: "Client-side title cleaning — strip publisher suffixes, clean PDF filenames"
+    size: M
+
+  # ── Night 2: Polish + Pocket (7 pts) ──
+  haptic-feedback:
+    status: ready
+    spec: specs/features/phase4/haptic-feedback.md
+    description: "expo-haptics throughout the app — light/medium/error on all touch points"
+    size: S
+  player-bar-upgrade:
+    status: ready
+    spec: specs/features/phase4/player-bar-upgrade.md
+    description: "Add SourceIcon, source name, and time remaining to mini player"
+    size: S
+    depends_on: [episode-identity]
+  skeleton-loading:
+    status: ready
+    spec: specs/features/phase4/skeleton-loading.md
+    description: "Shimmer loading states for home and library on cold launch"
+    size: S
+  active-filter-default:
+    status: ready
+    spec: specs/features/phase4/active-filter-default.md
+    description: "Default library filter to Active (unlistened + in-progress), not All"
+    size: S
+  pocket-refugee-capture:
+    status: ready
+    spec: specs/features/phase3/pocket-refugee-capture.md
+    description: "Pocket import, bookmarklet, marketing landing page — time-sensitive (Pocket shuts down July 2025)"
+    size: M
+
+  # ── Night 3: Homepage Redesign (7 pts) ──
+  homepage-redesign:
+    status: queued
+    spec: specs/features/phase4/homepage-redesign.md
+    description: "Option B visual hybrid — hero now-playing card, episode carousel, rich list"
+    size: L
+    depends_on: [episode-identity, episode-card-redesign]
+  episode-card-redesign:
+    status: queued
+    spec: specs/features/phase4/episode-card-redesign.md
+    description: "Rich cards with SourceIcon, attribution, description preview, state indicators"
+    size: M
+    depends_on: [episode-identity]
+  empty-states:
+    status: queued
+    spec: specs/features/phase4/empty-states.md
+    description: "Context-aware empty states — new user onboarding, all caught up, stale library nudge"
+    size: M
+
+  # ── Night 4: Library Overhaul (8 pts) ──
+  library-redesign:
+    status: queued
+    spec: specs/features/phase4/library-redesign.md
+    description: "Time sections, upgraded filters with Sources/Topics dropdowns, sort control"
+    size: L
+    depends_on: [episode-card-redesign, active-filter-default]
+  smart-search:
+    status: queued
+    spec: specs/features/phase4/smart-search.md
+    description: "Search across title, author, source, themes, summary — not just title/author"
+    size: M
+    depends_on: [episode-identity]
+  upload-polish:
+    status: queued
+    spec: specs/features/phase4/upload-polish.md
+    description: "Upload modal error handling, loading states, bottom sheet behavior"
+    size: S
+  player-controls-polish:
+    status: queued
+    spec: specs/features/phase4/player-controls-polish.md
+    description: "Skip boundary fixes, speed chip in mini bar, lock screen integration"
+    size: S
+  single-version-new-version:
+    status: queued
+    spec: specs/features/phase4/single-version-new-version.md
+    description: "Direct path to create new version from single-version cards"
+    size: S
+
+  # ── Night 5: Following & Discovery (8 pts) ──
+  source-author-following:
+    status: queued
+    spec: specs/features/phase4/source-author-following.md
+    description: "Follow sources and authors — source/author cards, following filter"
+    size: L
+    depends_on: [episode-identity]
+  settings-onboarding-polish:
+    status: queued
+    spec: specs/features/phase4/settings-onboarding-polish.md
+    description: "Default duration, haptics toggle, notification prefs, first-run hints"
+    size: S
+  minor-ux-polish:
+    status: queued
+    spec: specs/features/phase4/minor-ux-polish.md
+    description: "Animation timing, keyboard handling, scroll restoration, loading consistency"
+    size: S
+  app-infrastructure:
+    status: queued
+    spec: specs/features/phase4/app-infrastructure.md
+    description: "Error boundaries, crash reporting, performance monitoring"
+    size: M
+
+  # ── Night 6+: Platform Expansion ──
+  content-type-expansion:
+    status: queued
+    spec: specs/features/phase4/content-type-expansion.md
+    description: "Support .docx, Google Docs, Notion, GitHub, Markdown"
+    size: M
+  generic-url-handling:
+    status: queued
+    spec: specs/features/phase4/generic-url-handling.md
+    description: "Homepage detection, article extraction, multi-select picker"
+    size: M
+  browser-extension:
+    status: queued
+    spec: specs/features/phase4/browser-extension.md
+    description: "Chrome extension — right-click any article, send to Ridecast"
+    size: L
+  ios-share-extension:
+    status: queued
+    spec: specs/features/phase4/ios-share-extension.md
+    description: "iOS Share Extension — share from Safari or any app to Ridecast"
+    size: M
+
+proposed_features: []
 next_steps:
 - step: 1
-  task: Phase 3 complete. Plan Phase 4 or next milestone.
-  action: All 43 features shipped. Human decides next direction.
+  task: "Run Night 1 — critical fixes + foundations (8 pts)"
+  action: "10 features with status:ready across Night 1 and Night 2. Run iteration.yaml."
 last_session: '2026-03-11'
 meta:
   project: ridecast2
