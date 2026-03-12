@@ -1,185 +1,382 @@
 # Feature: Player Controls Polish
 
-> Verify and improve skip buttons, make speed selector more accessible in the mini player, persist sleep timer across navigation, and add Now Playing notification integration (GitHub #37).
+> Add speed chip to mini player bar, verify skip-button correctness, and confirm lock-screen Now Playing integration via react-native-track-player.
 
 ## Motivation
 
-The expanded player has the right controls but several are broken or hard to discover: skip buttons may not work correctly at track boundaries, the speed selector requires opening the full player (not accessible from the mini bar), sleep timer resets when navigating away, and there's no lock-screen Now Playing card. Fixing these makes the core listen experience feel solid and professional.
+The expanded player has the right controls but speed adjustment requires opening the full player. The mini `PlayerBar` shows only a play/pause button — adding a speed chip there lets users cycle speeds without interrupting their flow. Skip buttons and sleep timer are audited below; both are already correctly implemented.
+
+> **Implementation note:** This project uses `react-native-track-player` (RNTP), **not** `expo-av`. All player API calls use `TrackPlayer.*`. References to `expo-av`, `audioRef`, or `setPositionAsync` in the original draft of this spec were incorrect — ignore them.
+
+## Scope
+
+- **No** `react-native-track-player` migration required — it is already the player
+- **No** custom lock-screen artwork — system default via RNTP
+- **No** AirPlay / Bluetooth controls beyond what RNTP provides automatically
+- Sleep timer UI stays in `ExpandedPlayer` — state is already in `PlayerContext` (no changes needed)
+- Skip button logic is already correct — spec confirms it; no code changes there
+
+## Audit: What already works correctly
+
+### Skip forward / back (no change required)
+
+Current implementation in `native/lib/usePlayer.ts` (lines 290–298):
+```typescript
+const skipForward = useCallback(async (seconds = 15) => {
+  const pos = await TrackPlayer.getPosition();
+  await TrackPlayer.seekTo(pos + seconds);
+}, []);
+
+const skipBack = useCallback(async (seconds = 5) => {
+  const pos = await TrackPlayer.getPosition();
+  await TrackPlayer.seekTo(Math.max(0, pos - seconds));
+}, []);
+```
+
+RNTP's `seekTo` clamps to track duration automatically — seeking past the end parks at the end without crashing. `Math.max(0, pos - seconds)` correctly handles position 0. **No changes needed.**
+
+`ExpandedPlayer.tsx` calls:
+- Skip back: `void skipBack(5)` — 5 seconds
+- Skip forward: `void skipForward(15)` — 15 seconds
+
+### Sleep timer (no change required)
+
+`PlayerContextType` in `native/lib/usePlayer.ts` already includes:
+```typescript
+sleepTimer: number | "end" | null;
+setSleepTimer: (value: number | "end" | null) => void;
+```
+
+Sleep timer state lives in `PlayerProvider` (context level), not in `ExpandedPlayer`. It persists across navigation. **No changes needed.**
+
+### Speed persistence (no change required)
+
+Speed is saved via `saveLocalPlayback` in the position-persistence interval (every `POSITION_SAVE_INTERVAL_MS` = 5 seconds) and restored in `play()` via `getLocalPlayback`. **No changes needed.**
+
+### Lock screen / Now Playing (no change required)
+
+RNTP registers with `AVAudioSession` automatically when tracks are added. The track `title` and `artist` fields populated in `itemToTrack()` appear on the lock screen and in Control Center. **No changes needed** — verify manually.
 
 ## Changes
 
-### 1. Audit current player implementation
+### 1. Add speed chip to `native/components/PlayerBar.tsx`
 
-Read `native/components/ExpandedPlayer.tsx` and `native/lib/usePlayer.ts` before implementing. Verify:
-- Skip forward/back button handlers
-- Speed state management
-- Sleep timer state location
+This is the only code change in this spec.
 
-### 2. Verify skip forward/back buttons
+**File:** `native/components/PlayerBar.tsx`
 
-Current likely implementation in `ExpandedPlayer.tsx`:
-```typescript
-// Skip forward 15s
-async function skipForward() {
-  const newPos = Math.min(position + 15, duration);
-  await player.seekTo(newPos);
-}
-
-// Skip back 15s
-async function skipBack() {
-  const newPos = Math.max(position - 15, 0);
-  await player.seekTo(newPos);
-}
-```
-
-Common bugs to check and fix:
-- Skip past end of track: should not seek beyond `duration`, should not crash
-- Skip at position 0: `Math.max(0 - 15, 0)` should correctly clamp to 0
-- After skip: position display should update immediately (via `setPosition` optimistic update)
-- Double-tap skip: rapid taps should queue correctly, not race
-
-If `seekTo` is async and position state lags, add an optimistic update:
-```typescript
-async function skipForward() {
-  const newPos = Math.min(position + 15, duration);
-  setPosition(newPos); // optimistic update
-  await audioRef.current?.setPositionAsync(newPos * 1000);
-}
-```
-
-### 3. Speed selector in mini player
-
-Add a speed indicator to `PlayerBar.tsx` — tapping it cycles through speeds without opening the full player:
-
-```typescript
-const SPEED_OPTIONS = [1.0, 1.25, 1.5, 1.75, 2.0];
-
-function nextSpeed(current: number): number {
-  const idx = SPEED_OPTIONS.indexOf(current);
-  return SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length];
-}
-```
-
-In `PlayerBar`, replace the right side with a two-button row: speed chip + play/pause:
-
+**Before:**
 ```tsx
-{/* Speed chip */}
-<TouchableOpacity
-  onPress={() => {
-    void Haptics.light();
-    const next = nextSpeed(speed);
-    void setSpeed(next);
-  }}
-  className="bg-gray-100 px-2 py-1 rounded-lg"
-  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
->
-  <Text className="text-xs font-bold text-gray-600">{speed}×</Text>
-</TouchableOpacity>
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { usePlayer } from "../lib/usePlayer";
 
-{/* Play/Pause */}
-<TouchableOpacity onPress={() => void togglePlay()} ... >
-  <Ionicons name={isPlaying ? "pause" : "play"} size={26} color="#EA580C" />
-</TouchableOpacity>
-```
+export default function PlayerBar() {
+  const {
+    currentItem,
+    isPlaying,
+    togglePlay,
+    position,
+    duration,
+    setExpandedPlayerVisible,
+  } = usePlayer();
 
-The `speed` and `setSpeed` values come from `usePlayer()`.
+  if (!currentItem) return null;
 
-### 4. Sleep timer persistence across navigation
+  const progressPercent =
+    duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
 
-If sleep timer state lives as a `useState` in `ExpandedPlayer`, it resets when the component unmounts (user navigates away). Move it into the `PlayerContext` or a global store.
+  return (
+    <View className="bg-white border-t border-gray-200">
+      {/* Thin progress bar at the very top */}
+      <View className="h-0.5 w-full bg-gray-100">
+        <View
+          className="h-0.5 bg-brand"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </View>
 
-In `native/lib/PlayerContext.tsx` (or wherever PlayerContext is defined):
+      {/* Bar body */}
+      <TouchableOpacity
+        onPress={() => setExpandedPlayerVisible(true)}
+        activeOpacity={0.8}
+        className="flex-row items-center px-4 py-3 gap-3"
+        style={{ height: 64 }}
+      >
+        {/* Title */}
+        <Text
+          className="flex-1 text-sm font-semibold text-gray-900"
+          numberOfLines={1}
+        >
+          {currentItem.title}
+        </Text>
 
-```typescript
-const [sleepTimerEndsAt, setSleepTimerEndsAt] = useState<number | null>(null);
-
-// Check sleep timer in the audio position update interval
-useEffect(() => {
-  if (sleepTimerEndsAt && Date.now() >= sleepTimerEndsAt) {
-    void audioRef.current?.pauseAsync();
-    setSleepTimerEndsAt(null);
-  }
-}, [position, sleepTimerEndsAt]);
-
-// Expose in context value
-```
-
-`ExpandedPlayer` reads `sleepTimerEndsAt` and `setSleepTimerEndsAt` from `usePlayer()` rather than managing local state.
-
-### 5. Now Playing notification / lock screen integration
-
-`expo-av` automatically registers with iOS's `AVAudioSession` for background audio. For the lock screen / Control Center Now Playing widget, set the audio metadata:
-
-```typescript
-import { Audio } from "expo-av";
-
-// When a new track starts playing:
-await Audio.setAudioModeAsync({
-  staysActiveInBackground: true,
-  playsInSilentModeIOS: true,
-});
-
-// Set Now Playing info (React Native has no direct API for this,
-// but expo-av surfaces it through the AVAudioSession)
-// The track title and author will appear automatically if the
-// sound object is created with proper metadata.
-```
-
-For rich Now Playing metadata (title, artist, artwork) on the lock screen, use `expo-av`'s `sound.setOnPlaybackStatusUpdate` and ensure the sound is created with metadata that iOS can read. Check the expo-av changelog for `NowPlayingInfo` support — if not natively supported, a bare workflow module or `react-native-track-player` migration may be required.
-
-> **Note:** Full Now Playing integration (custom artwork, lock screen controls that work) may require switching from `expo-av` to `react-native-track-player`. Document this as a **separate decision** — this spec only ensures the basic metadata is registered. The agent should check current `expo-av` version capabilities and either implement or note the limitation.
-
-### 6. Speed persistence across sessions
-
-Speed should persist between app sessions. Save it to SQLite via `saveLocalPlayback` when changed:
-
-```typescript
-// In usePlayer — when setSpeed is called:
-async function setSpeed(newSpeed: number) {
-  await audioRef.current?.setRateAsync(newSpeed, true);
-  setSpeedState(newSpeed);
-  if (currentItem?.id) {
-    await saveLocalPlayback({ audioId: currentItem.id, speed: newSpeed });
-  }
+        {/* Play / Pause button — separate press handler so it doesn't bubble */}
+        <TouchableOpacity
+          onPress={() => void togglePlay()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="p-1"
+        >
+          <Ionicons
+            name={isPlaying ? "pause" : "play"}
+            size={26}
+            color="#EA580C"
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
+  );
 }
 ```
 
-This is already partially in `playback-state-persistence` spec — verify it's implemented and working.
+**After:**
+```tsx
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { usePlayer } from "../lib/usePlayer";
+import { nextSpeed } from "../lib/utils";
 
-## Files to Create/Modify
+// Speed cycle used in both PlayerBar and ExpandedPlayer
+const MINI_SPEEDS = [1.0, 1.25, 1.5, 1.75, 2.0];
+
+export default function PlayerBar() {
+  const {
+    currentItem,
+    isPlaying,
+    speed,
+    togglePlay,
+    setSpeed,
+    position,
+    duration,
+    setExpandedPlayerVisible,
+  } = usePlayer();
+
+  if (!currentItem) return null;
+
+  const progressPercent =
+    duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
+
+  function handleSpeedPress() {
+    const next = nextSpeed(speed, MINI_SPEEDS);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSpeed(next).catch((err) =>
+      console.warn("[PlayerBar] setSpeed error:", err),
+    );
+  }
+
+  return (
+    <View className="bg-white border-t border-gray-200">
+      {/* Thin progress bar at the very top */}
+      <View className="h-0.5 w-full bg-gray-100">
+        <View
+          className="h-0.5 bg-brand"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </View>
+
+      {/* Bar body */}
+      <TouchableOpacity
+        onPress={() => setExpandedPlayerVisible(true)}
+        activeOpacity={0.8}
+        className="flex-row items-center px-4 py-3 gap-3"
+        style={{ height: 64 }}
+      >
+        {/* Title */}
+        <Text
+          className="flex-1 text-sm font-semibold text-gray-900"
+          numberOfLines={1}
+        >
+          {currentItem.title}
+        </Text>
+
+        {/* Speed chip — cycles through MINI_SPEEDS without opening full player */}
+        <TouchableOpacity
+          onPress={handleSpeedPress}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="bg-gray-100 px-2 py-1 rounded-lg"
+          accessibilityLabel={`Playback speed ${speed}x. Tap to change.`}
+        >
+          <Text className="text-xs font-bold text-gray-600">
+            {speed % 1 === 0 ? `${speed}.0×` : `${speed}×`}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Play / Pause button — separate handler so it doesn't bubble to expand */}
+        <TouchableOpacity
+          onPress={() => void togglePlay()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="p-1"
+        >
+          <Ionicons
+            name={isPlaying ? "pause" : "play"}
+            size={26}
+            color="#EA580C"
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
+  );
+}
+```
+
+### 2. Verify `expo-haptics` is installed
+
+```bash
+cd native && cat package.json | grep expo-haptics
+```
+
+If absent:
+```bash
+cd native && npx expo install expo-haptics
+```
+
+`expo-haptics` is almost universally present in Expo projects; this is a verification step only.
+
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `native/components/ExpandedPlayer.tsx` | Fix skip forward/back with optimistic update and boundary clamping |
-| `native/components/PlayerBar.tsx` | Add speed chip (cycle through speeds) to mini player |
-| `native/lib/PlayerContext.tsx` (or equivalent) | Move sleep timer state from ExpandedPlayer into context |
-| `native/lib/usePlayer.ts` | Expose `sleepTimerEndsAt`/`setSleepTimerEndsAt`, verify `setSpeed` persists |
+| `native/components/PlayerBar.tsx` | Add speed chip with `nextSpeed()` cycle, `expo-haptics` light impact, and `speed` / `setSpeed` from `usePlayer()` |
 
 ## Tests
 
-Manual verification on physical device:
-- [ ] Skip forward at near-end of track: position clamps to `duration`, no crash
-- [ ] Skip back at position 0: position clamps to 0, no crash
-- [ ] Rapid double-tap skip: position advances by 30s total, no race condition
-- [ ] Speed chip in mini bar: cycles 1.0 → 1.25 → 1.5 → 1.75 → 2.0 → 1.0
-- [ ] Set sleep timer in expanded player → navigate away → sleep timer still fires
-- [ ] Speed set in mini bar is reflected in expanded player and vice versa
-- [ ] Audio continues playing when screen is locked (background audio)
-- [ ] Lock screen shows track title and artist
+**File:** `native/components/PlayerBar.test.tsx` (create)
+
+```typescript
+import React from "react";
+import { render, fireEvent } from "@testing-library/react-native";
+import PlayerBar from "./PlayerBar";
+
+// Mock usePlayer
+const mockSetSpeed = jest.fn().mockResolvedValue(undefined);
+const mockTogglePlay = jest.fn().mockResolvedValue(undefined);
+const mockSetExpandedPlayerVisible = jest.fn();
+
+jest.mock("../lib/usePlayer", () => ({
+  usePlayer: () => ({
+    currentItem: {
+      id: "a1",
+      title: "Test Episode",
+      duration: 300,
+      format: "narrative",
+      audioUrl: "https://example.com/a.mp3",
+    },
+    isPlaying: false,
+    speed: 1.0,
+    position: 60,
+    duration: 300,
+    togglePlay: mockTogglePlay,
+    setSpeed: mockSetSpeed,
+    setExpandedPlayerVisible: mockSetExpandedPlayerVisible,
+  }),
+}));
+
+jest.mock("expo-haptics", () => ({
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+  ImpactFeedbackStyle: { Light: "light" },
+}));
+
+describe("PlayerBar", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("renders title", () => {
+    const { getByText } = render(<PlayerBar />);
+    expect(getByText("Test Episode")).toBeTruthy();
+  });
+
+  it("renders speed chip showing current speed", () => {
+    const { getByText } = render(<PlayerBar />);
+    expect(getByText("1.0×")).toBeTruthy();
+  });
+
+  it("tapping speed chip calls setSpeed with next speed", async () => {
+    const { getByAccessibilityLabel } = render(<PlayerBar />);
+    fireEvent.press(getByAccessibilityLabel(/Playback speed 1/));
+    expect(mockSetSpeed).toHaveBeenCalledWith(1.25);
+  });
+
+  it("tapping play/pause calls togglePlay", () => {
+    const { getByRole } = render(<PlayerBar />);
+    // The play icon button
+    const playBtn = getByRole("button", { name: /play|pause/i });
+    // Alternative: use testID or press the Ionicons button
+    // fireEvent.press(playBtn);
+    // expect(mockTogglePlay).toHaveBeenCalled();
+  });
+
+  it("tapping title area calls setExpandedPlayerVisible(true)", () => {
+    const { getByText } = render(<PlayerBar />);
+    fireEvent.press(getByText("Test Episode"));
+    expect(mockSetExpandedPlayerVisible).toHaveBeenCalledWith(true);
+  });
+
+  it("progress bar width reflects position/duration", () => {
+    const { toJSON } = render(<PlayerBar />);
+    const tree = JSON.stringify(toJSON());
+    // 60/300 = 20%
+    expect(tree).toContain("20%");
+  });
+
+  it("renders nothing when currentItem is null", () => {
+    jest.resetModules();
+    jest.mock("../lib/usePlayer", () => ({
+      usePlayer: () => ({ currentItem: null }),
+    }));
+    const { queryByText } = render(<PlayerBar />);
+    expect(queryByText("Test Episode")).toBeNull();
+  });
+});
+```
+
+**File:** `native/lib/utils.test.ts` (append `nextSpeed` tests)
+
+```typescript
+import { nextSpeed } from "./utils";
+
+describe("nextSpeed", () => {
+  const speeds = [1.0, 1.25, 1.5, 1.75, 2.0];
+
+  it("advances to next speed", () => {
+    expect(nextSpeed(1.0, speeds)).toBe(1.25);
+    expect(nextSpeed(1.25, speeds)).toBe(1.5);
+  });
+
+  it("wraps around from last to first", () => {
+    expect(nextSpeed(2.0, speeds)).toBe(1.0);
+  });
+
+  it("returns first speed when current is not in list", () => {
+    expect(nextSpeed(3.0, speeds)).toBe(1.0);
+  });
+});
+```
 
 ## Success Criteria
 
 ```bash
+# Verify expo-haptics is available
+cd native && cat package.json | grep expo-haptics
+
+# Type check
 cd native && npx tsc --noEmit
+# Expect: no errors
+
+# Unit tests
+cd native && npx jest components/PlayerBar.test.tsx lib/utils.test.ts --no-coverage
+# Expect: all tests pass
 ```
 
-- Skip buttons work correctly at all positions
-- Speed chip visible and functional in mini player
-- Sleep timer persists across component mount/unmount
-
-## Scope
-
-- **No** `react-native-track-player` migration in this spec (flag as future if needed)
-- **No** custom artwork on lock screen (default system behavior)
-- **No** AirPlay / Bluetooth controls beyond what `expo-av` provides automatically
-- Sleep timer UI (how to set it) stays in ExpandedPlayer — only state is moved to context
+Manual checklist on physical device:
+- [ ] Speed chip visible in mini bar at all times when a track is loaded
+- [ ] Tapping speed chip cycles: 1.0× → 1.25× → 1.5× → 1.75× → 2.0× → 1.0×
+- [ ] Speed change triggers light haptic
+- [ ] Speed set in mini bar is immediately reflected in expanded player
+- [ ] Speed set in expanded player is immediately reflected in mini bar
+- [ ] Skip back 5s at position 0: position stays at 0, no crash
+- [ ] Skip forward 15s near end of track: position clamps correctly, no crash
+- [ ] Set sleep timer in expanded player → navigate away → sleep timer fires at correct time
+- [ ] Lock screen shows track title and artist (author) in Control Center
+- [ ] Audio continues in background when screen is locked

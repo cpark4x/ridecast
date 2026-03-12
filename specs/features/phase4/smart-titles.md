@@ -10,22 +10,104 @@ This is a pure display-layer fix. No API calls, no model inference, no new depen
 
 Affected surfaces: `EpisodeCard`, `UpNextCard` (in `index.tsx`), `PlayerBar`, and `ExpandedPlayer`.
 
+## Prerequisite
+
+**This spec depends on `episode-identity.md` being implemented first.** `smartTitle` on `PlayerBar` and `ExpandedPlayer` requires `sourceDomain` on `PlayableItem`, which in turn requires `sourceDomain` on `LibraryItem` (added by episode-identity). If implementing smart-titles standalone, stub `item.sourceDomain` as `undefined` in `libraryItemToPlayable` and the render sites.
+
 ## Current State
 
 All four surfaces render `item.title` or `currentItem.title` directly with no sanitization:
 
 - `native/components/EpisodeCard.tsx` line 132: `{item.title}`
 - `native/app/(tabs)/index.tsx` `UpNextCard` line 135: `{item.title}`
-- Wherever `PlayerBar` renders title (search `native/components/PlayerBar.tsx` or equivalent)
-- Wherever `ExpandedPlayer` renders title
+- `native/components/PlayerBar.tsx` line 43: `{currentItem.title}`
+- `native/components/ExpandedPlayer.tsx` line 155: `{currentItem.title}`
 
 `native/lib/libraryHelpers.ts` already contains helper functions (`filterEpisodes`, `getUnlistenedItems`, `libraryItemToPlayable`) — `smartTitle` lives here as a pure utility alongside them.
 
 ## Changes
 
-### 1. Add `smartTitle` utility to `native/lib/libraryHelpers.ts`
+### 1. Rewrite `native/lib/libraryHelpers.ts` (complete file with `smartTitle` added)
 
 ```typescript
+import type { LibraryItem, LibraryFilter, PlayableItem } from "./types";
+
+// ---------------------------------------------------------------------------
+// Home screen helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Filter to episodes that are "unlistened":
+ * has at least one ready version where position === 0 OR not completed.
+ */
+export function getUnlistenedItems(items: LibraryItem[]): LibraryItem[] {
+  return items.filter((item) =>
+    item.versions.some(
+      (v) => v.status === "ready" && (v.position === 0 || !v.completed),
+    ),
+  );
+}
+
+/**
+ * Build a PlayableItem from a LibraryItem using its first ready version.
+ * Returns null if no ready version with audioId + audioUrl exists.
+ */
+export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
+  const version = item.versions.find(
+    (v) => v.status === "ready" && v.audioId && v.audioUrl,
+  );
+  if (!version || !version.audioId || !version.audioUrl) return null;
+
+  return {
+    id: version.audioId,
+    title: item.title,
+    duration: version.durationSecs ?? version.targetDuration * 60,
+    format: version.format,
+    audioUrl: version.audioUrl,
+    author: item.author,
+    sourceType: item.sourceType,
+    sourceDomain: item.sourceDomain ?? null,  // ← requires episode-identity spec
+    contentType: version.contentType,
+    themes: version.themes,
+    summary: version.summary,
+    targetDuration: version.targetDuration,
+    createdAt: item.createdAt,
+  };
+}
+
+export function filterEpisodes(
+  items: LibraryItem[],
+  filter: LibraryFilter,
+): LibraryItem[] {
+  switch (filter) {
+    case "all":
+      return items;
+
+    case "in_progress":
+      return items.filter((item) =>
+        item.versions.some((v) => v.position > 0 && !v.completed),
+      );
+
+    case "completed":
+      return items.filter(
+        (item) =>
+          item.versions.length > 0 && item.versions.every((v) => v.completed),
+      );
+
+    case "generating":
+      return items.filter((item) =>
+        item.versions.some((v) => v.status === "generating"),
+      );
+
+    default:
+      return items;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Smart title
+// ---------------------------------------------------------------------------
+
 /**
  * Source type as used in LibraryItem.sourceType.
  * Kept loose (string) so it accepts any backend value without exhaustive mapping.
@@ -36,15 +118,15 @@ type SourceType = string;
  * Cleans a raw title for display.
  *
  * Rules applied in order:
- *   1. PDF filenames: strip extension, replace separators with spaces, title-case
+ *   1. PDF/file filenames: strip extension, replace separators with spaces, title-case
  *   2. All titles: strip common site-name suffixes/prefixes (| Site, - Site, « Site, › Site)
  *   3. All titles: collapse multiple whitespace runs
- *   4. All titles: truncate to maxLength with ellipsis
+ *   4. All titles: truncate to maxLength with ellipsis at last word boundary
  *
- * @param rawTitle  - The raw title string from the API
+ * @param rawTitle   - The raw title string from the API
  * @param sourceType - LibraryItem.sourceType (used to apply PDF-specific rules)
  * @param sourceDomain - Used to strip domain-specific boilerplate (optional)
- * @param maxLength - Maximum character length before truncation (default: 80)
+ * @param maxLength  - Maximum character length before truncation (default: 80)
  */
 export function smartTitle(
   rawTitle: string,
@@ -62,18 +144,16 @@ export function smartTitle(
 
   // Rule 2: Strip site-name suffix patterns
   //   "Title | Site Name"   →  "Title"
-  //   "Title - Site Name"   →  "Title"   (only when Site Name looks like a domain or brand)
+  //   "Title - Site Name"   →  "Title"   (only when Site Name is ≤ 3 words)
   //   "Title « Site Name"   →  "Title"
   //   "Title › Site Name"   →  "Title"
-  //   "Site Name: Title"    →  "Title"   (prefix pattern — rarer, be conservative)
   title = stripPublisherSuffix(title, sourceDomain ?? null);
 
   // Rule 3: Collapse whitespace
   title = title.replace(/\s+/g, " ").trim();
 
-  // Rule 4: Truncate
+  // Rule 4: Truncate to maxLength with ellipsis at last word boundary
   if (title.length > maxLength) {
-    // Break at last word boundary before maxLength
     const truncated = title.slice(0, maxLength);
     const lastSpace = truncated.lastIndexOf(" ");
     title = (lastSpace > maxLength * 0.7 ? truncated.slice(0, lastSpace) : truncated) + "…";
@@ -83,26 +163,26 @@ export function smartTitle(
 }
 
 // ---------------------------------------------------------------------------
-// Internal helpers
+// Internal helpers (not exported — call smartTitle instead)
 // ---------------------------------------------------------------------------
 
 /**
  * Clean a filename-style title:
- *   "2024_Q3_strategy_report.pdf"  →  "Q3 Strategy Report"
- *   "my-article-draft-FINAL_v2"    →  "My Article Draft Final V2"  → "My Article Draft"
+ *   "2024_Q3_strategy_report.pdf"  →  "2024 Q3 Strategy Report"
+ *   "my-article-draft-FINAL_v2"    →  "My Article Draft"
  */
 function cleanFilenameTitle(title: string): string {
   // Strip common file extensions
   let t = title.replace(/\.(pdf|epub|txt|docx|doc|md)$/i, "");
 
-  // Strip trailing version/draft noise: _v2, _FINAL, _draft, _v1.2
+  // Strip trailing version/draft noise: _v2, _FINAL, _draft, _v1.2, _copy, _rev1
   t = t.replace(/[_\s-]+(v\d[\d.]*|final|draft|copy|rev\d*|revision\d*)$/gi, "");
 
   // Replace separators (underscores, hyphens between words) with spaces
   t = t.replace(/[_-]/g, " ");
 
   // Title-case
-  t = toTitleCase(t);
+  t = titleCase(t);
 
   return t.trim();
 }
@@ -115,39 +195,40 @@ function cleanFilenameTitle(title: string): string {
  * "The Rise of AI — What It Means for Work").
  */
 function stripPublisherSuffix(title: string, sourceDomain: string | null): string {
-  // Separators that indicate a publisher tag: |, «, ›, —  (em-dash only at end)
-  // Also handle " - " but only if the right side is short (≤ 40 chars) and looks like
-  // a brand (no sentence-case verb structure)
-  const STRONG_SEPARATORS = /\s*[|«›]\s*/;
+  // Strong separators: |, «, › — these almost always indicate a publisher tag
+  const STRONG_SEPARATOR = /\s*[|«›]\s*/;
 
-  const strongMatch = title.split(STRONG_SEPARATORS);
-  if (strongMatch.length >= 2) {
-    const suffix = strongMatch[strongMatch.length - 1].trim();
-    const prefix = strongMatch.slice(0, -1).join(" | ").trim();
-    // If the suffix is short enough to be a publisher name and the prefix is non-empty, strip
+  const strongParts = title.split(STRONG_SEPARATOR);
+  if (strongParts.length >= 2) {
+    const suffix = strongParts[strongParts.length - 1].trim();
+    const prefix = strongParts.slice(0, -1).join(" | ").trim();
+
     if (suffix.length <= 40 && prefix.length > 0) {
       return prefix;
     }
-    // Also try stripping as a prefix: "ESPN: Title" → "Title"
-    const firstSegment = strongMatch[0].trim();
-    const rest = strongMatch.slice(1).join(" | ").trim();
-    if (firstSegment.length <= 40 && rest.length > 0) {
-      // Only do prefix strip if the first segment matches a known publisher or domain
-      if (sourceDomain && firstSegment.toLowerCase().includes(sourceDomain.split(".")[0])) {
-        return rest;
-      }
+
+    // Also try stripping as prefix: "ESPN: Title" → "Title"
+    // Only if first segment matches the sourceDomain's root
+    const firstSegment = strongParts[0].trim();
+    const rest = strongParts.slice(1).join(" | ").trim();
+    if (
+      firstSegment.length <= 40 &&
+      rest.length > 0 &&
+      sourceDomain &&
+      firstSegment.toLowerCase().includes(sourceDomain.split(".")[0])
+    ) {
+      return rest;
     }
   }
 
-  // Weaker separator: " - " — only strip if right side is ≤ 30 chars and contains no spaces
-  // in its "root" (i.e., looks like "ESPN.com" not "A Longer Phrase")
+  // Weaker separator: " - "
+  // Only strip if the right side is ≤ 3 words and ≤ 30 chars (looks like a publisher suffix)
   const dashParts = title.split(" - ");
   if (dashParts.length >= 2) {
     const lastPart = dashParts[dashParts.length - 1].trim();
     const bodyParts = dashParts.slice(0, -1).join(" - ").trim();
     const wordCount = lastPart.split(/\s+/).length;
     if (wordCount <= 3 && lastPart.length <= 30 && bodyParts.length > 0) {
-      // Looks like a publisher suffix
       return bodyParts;
     }
   }
@@ -155,7 +236,7 @@ function stripPublisherSuffix(title: string, sourceDomain: string | null): strin
   return title;
 }
 
-function toTitleCase(str: string): string {
+function titleCase(str: string): string {
   const MINOR_WORDS = new Set([
     "a", "an", "the", "and", "but", "or", "for", "nor", "on", "at",
     "to", "by", "in", "of", "up", "as",
@@ -172,134 +253,210 @@ function toTitleCase(str: string): string {
 }
 ```
 
-### 2. Update `native/components/EpisodeCard.tsx`
+### 2. Update `native/lib/types.ts` — add `sourceDomain` to `PlayableItem`
 
-Import `smartTitle` and use it wherever the title is rendered:
+**Diff:**
 
-```typescript
-import { smartTitle } from "../lib/libraryHelpers";
+```diff
+ export interface PlayableItem {
+   id: string; // audioId
+   title: string;
+   duration: number; // seconds
+   format: string;
+   audioUrl: string; // local file path or remote URL
+   author?: string | null;
+   sourceType?: string | null;
+   sourceUrl?: string | null;
++  sourceDomain?: string | null;  // propagated from LibraryItem for smartTitle
+   contentType?: string | null;
+   themes?: string[];
+   summary?: string | null;
+   targetDuration?: number | null;
+   wordCount?: number | null;
+   compressionRatio?: number | null;
+   voices?: string[];
+   ttsProvider?: string | null;
+   createdAt?: string | null;
+ }
 ```
 
-In the render body, derive the display title once and use it throughout:
+### 3. Update `native/components/EpisodeCard.tsx`
 
-```tsx
-// After the existing derived values (isGenerating, allCompleted, etc.):
-const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
+**Diff** — add import:
+
+```diff
++import { smartTitle } from "../lib/libraryHelpers";
+ import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 ```
 
-Replace `{item.title}` with `{displayTitle}` in the title `<Text>` element:
+**Diff** — derive `displayTitle` after the existing derived values, before `handleLongPress`:
 
-```tsx
-<Text className="text-base font-bold text-gray-900 flex-1" numberOfLines={2}>
-  {displayTitle}
-</Text>
+```diff
+   const isGenerating  = versions.some((v) => v.status === "generating");
+   const allCompleted  = versions.length > 0 && versions.every((v) => v.completed);
++
++  // Derive a cleaned title for all display surfaces in this card
++  const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
 ```
 
-Also replace `item.title` in `handleLongPress` where it's used as the action sheet title — the display title is better UX:
+**Diff** — replace `item.title` in the title `<Text>`:
 
-```typescript
-ActionSheetIOS.showActionSheetWithOptions(
-  {
-    options: ["Cancel", "New Version", "Delete"],
-    cancelButtonIndex: 0,
-    destructiveButtonIndex: 2,
-    title: displayTitle,  // was: item.title
-  },
-  // ...
-);
+```diff
+-            <Text className="text-base font-bold text-gray-900 flex-1" numberOfLines={2}>
+-              {item.title}
+-            </Text>
++            <Text className="text-base font-bold text-gray-900 flex-1" numberOfLines={2}>
++              {displayTitle}
++            </Text>
 ```
 
-### 3. Update `UpNextCard` in `native/app/(tabs)/index.tsx`
+**Diff** — replace `item.title` in `ActionSheetIOS.showActionSheetWithOptions` (the action sheet header):
 
-```typescript
-import { smartTitle } from "../../lib/libraryHelpers";
+```diff
+       ActionSheetIOS.showActionSheetWithOptions(
+         {
+           options: ["Cancel", "New Version", "Delete"],
+           cancelButtonIndex: 0,
+           destructiveButtonIndex: 2,
+-          title: item.title,
++          title: displayTitle,
+         },
 ```
 
-In `UpNextCard`:
+**Diff** — replace `item.title` in the Android `Alert.alert` header:
 
-```tsx
-function UpNextCard({ item, playable, onPlay }: UpNextCardProps) {
-  const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
-  // ...
-  <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>
-    {displayTitle}
-  </Text>
+```diff
+-      Alert.alert(item.title, "What would you like to do?", [
++      Alert.alert(displayTitle, "What would you like to do?", [
 ```
 
-### 4. Update `PlayerBar` and `ExpandedPlayer`
+> Note: `PlayableItem` objects built inside `EpisodeCard` (in the version pills loop) still use `item.title` as the raw title — `smartTitle` is applied at render time by whichever component displays the title, not at construction time.
 
-`PlayerBar` and `ExpandedPlayer` receive a `PlayableItem` (not `LibraryItem`). `PlayableItem` has `title` and `sourceType` but not `sourceDomain`. Since `PlayableItem` is derived from `LibraryItem` at play time, add `sourceDomain` to the `PlayableItem` type and populate it at the construction sites.
+### 4. Update `UpNextCard` in `native/app/(tabs)/index.tsx`
 
-**Update `native/lib/types.ts` `PlayableItem`:**
+**Diff** — add import (alongside the existing libraryHelpers import):
 
-```typescript
-export interface PlayableItem {
-  id: string;
-  title: string;
-  duration: number;
-  format: string;
-  audioUrl: string;
-  author?: string | null;
-  sourceType?: string | null;
-  sourceUrl?: string | null;
-  sourceDomain?: string | null;   // ← add this line
-  contentType?: string | null;
-  themes?: string[];
-  summary?: string | null;
-  targetDuration?: number | null;
-  wordCount?: number | null;
-  compressionRatio?: number | null;
-  voices?: string[];
-  ttsProvider?: string | null;
-  createdAt?: string | null;
-}
+```diff
+-import { getUnlistenedItems, libraryItemToPlayable } from "../../lib/libraryHelpers";
++import { getUnlistenedItems, libraryItemToPlayable, smartTitle } from "../../lib/libraryHelpers";
 ```
 
-**Update `native/lib/libraryHelpers.ts` `libraryItemToPlayable`:**
+**Diff** — derive `displayTitle` inside `UpNextCard` and use it:
 
-```typescript
-export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
-  // ...existing null check unchanged...
-  return {
-    id: version.audioId,
-    title: item.title,
-    // ...other fields unchanged...
-    sourceDomain: item.sourceDomain ?? null,   // ← add this line
-  };
-}
+```diff
+ function UpNextCard({ item, playable, onPlay }: UpNextCardProps) {
+   const readyVersion = item.versions.find(
+     (v) => v.status === "ready" && v.audioId,
+   );
+   const durationSecs = readyVersion?.durationSecs ?? (readyVersion?.targetDuration ?? 0) * 60;
++  const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
+
+   return (
+     <TouchableOpacity
+       onPress={() => onPlay(playable)}
+       activeOpacity={0.75}
+       className="mx-4 mb-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm"
+     >
+       <View className="px-4 py-3 flex-row items-center gap-3">
+         {/* Play icon */}
+         <View className="w-9 h-9 rounded-full bg-gray-50 items-center justify-center border border-gray-100">
+           <Ionicons name="play" size={14} color="#EA580C" />
+         </View>
+
+         {/* Content */}
+         <View className="flex-1">
+           <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>
+-            {item.title}
++            {displayTitle}
+           </Text>
 ```
 
-**Update all `PlayableItem` construction sites in `library.tsx` and `index.tsx`** to include `sourceDomain: item.sourceDomain ?? null`.
+### 5. Update `native/components/PlayerBar.tsx`
 
-Then in `PlayerBar` and `ExpandedPlayer`, wherever `currentItem.title` is rendered:
+**Diff** — add import:
 
-```typescript
-import { smartTitle } from "../lib/libraryHelpers";
-
-// At the render site (or in a useMemo):
-const displayTitle = smartTitle(
-  currentItem.title,
-  currentItem.sourceType ?? "url",
-  currentItem.sourceDomain,
-);
+```diff
++import { smartTitle } from "../lib/libraryHelpers";
+ import { usePlayer } from "../lib/usePlayer";
 ```
 
-> If `PlayerBar` and `ExpandedPlayer` live in `native/components/`, find the exact title render with:
-> ```bash
-> grep -n "currentItem\.title\|item\.title" native/components/PlayerBar.tsx native/components/ExpandedPlayer.tsx
-> ```
-> Apply the same `smartTitle` wrapper to each match.
+**Diff** — derive `displayTitle` from `currentItem` and use it:
+
+```diff
+   if (!currentItem) return null;
+
+   const progressPercent =
+     duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
++
++  const displayTitle = smartTitle(
++    currentItem.title,
++    currentItem.sourceType ?? "url",
++    currentItem.sourceDomain,
++  );
+
+   return (
+```
+
+```diff
+         {/* Title */}
+         <Text
+           className="flex-1 text-sm font-semibold text-gray-900"
+           numberOfLines={1}
+         >
+-          {currentItem.title}
++          {displayTitle}
+         </Text>
+```
+
+### 6. Update `native/components/ExpandedPlayer.tsx`
+
+**Diff** — add import at the top:
+
+```diff
++import { smartTitle } from "../lib/libraryHelpers";
+ import { usePlayer } from "../lib/usePlayer";
+ import { formatDuration, nextSpeed } from "../lib/utils";
+```
+
+**Diff** — derive `displayTitle` after `if (!currentItem) return null;`:
+
+```diff
+   if (!currentItem) return null;
+
+   const displayPosition = scrubPosition ?? position;
+   const remaining = Math.max(0, duration - displayPosition);
+   const bg = artworkBg(currentItem.contentType, currentItem.sourceType);
++
++  const displayTitle = smartTitle(
++    currentItem.title,
++    currentItem.sourceType ?? "url",
++    currentItem.sourceDomain,
++  );
+```
+
+**Diff** — replace `{currentItem.title}` in the artwork section:
+
+```diff
+             {/* Title + author */}
+             <Text
+               className="text-xl font-bold text-gray-900 mt-5 text-center"
+               numberOfLines={2}
+             >
+-              {currentItem.title}
++              {displayTitle}
+             </Text>
+```
 
 ## Files to Create/Modify
 
 | File | Change |
 |---|---|
-| `native/lib/libraryHelpers.ts` | Add `smartTitle`, `cleanFilenameTitle`, `stripPublisherSuffix`, `toTitleCase` helpers; update `libraryItemToPlayable` to pass `sourceDomain` |
+| `native/lib/libraryHelpers.ts` | Add `smartTitle`, `cleanFilenameTitle`, `stripPublisherSuffix`, `titleCase`; update `libraryItemToPlayable` to pass `sourceDomain` |
 | `native/lib/types.ts` | Add `sourceDomain?: string \| null` to `PlayableItem` |
-| `native/components/EpisodeCard.tsx` | Derive `displayTitle` via `smartTitle`, use throughout |
-| `native/app/(tabs)/index.tsx` | `UpNextCard` uses `smartTitle` |
-| `native/components/PlayerBar.tsx` | Use `smartTitle` on `currentItem.title` |
-| `native/components/ExpandedPlayer.tsx` | Use `smartTitle` on `currentItem.title` |
+| `native/components/EpisodeCard.tsx` | Import `smartTitle`; derive `displayTitle`; use in title `<Text>` and action sheet title |
+| `native/app/(tabs)/index.tsx` | Import `smartTitle`; `UpNextCard` derives `displayTitle` and uses it |
+| `native/components/PlayerBar.tsx` | Import `smartTitle`; derive `displayTitle` from `currentItem`; use in title `<Text>` |
+| `native/components/ExpandedPlayer.tsx` | Import `smartTitle`; derive `displayTitle` from `currentItem`; use in title `<Text>` |
 
 ## Tests
 
@@ -321,9 +478,9 @@ describe("smartTitle — URL sources: publisher suffix stripping", () => {
   });
 
   it("strips pipe-separated site name with spaces", () => {
-    expect(smartTitle("The AI Alignment Problem | MIT Technology Review", "url", null)).toBe(
-      "The AI Alignment Problem",
-    );
+    expect(
+      smartTitle("The AI Alignment Problem | MIT Technology Review", "url", null),
+    ).toBe("The AI Alignment Problem");
   });
 
   it("strips chevron-style suffix (›)", () => {
@@ -345,8 +502,8 @@ describe("smartTitle — URL sources: publisher suffix stripping", () => {
   });
 
   it("does NOT strip hyphen suffix when it is more than 3 words", () => {
-    // "What It Means for Work" is 5 words — preserve it (subtitle, not publisher)
-    const input = "The Rise of AI — What It Means for Work";
+    // "What It Means for Work" is 5 words — preserve as subtitle
+    const input = "The Rise of AI - What It Means for Work";
     expect(smartTitle(input, "url", null)).toBe(input);
   });
 
@@ -357,6 +514,12 @@ describe("smartTitle — URL sources: publisher suffix stripping", () => {
   it("passes through a clean title unchanged", () => {
     const clean = "How Transformers Work";
     expect(smartTitle(clean, "url", null)).toBe(clean);
+  });
+
+  it("handles undefined sourceDomain gracefully", () => {
+    expect(() =>
+      smartTitle("Some Title | Publisher", "url", undefined),
+    ).not.toThrow();
   });
 });
 
@@ -379,23 +542,31 @@ describe("smartTitle — PDF sources: filename cleaning", () => {
     expect(smartTitle("proposal_v2.pdf", "pdf", null)).toBe("Proposal");
   });
 
+  it("strips _draft suffix", () => {
+    expect(smartTitle("article_draft.pdf", "pdf", null)).toBe("Article");
+  });
+
   it("handles hyphen separators", () => {
     expect(smartTitle("my-research-paper.pdf", "pdf", null)).toBe(
       "My Research Paper",
     );
   });
 
-  it("handles EPUB extension", () => {
+  it("handles .epub extension", () => {
     expect(smartTitle("deep_work.epub", "epub", null)).toBe("Deep Work");
   });
 
-  it("handles TXT extension", () => {
+  it("handles .txt extension", () => {
     expect(smartTitle("meeting_notes.txt", "txt", null)).toBe("Meeting Notes");
   });
 
-  it("preserves a title with no filename noise", () => {
-    // If someone uploaded a PDF with a clean title already set by the server
+  it("preserves a clean title with no filename noise", () => {
+    // A PDF whose title was already set correctly by the server
     expect(smartTitle("Deep Work", "pdf", null)).toBe("Deep Work");
+  });
+
+  it("handles mixed case FINAL + version noise", () => {
+    expect(smartTitle("Q3_Strategy_FINAL_v2.pdf", "pdf", null)).toBe("Q3 Strategy");
   });
 });
 
@@ -406,24 +577,32 @@ describe("smartTitle — PDF sources: filename cleaning", () => {
 describe("smartTitle — truncation", () => {
   it("truncates titles longer than 80 characters with an ellipsis", () => {
     const long =
-      "This Is an Extremely Long Article Title That Goes On and On Beyond Any Reasonable Length";
+      "This Is an Extremely Long Article Title That Goes On and On Beyond Any Reasonable Length For Display";
     const result = smartTitle(long, "url", null);
-    expect(result.length).toBeLessThanOrEqual(82); // 80 + "…"
-    expect(result).toMatch(/…$/);
+    expect(result.endsWith("…")).toBe(true);
+    // At most 80 chars + 1 ellipsis character
+    expect(result.replace("…", "").length).toBeLessThanOrEqual(80);
   });
 
   it("breaks truncation at a word boundary, not mid-word", () => {
     const long =
       "This Is an Extremely Long Article Title That Goes On and On Beyond Any Reasonable";
     const result = smartTitle(long, "url", null, 40);
-    expect(result).not.toMatch(/\s…$/); // no trailing space before ellipsis
-    const withoutEllipsis = result.replace("…", "");
-    expect(long.startsWith(withoutEllipsis.trimEnd())).toBe(true);
+    // The character just before the ellipsis should not be a space
+    expect(result).not.toMatch(/\s…$/);
+    // The content without the ellipsis should be a prefix of the original
+    const withoutEllipsis = result.replace("…", "").trimEnd();
+    expect(long.startsWith(withoutEllipsis)).toBe(true);
   });
 
   it("accepts a custom maxLength", () => {
     const result = smartTitle("Short Title That Is Fine", "url", null, 10);
-    expect(result.length).toBeLessThanOrEqual(11);
+    expect(result.replace("…", "").length).toBeLessThanOrEqual(10);
+  });
+
+  it("does not truncate titles that are exactly maxLength characters", () => {
+    const exact = "Twelve Char"; // 11 chars
+    expect(smartTitle(exact, "url", null, 11)).toBe(exact);
   });
 });
 
@@ -432,24 +611,33 @@ describe("smartTitle — truncation", () => {
 // ---------------------------------------------------------------------------
 
 describe("smartTitle — edge cases", () => {
-  it("returns the original rawTitle when the cleaned result is empty", () => {
+  it("returns the original rawTitle when the input is empty", () => {
     expect(smartTitle("", "url", null)).toBe("");
   });
 
-  it("collapses extra whitespace", () => {
+  it("collapses extra whitespace runs", () => {
     expect(smartTitle("Title  With   Extra   Spaces", "url", null)).toBe(
       "Title With Extra Spaces",
     );
   });
 
-  it("handles a null/undefined sourceDomain gracefully", () => {
-    expect(() => smartTitle("Some Title | Publisher", "url", null)).not.toThrow();
-    expect(() => smartTitle("Some Title | Publisher", "url", undefined)).not.toThrow();
+  it("does not apply filename rules to url sourceType", () => {
+    // A URL article whose title happens to contain underscores should not be cleaned
+    const title = "Why_AI_Safety_Matters";
+    expect(smartTitle(title, "url", null)).toBe(title);
+  });
+
+  it("applies filename rules to epub sourceType", () => {
+    expect(smartTitle("atomic_habits.epub", "epub", null)).toBe("Atomic Habits");
   });
 
   it("does not modify titles from unknown sourceTypes", () => {
     const title = "My Pocket Article";
     expect(smartTitle(title, "pocket", null)).toBe(title);
+  });
+
+  it("handles null sourceDomain without throwing", () => {
+    expect(() => smartTitle("Some Title | Publisher", "url", null)).not.toThrow();
   });
 });
 ```
@@ -459,7 +647,7 @@ describe("smartTitle — edge cases", () => {
 ```bash
 cd native
 npx jest lib/__tests__/smartTitle.test.ts
-# All tests pass (≥ 20 cases)
+# All tests pass (≥ 22 cases)
 
 npx tsc --noEmit
 # No type errors — PlayableItem.sourceDomain optional field accepted at all call sites
@@ -471,9 +659,11 @@ Manual verification — build the app and check each surface:
 - [ ] arXiv PDF: "attention_is_all_you_need.pdf" → card shows "Attention Is All You Need"
 - [ ] PDF with version noise: "Q3_Strategy_FINAL_v2.pdf" → "Q3 Strategy"
 - [ ] Clean title (no noise): "Why Nuclear Energy Is Having a Moment" → unchanged
-- [ ] PlayerBar and ExpandedPlayer show the same cleaned title as the library card
-- [ ] Action sheet on long-press shows the cleaned title as the sheet header
+- [ ] PlayerBar title matches the same cleaned title shown on the library card
+- [ ] ExpandedPlayer title matches the cleaned title
+- [ ] Long-press action sheet header shows the cleaned title (not the raw title)
+- [ ] Subtitle-style em-dash: "The Rise of AI — What It Means for Work" → unchanged (not stripped)
 
 ## Scope
 
-Client-side display only. No backend changes. No new npm dependencies. The `smartTitle` utility does not fetch anything, call any API, or access the filesystem — it is a pure synchronous string transform. AI-powered title generation (using Claude to write a descriptive summary title during the `/api/process` pipeline) is explicitly out of scope and is tracked as a future backend feature. The rules in `stripPublisherSuffix` are intentionally conservative — false positives (accidentally stripping a subtitle) are worse than false negatives (leaving noise in). The `MINOR_WORDS` set in `toTitleCase` is English-only; internationalization is out of scope.
+Client-side display only. No backend changes. No new npm dependencies. `smartTitle` is a pure synchronous string transform — no fetch, no I/O, no async. AI-powered title generation (using Claude to write a descriptive summary title during the `/api/process` pipeline) is explicitly out of scope. The rules in `stripPublisherSuffix` are intentionally conservative — false positives (accidentally stripping a subtitle) are worse than false negatives (leaving noise in). `titleCase` in `cleanFilenameTitle` is English-only; internationalization is out of scope. The `MINOR_WORDS` set covers common English articles and conjunctions only.

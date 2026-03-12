@@ -1055,6 +1055,406 @@ The `contentHash` uniqueness contract is satisfied. When a stub is later fetched
 
 ---
 
+## Unit Tests
+
+**File:** `src/app/api/pocket/import/pocket-parsers.test.ts` *(create)*
+
+Tests for the pure parsing helpers — no mocks needed.
+
+```typescript
+import { describe, it, expect } from "vitest";
+
+// Import the internal parsing helpers by re-exporting them from the route
+// or by moving them to src/lib/pocket/parsers.ts and importing from there.
+// For this spec the helpers are co-located in route.ts; extract for testing:
+import { parseHtml, parseCsv } from "@/lib/pocket/parsers";
+
+// ─── parseHtml ──────────────────────────────────────────────────────────────
+
+describe("parseHtml — Pocket Netscape Bookmark format", () => {
+  it("parses a single <a> tag", () => {
+    const html = `<a href="https://example.com/article" time_added="1234567890" tags="">Article Title</a>`;
+    const result = parseHtml(html);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ url: "https://example.com/article", title: "Article Title" });
+  });
+
+  it("parses multiple <a> tags", () => {
+    const html = `
+      <a href="https://espn.com/1" time_added="123">ESPN Story</a>
+      <a href="https://nytimes.com/2" time_added="456">NYT Story</a>
+    `;
+    const result = parseHtml(html);
+    expect(result).toHaveLength(2);
+    expect(result[0].url).toBe("https://espn.com/1");
+    expect(result[1].url).toBe("https://nytimes.com/2");
+  });
+
+  it("uses url as title when title is empty", () => {
+    const html = `<a href="https://example.com/no-title" time_added="123"></a>`;
+    const result = parseHtml(html);
+    expect(result[0].title).toBe("https://example.com/no-title");
+  });
+
+  it("skips <a> tags that don't start with http", () => {
+    const html = `
+      <a href="javascript:void(0)">Bad link</a>
+      <a href="ftp://files.example.com">FTP link</a>
+      <a href="https://good.com">Good</a>
+    `;
+    const result = parseHtml(html);
+    expect(result).toHaveLength(1);
+    expect(result[0].url).toBe("https://good.com");
+  });
+
+  it("returns empty array for HTML with no valid <a> tags", () => {
+    expect(parseHtml("<html><body><p>No links</p></body></html>")).toHaveLength(0);
+  });
+
+  it("handles real Pocket export format with tags attribute", () => {
+    const html = `<a href="https://www.theverge.com/2025/article" time_added="1700000000" tags="tech,ai">The Verge Article</a>`;
+    const result = parseHtml(html);
+    expect(result[0]).toEqual({
+      url: "https://www.theverge.com/2025/article",
+      title: "The Verge Article",
+    });
+  });
+
+  it("trims whitespace from title", () => {
+    const html = `<a href="https://example.com">  Padded Title  </a>`;
+    const result = parseHtml(html);
+    expect(result[0].title).toBe("Padded Title");
+  });
+});
+
+// ─── parseCsv ───────────────────────────────────────────────────────────────
+
+describe("parseCsv — Pocket CSV export format", () => {
+  it("parses standard Pocket CSV with title,url,time_added,tags,status columns", () => {
+    const csv = [
+      "title,url,time_added,tags,status",
+      '"Article One","https://example.com/1","1700000000","tech","unread"',
+      '"Article Two","https://example.com/2","1700000001","","read"',
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ url: "https://example.com/1", title: "Article One" });
+    expect(result[1]).toEqual({ url: "https://example.com/2", title: "Article Two" });
+  });
+
+  it("handles CSV where url column comes before title", () => {
+    const csv = [
+      "url,title,status",
+      "https://example.com/1,My Title,unread",
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result[0]).toEqual({ url: "https://example.com/1", title: "My Title" });
+  });
+
+  it("uses url as title when title column is missing", () => {
+    const csv = [
+      "url,time_added",
+      "https://example.com/1,1700000000",
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result[0].title).toBe("https://example.com/1");
+  });
+
+  it("handles quoted fields containing commas", () => {
+    const csv = [
+      "title,url",
+      '"Title, with comma","https://example.com"',
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result[0].title).toBe("Title, with comma");
+  });
+
+  it("handles escaped double-quotes in quoted fields", () => {
+    const csv = [
+      "title,url",
+      '"Title with ""quotes""","https://example.com"',
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result[0].title).toBe('Title with "quotes"');
+  });
+
+  it("skips rows with non-http URLs", () => {
+    const csv = [
+      "title,url",
+      "Bad Row,ftp://files.example.com",
+      "Good Row,https://example.com",
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result).toHaveLength(1);
+    expect(result[0].url).toBe("https://example.com");
+  });
+
+  it("skips blank lines", () => {
+    const csv = [
+      "title,url",
+      "Good,https://example.com/1",
+      "",
+      "Also Good,https://example.com/2",
+    ].join("\n");
+
+    const result = parseCsv(csv);
+    expect(result).toHaveLength(2);
+  });
+
+  it("returns empty array when only header row is present", () => {
+    expect(parseCsv("title,url,time_added")).toHaveLength(0);
+  });
+
+  it("returns empty array when url column is not found in header", () => {
+    const csv = "name,link\nFoo,https://example.com";
+    expect(parseCsv(csv)).toHaveLength(0);
+  });
+
+  it("returns empty array for empty string", () => {
+    expect(parseCsv("")).toHaveLength(0);
+  });
+});
+```
+
+> **Implementation note:** Move `parseHtml`, `parseCsv`, and `parseCsvLine` out of `route.ts` and into `src/lib/pocket/parsers.ts` so they can be imported in tests. The route imports from there: `import { parseHtml, parseCsv } from '@/lib/pocket/parsers'`.
+
+---
+
+**File:** `src/app/api/pocket/import/route.test.ts` *(create)*
+
+Integration tests for the import handler using mocked Prisma and auth.
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { POST } from "./route";
+
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    content: {
+      findMany: vi.fn(),
+      createMany: vi.fn(),
+    },
+  },
+}));
+
+vi.mock("@/lib/auth", () => ({
+  getCurrentUserId: vi.fn().mockResolvedValue("user_123"),
+}));
+
+vi.mock("@/lib/subscription", () => ({
+  requireSubscription: vi.fn().mockResolvedValue(null), // null = allowed
+}));
+
+vi.mock("@/lib/utils/hash", () => ({
+  contentHash: vi.fn((s: string) => `hash_${s.slice(0, 8)}`),
+}));
+
+import { prisma } from "@/lib/db";
+
+const makeHtmlFile = (content: string, name = "pocket.html") =>
+  new File([content], name, { type: "text/html" });
+
+const makeCsvFile = (content: string) =>
+  new File([content], "pocket.csv", { type: "text/csv" });
+
+const makeRequest = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return new Request("http://localhost/api/pocket/import", {
+    method: "POST",
+    body: formData,
+  });
+};
+
+describe("POST /api/pocket/import", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.content.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.content.createMany).mockResolvedValue({ count: 0 });
+  });
+
+  it("returns 400 when no file is provided", async () => {
+    const formData = new FormData(); // no file
+    const req = new Request("http://localhost/api/pocket/import", {
+      method: "POST",
+      body: formData,
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("No file provided");
+  });
+
+  it("returns 400 for unsupported file format", async () => {
+    const file = new File(["content"], "export.xml", { type: "text/xml" });
+    const res = await POST(makeRequest(file));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/Unrecognized file format/);
+  });
+
+  it("parses HTML file and creates new content records", async () => {
+    vi.mocked(prisma.content.createMany).mockResolvedValue({ count: 2 });
+    const html = `
+      <a href="https://espn.com/1" time_added="123">ESPN</a>
+      <a href="https://nytimes.com/2" time_added="456">NYT</a>
+    `;
+    const res = await POST(makeRequest(makeHtmlFile(html)));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.imported).toBe(2);
+    expect(body.skipped).toBe(0);
+  });
+
+  it("skips URLs already in the user's library", async () => {
+    vi.mocked(prisma.content.findMany).mockResolvedValue([
+      { sourceUrl: "https://espn.com/1" } as never,
+    ]);
+    vi.mocked(prisma.content.createMany).mockResolvedValue({ count: 1 });
+    const html = `
+      <a href="https://espn.com/1" time_added="123">ESPN</a>
+      <a href="https://nytimes.com/2" time_added="456">NYT</a>
+    `;
+    const res = await POST(makeRequest(makeHtmlFile(html)));
+    const body = await res.json();
+    expect(body.imported).toBe(1);
+    expect(body.skipped).toBe(1);
+  });
+
+  it("returns { imported: 0, skipped: 0 } for empty HTML", async () => {
+    const res = await POST(makeRequest(makeHtmlFile("<html></html>")));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.imported).toBe(0);
+    expect(body.skipped).toBe(0);
+  });
+
+  it("parses CSV file correctly", async () => {
+    vi.mocked(prisma.content.createMany).mockResolvedValue({ count: 1 });
+    const csv = "title,url,time_added\nMy Article,https://example.com,123";
+    const res = await POST(makeRequest(makeCsvFile(csv)));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.imported).toBe(1);
+  });
+
+  it("uses skipDuplicates in createMany calls", async () => {
+    vi.mocked(prisma.content.createMany).mockResolvedValue({ count: 3 });
+    const html = `<a href="https://a.com">A</a><a href="https://b.com">B</a><a href="https://c.com">C</a>`;
+    await POST(makeRequest(makeHtmlFile(html)));
+    expect(vi.mocked(prisma.content.createMany)).toHaveBeenCalledWith(
+      expect.objectContaining({ skipDuplicates: true }),
+    );
+  });
+
+  it("returns 403 when subscription gate blocks", async () => {
+    const { requireSubscription } = await import("@/lib/subscription");
+    vi.mocked(requireSubscription).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "Subscription required" }), { status: 403 }),
+    );
+    const html = `<a href="https://example.com">Test</a>`;
+    const res = await POST(makeRequest(makeHtmlFile(html)));
+    expect(res.status).toBe(403);
+  });
+});
+
+// ─── POST /api/pocket/save ──────────────────────────────────────────────────
+
+import { POST as POSTSave } from "../save/route";
+
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    content: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      findMany: vi.fn(),
+      createMany: vi.fn(),
+    },
+  },
+}));
+
+describe("POST /api/pocket/save", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.content.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.content.create).mockResolvedValue({
+      id: "content-new",
+      title: "Test Article",
+    } as never);
+  });
+
+  const makeJsonRequest = (body: object) =>
+    new Request("http://localhost/api/pocket/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  it("returns 400 when url is missing", async () => {
+    const res = await POSTSave(makeJsonRequest({ title: "No URL" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("url is required");
+  });
+
+  it("returns 400 for invalid URL", async () => {
+    const res = await POSTSave(makeJsonRequest({ url: "not-a-url" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid URL");
+  });
+
+  it("creates a new content record and returns alreadySaved: false", async () => {
+    const res = await POSTSave(
+      makeJsonRequest({ url: "https://example.com", title: "Test" }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.alreadySaved).toBe(false);
+    expect(body.id).toBe("content-new");
+  });
+
+  it("returns alreadySaved: true for existing URL", async () => {
+    vi.mocked(prisma.content.findFirst).mockResolvedValueOnce({
+      id: "content-existing",
+      title: "Existing Article",
+    } as never);
+    const res = await POSTSave(
+      makeJsonRequest({ url: "https://example.com", title: "Test" }),
+    );
+    const body = await res.json();
+    expect(body.alreadySaved).toBe(true);
+    expect(body.id).toBe("content-existing");
+    // Must not create a duplicate
+    expect(vi.mocked(prisma.content.create)).not.toHaveBeenCalled();
+  });
+
+  it("uses url as title when title is not provided", async () => {
+    const url = "https://example.com/article";
+    await POSTSave(makeJsonRequest({ url }));
+    expect(vi.mocked(prisma.content.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: url }),
+      }),
+    );
+  });
+});
+```
+
+Run tests:
+```bash
+npm run test -- src/app/api/pocket
+# → 20+ tests pass (parsers + import handler + save handler)
+```
+
+---
+
 ## Success Criteria
 
 ### Import API

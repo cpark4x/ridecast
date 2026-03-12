@@ -53,38 +53,56 @@ CREATE TABLE IF NOT EXISTS episodes (
 
 ## Changes
 
-### 1. Update `LibraryItem` type in `native/lib/types.ts`
+### 1. Update `LibraryItem` in `native/lib/types.ts`
 
-```typescript
-export interface LibraryItem {
-  id: string; // contentId
-  title: string;
-  author: string | null;
-  sourceType: string;
-  sourceUrl: string | null;
-  createdAt: string;
-  wordCount: number;
-  versions: AudioVersion[];
-  // --- Episode identity fields (all nullable for backward compatibility) ---
-  sourceIcon: string | null;       // favicon URL or null
-  sourceName: string | null;       // e.g. "ESPN", "Substack"
-  sourceDomain: string | null;     // e.g. "espn.com"
-  sourceBrandColor: string | null; // e.g. "#C41230" — used to color SourceIcon
-  description: string | null;      // first ~200 chars of content or AI summary
-}
+**Diff:**
+
+```diff
+ export interface LibraryItem {
+   id: string; // contentId
+   title: string;
+   author: string | null;
+   sourceType: string;
+   sourceUrl: string | null;
+   createdAt: string;
+   wordCount: number;
+   versions: AudioVersion[];
++  // --- Episode identity fields (all nullable for backward compat) ---
++  sourceIcon: string | null;        // favicon URL or null
++  sourceName: string | null;        // e.g. "ESPN", "Substack"
++  sourceDomain: string | null;      // e.g. "espn.com"
++  sourceBrandColor: string | null;  // e.g. "#C41230"
++  description: string | null;       // first ~200 chars of content or AI summary
+ }
 ```
 
-All five new fields are `| null` — existing rows that don't have them (synced before this update, or from an older API response) will simply render the fallback states.
+All five new fields are `| null` — existing rows synced before this update will simply render the fallback states.
 
-### 2. Add schema migration in `native/lib/db.ts`
+### 2. Update `native/lib/db.ts` (complete file shown with all changes)
 
-SQLite's `ALTER TABLE ADD COLUMN` does not support `IF NOT EXISTS` (pre-SQLite 3.37.0). The safe cross-version approach is to attempt each `ALTER` and silently ignore `duplicate column` errors.
-
-Add a `migrateV2` function and call it from `migrate`:
+Changes:
+- `migrate()` calls a new `migrateV2()` that adds the five identity columns with `ALTER TABLE ADD COLUMN`
+- `upsertEpisodes()` includes the five new columns in the `INSERT OR REPLACE`
+- `getAllEpisodes()` and `searchEpisodes()` read the new columns and map them to the returned objects
 
 ```typescript
+import * as SQLite from "expo-sqlite";
+import type { LibraryItem, AudioVersion, PlaybackState } from "./types";
+
+let _db: SQLite.SQLiteDatabase | null = null;
+
+export async function getDb(): Promise<SQLite.SQLiteDatabase> {
+  if (_db) return _db;
+  _db = await SQLite.openDatabaseAsync("ridecast.db");
+  await migrate(_db);
+  return _db;
+}
+
+export function setDb(db: SQLite.SQLiteDatabase) {
+  _db = db;
+}
+
 async function migrate(db: SQLite.SQLiteDatabase) {
-  // Original schema (unchanged)
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS episodes (
       content_id    TEXT PRIMARY KEY,
@@ -124,11 +142,11 @@ async function migrate(db: SQLite.SQLiteDatabase) {
  */
 async function migrateV2(db: SQLite.SQLiteDatabase) {
   const newColumns = [
-    "ALTER TABLE episodes ADD COLUMN source_icon       TEXT",
-    "ALTER TABLE episodes ADD COLUMN source_name       TEXT",
-    "ALTER TABLE episodes ADD COLUMN source_domain     TEXT",
+    "ALTER TABLE episodes ADD COLUMN source_icon        TEXT",
+    "ALTER TABLE episodes ADD COLUMN source_name        TEXT",
+    "ALTER TABLE episodes ADD COLUMN source_domain      TEXT",
     "ALTER TABLE episodes ADD COLUMN source_brand_color TEXT",
-    "ALTER TABLE episodes ADD COLUMN description       TEXT",
+    "ALTER TABLE episodes ADD COLUMN description        TEXT",
   ];
 
   for (const stmt of newColumns) {
@@ -139,13 +157,9 @@ async function migrateV2(db: SQLite.SQLiteDatabase) {
     }
   }
 }
-```
 
-### 3. Update `upsertEpisodes` and `getAllEpisodes` in `native/lib/db.ts`
+// --- Episodes (library cache) ---
 
-Update the `INSERT OR REPLACE` to include the new columns:
-
-```typescript
 export async function upsertEpisodes(items: LibraryItem[]) {
   const db = await getDb();
   for (const item of items) {
@@ -162,35 +176,206 @@ export async function upsertEpisodes(items: LibraryItem[]) {
       item.wordCount,
       item.createdAt,
       JSON.stringify(item.versions),
-      item.sourceIcon,
-      item.sourceName,
-      item.sourceDomain,
-      item.sourceBrandColor,
-      item.description,
+      item.sourceIcon ?? null,
+      item.sourceName ?? null,
+      item.sourceDomain ?? null,
+      item.sourceBrandColor ?? null,
+      item.description ?? null,
     );
+  }
+}
+
+export async function getAllEpisodes(): Promise<LibraryItem[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{
+    content_id: string;
+    title: string;
+    author: string | null;
+    source_type: string;
+    source_url: string | null;
+    word_count: number;
+    created_at: string;
+    json_versions: string;
+    source_icon: string | null;
+    source_name: string | null;
+    source_domain: string | null;
+    source_brand_color: string | null;
+    description: string | null;
+  }>("SELECT * FROM episodes ORDER BY created_at DESC");
+
+  return rows.map((row) => ({
+    id: row.content_id,
+    title: row.title,
+    author: row.author,
+    sourceType: row.source_type,
+    sourceUrl: row.source_url,
+    wordCount: row.word_count,
+    createdAt: row.created_at,
+    versions: JSON.parse(row.json_versions) as AudioVersion[],
+    sourceIcon: row.source_icon,
+    sourceName: row.source_name,
+    sourceDomain: row.source_domain,
+    sourceBrandColor: row.source_brand_color,
+    description: row.description,
+  }));
+}
+
+export async function searchEpisodes(query: string): Promise<LibraryItem[]> {
+  const db = await getDb();
+  const pattern = `%${query}%`;
+  const rows = await db.getAllAsync<{
+    content_id: string;
+    title: string;
+    author: string | null;
+    source_type: string;
+    source_url: string | null;
+    word_count: number;
+    created_at: string;
+    json_versions: string;
+    source_icon: string | null;
+    source_name: string | null;
+    source_domain: string | null;
+    source_brand_color: string | null;
+    description: string | null;
+  }>(
+    "SELECT * FROM episodes WHERE title LIKE ? OR author LIKE ? ORDER BY created_at DESC",
+    pattern,
+    pattern,
+  );
+
+  return rows.map((row) => ({
+    id: row.content_id,
+    title: row.title,
+    author: row.author,
+    sourceType: row.source_type,
+    sourceUrl: row.source_url,
+    wordCount: row.word_count,
+    createdAt: row.created_at,
+    versions: JSON.parse(row.json_versions) as AudioVersion[],
+    sourceIcon: row.source_icon,
+    sourceName: row.source_name,
+    sourceDomain: row.source_domain,
+    sourceBrandColor: row.source_brand_color,
+    description: row.description,
+  }));
+}
+
+// --- Playback positions ---
+
+export async function getLocalPlayback(audioId: string): Promise<PlaybackState | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{
+    audio_id: string;
+    position: number;
+    speed: number;
+    completed: number;
+    updated_at: string;
+  }>("SELECT * FROM playback WHERE audio_id = ?", audioId);
+
+  if (!row) return null;
+  return {
+    audioId: row.audio_id,
+    position: row.position,
+    speed: row.speed,
+    completed: row.completed === 1,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function saveLocalPlayback(state: {
+  audioId: string;
+  position?: number;
+  speed?: number;
+  completed?: boolean;
+}) {
+  const db = await getDb();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO playback (audio_id, position, speed, completed, updated_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(audio_id) DO UPDATE SET
+       position = COALESCE(excluded.position, playback.position),
+       speed = COALESCE(excluded.speed, playback.speed),
+       completed = COALESCE(excluded.completed, playback.completed),
+       updated_at = excluded.updated_at`,
+    state.audioId,
+    state.position ?? 0,
+    state.speed ?? 1.0,
+    state.completed ? 1 : 0,
+    now,
+  );
+}
+
+export async function getAllLocalPlayback(): Promise<PlaybackState[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{
+    audio_id: string;
+    position: number;
+    speed: number;
+    completed: number;
+    updated_at: string;
+  }>("SELECT * FROM playback");
+
+  return rows.map((row) => ({
+    audioId: row.audio_id,
+    position: row.position,
+    speed: row.speed,
+    completed: row.completed === 1,
+    updatedAt: row.updated_at,
+  }));
+}
+
+// --- Downloads ---
+
+export async function recordDownload(audioId: string, localPath: string, sizeBytes: number) {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT OR REPLACE INTO downloads (audio_id, local_path, size_bytes)
+     VALUES (?, ?, ?)`,
+    audioId,
+    localPath,
+    sizeBytes,
+  );
+}
+
+export async function getDownloadPath(audioId: string): Promise<string | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ local_path: string }>(
+    "SELECT local_path FROM downloads WHERE audio_id = ?",
+    audioId,
+  );
+  return row?.local_path ?? null;
+}
+
+export async function getStorageInfo(): Promise<{ count: number; totalBytes: number }> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ count: number; total: number }>(
+    "SELECT COUNT(*) as count, COALESCE(SUM(size_bytes), 0) as total FROM downloads",
+  );
+  return { count: row?.count ?? 0, totalBytes: row?.total ?? 0 };
+}
+
+export async function deleteDownloadRecord(audioId: string) {
+  const db = await getDb();
+  await db.runAsync("DELETE FROM downloads WHERE audio_id = ?", audioId);
+}
+
+export async function deleteEpisode(
+  contentId: string,
+  audioIds: string[],
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("DELETE FROM episodes WHERE content_id = ?", contentId);
+  for (const audioId of audioIds) {
+    await db.runAsync("DELETE FROM playback WHERE audio_id = ?", audioId);
+    await db.runAsync("DELETE FROM downloads WHERE audio_id = ?", audioId);
   }
 }
 ```
 
-Update the row-to-type mapping in `getAllEpisodes` and `searchEpisodes`:
+> The `deleteEpisode` function at the bottom is included here for completeness — it is specified separately in the `delete-episodes` spec.
 
-```typescript
-// Add to the row type annotation in both getAllEpisodes and searchEpisodes:
-source_icon: string | null;
-source_name: string | null;
-source_domain: string | null;
-source_brand_color: string | null;
-description: string | null;
-
-// Add to the returned object in both:
-sourceIcon: row.source_icon,
-sourceName: row.source_name,
-sourceDomain: row.source_domain,
-sourceBrandColor: row.source_brand_color,
-description: row.description,
-```
-
-### 4. Create `native/lib/sourceUtils.ts` — domain extraction utility (new file)
+### 3. Create `native/lib/sourceUtils.ts` (new file)
 
 ```typescript
 /**
@@ -198,18 +383,18 @@ description: row.description,
  * Add entries here as new publishers are onboarded.
  */
 const KNOWN_SOURCES: Record<string, { name: string; color: string }> = {
-  "espn.com":        { name: "ESPN",      color: "#C41230" },
-  "substack.com":    { name: "Substack",  color: "#FF6719" },
-  "github.com":      { name: "GitHub",    color: "#24292F" },
-  "hbr.org":         { name: "HBR",       color: "#A51C30" },
-  "arxiv.org":       { name: "arXiv",     color: "#46A89B" },
-  "theverge.com":    { name: "The Verge", color: "#2E1E5B" },
-  "nytimes.com":     { name: "NYT",       color: "#000000" },
-  "bloomberg.com":   { name: "Bloomberg", color: "#1F6FEB" },
-  "medium.com":      { name: "Medium",    color: "#000000" },
-  "wired.com":       { name: "WIRED",     color: "#000000" },
-  "techcrunch.com":  { name: "TechCrunch",color: "#0A8D35" },
-  "arstechnica.com": { name: "Ars Technica", color: "#FF4E00" },
+  "espn.com":        { name: "ESPN",        color: "#C41230" },
+  "substack.com":    { name: "Substack",    color: "#FF6719" },
+  "github.com":      { name: "GitHub",      color: "#24292F" },
+  "hbr.org":         { name: "HBR",         color: "#A51C30" },
+  "arxiv.org":       { name: "arXiv",       color: "#46A89B" },
+  "theverge.com":    { name: "The Verge",   color: "#2E1E5B" },
+  "nytimes.com":     { name: "NYT",         color: "#000000" },
+  "bloomberg.com":   { name: "Bloomberg",   color: "#1F6FEB" },
+  "medium.com":      { name: "Medium",      color: "#000000" },
+  "wired.com":       { name: "WIRED",       color: "#000000" },
+  "techcrunch.com":  { name: "TechCrunch",  color: "#0A8D35" },
+  "arstechnica.com": { name: "Ars Technica",color: "#FF4E00" },
 };
 
 export interface SourceIdentity {
@@ -227,7 +412,6 @@ export function extractDomain(url: string | null | undefined): string | null {
   if (!url) return null;
   try {
     const { hostname } = new URL(url);
-    // Strip www. and any other single subdomain
     const parts = hostname.split(".");
     if (parts.length >= 2) {
       return parts.slice(-2).join(".");
@@ -265,7 +449,6 @@ export function hashColor(input: string): string {
     hash = (hash << 5) - hash + input.charCodeAt(i);
     hash |= 0;
   }
-  // Map to a hue in HSL — use fixed saturation/lightness for readability
   const hue = Math.abs(hash) % 360;
   return hslToHex(hue, 55, 38);
 }
@@ -287,7 +470,64 @@ function toTitleCase(str: string): string {
 }
 ```
 
-### 5. Update `native/lib/sync.ts` to populate identity fields
+### 4. Update `native/lib/sync.ts` (complete file)
+
+**Diff:**
+
+```diff
+ import * as api from "./api";
+ import * as db from "./db";
+ import { downloadEpisodeAudio } from "./downloads";
++import { deriveSourceIdentity } from "./sourceUtils";
+ import type { LibraryItem } from "./types";
+
+ export async function syncLibrary(): Promise<LibraryItem[]> {
+   const serverItems = await api.fetchLibrary();
+-  await db.upsertEpisodes(serverItems);
++
++  // Enrich each item with derived identity fields before storing.
++  // If the server already provides sourceDomain, use it as-is.
++  // Otherwise derive from sourceUrl client-side.
++  const enrichedItems: LibraryItem[] = serverItems.map((item) => {
++    const derived = item.sourceDomain
++      ? {} // server already populated — don't overwrite
++      : deriveSourceIdentity(item.sourceUrl);
++
++    return {
++      ...item,
++      sourceIcon:       item.sourceIcon       ?? null,
++      sourceName:       item.sourceName       ?? derived.sourceName       ?? null,
++      sourceDomain:     item.sourceDomain     ?? derived.sourceDomain     ?? null,
++      sourceBrandColor: item.sourceBrandColor ?? derived.sourceBrandColor ?? null,
++      description:      item.description      ?? null,
++    };
++  });
++
++  await db.upsertEpisodes(enrichedItems);
+
+-  for (const item of serverItems) {
++  for (const item of enrichedItems) {
+     for (const version of item.versions) {
+       if (version.status === "ready" && version.audioId && version.audioUrl) {
+         const existing = await db.getDownloadPath(version.audioId);
+         if (!existing) {
+           downloadEpisodeAudio(version.audioId, version.audioUrl).catch(
+             (err) => console.warn("[sync] download failed:", version.audioId, err),
+           );
+         }
+       }
+     }
+   }
+
+-  return serverItems;
++  return enrichedItems;
+ }
+
+ export async function syncPlayback(): Promise<void> {
+   // ... unchanged
+```
+
+Full `syncLibrary` function for copy-paste:
 
 ```typescript
 import * as api from "./api";
@@ -299,20 +539,19 @@ import type { LibraryItem } from "./types";
 export async function syncLibrary(): Promise<LibraryItem[]> {
   const serverItems = await api.fetchLibrary();
 
-  // Enrich each item with derived identity fields before storing
+  // Enrich each item with derived identity fields before storing.
+  // Server-provided fields take priority; derive from sourceUrl as fallback.
   const enrichedItems: LibraryItem[] = serverItems.map((item) => {
-    // If the server already provides identity fields, use them.
-    // Otherwise derive from sourceUrl.
     const derived = item.sourceDomain
-      ? {} // server already populated, don't overwrite
+      ? {} // server already populated — don't overwrite
       : deriveSourceIdentity(item.sourceUrl);
 
     return {
       ...item,
       sourceIcon:       item.sourceIcon       ?? null,
-      sourceName:       item.sourceName       ?? derived.sourceName       ?? null,
-      sourceDomain:     item.sourceDomain     ?? derived.sourceDomain     ?? null,
-      sourceBrandColor: item.sourceBrandColor ?? derived.sourceBrandColor ?? null,
+      sourceName:       item.sourceName       ?? (derived as Partial<typeof derived>).sourceName       ?? null,
+      sourceDomain:     item.sourceDomain     ?? (derived as Partial<typeof derived>).sourceDomain     ?? null,
+      sourceBrandColor: item.sourceBrandColor ?? (derived as Partial<typeof derived>).sourceBrandColor ?? null,
       description:      item.description      ?? null,
     };
   });
@@ -334,11 +573,11 @@ export async function syncLibrary(): Promise<LibraryItem[]> {
 
   return enrichedItems;
 }
-
-// syncPlayback unchanged
 ```
 
-### 6. Create `native/components/SourceIcon.tsx` (new file)
+> The `syncPlayback` function is unchanged — copy it from the current `sync.ts` verbatim.
+
+### 5. Create `native/components/SourceIcon.tsx` (new file)
 
 ```tsx
 import React from "react";
@@ -351,7 +590,7 @@ interface SourceIconProps {
   sourceBrandColor: string | null;
   /** Diameter in pixels. Default: 36 */
   size?: number;
-  /** Font size for the letter. Default: 15 */
+  /** Font size for the initial letter. Default: 15 */
   fontSize?: number;
 }
 
@@ -403,86 +642,99 @@ export default function SourceIcon({
 }
 ```
 
-### 7. Update `native/components/EpisodeCard.tsx` to show `SourceIcon`, `sourceName`, and `description`
+### 6. Update `native/components/EpisodeCard.tsx`
 
-Add the import at the top:
-```typescript
-import SourceIcon from "./SourceIcon";
+**Diff** — add import:
+
+```diff
++import SourceIcon from "./SourceIcon";
+ import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 ```
 
-Replace the author row and add description below the title block:
+**Diff** — replace the `{/* Author */}` block with the identity row + description:
 
-```tsx
-{/* Title row — unchanged */}
-<View className="flex-row items-start justify-between gap-2">
-  <Text className="text-base font-bold text-gray-900 flex-1" numberOfLines={2}>
-    {item.title}
-  </Text>
-  {isGenerating && (
-    <View className="bg-amber-100 px-2 py-0.5 rounded-full self-start">
-      <Text className="text-xs text-amber-700 font-medium">Generating</Text>
-    </View>
-  )}
-</View>
-
-{/* Source identity row — replaces bare author line */}
-<View className="flex-row items-center gap-2 mt-1.5">
-  {(item.sourceName || item.sourceDomain) && (
-    <SourceIcon
-      sourceName={item.sourceName}
-      sourceDomain={item.sourceDomain}
-      sourceBrandColor={item.sourceBrandColor}
-      size={20}
-      fontSize={9}
-    />
-  )}
-  <Text className="text-sm text-gray-500" numberOfLines={1}>
-    {item.sourceName ?? item.author ?? item.sourceType.toUpperCase()}
-  </Text>
-</View>
-
-{/* Description preview */}
-{item.description ? (
-  <Text className="text-xs text-gray-400 mt-1 leading-4" numberOfLines={2}>
-    {item.description}
-  </Text>
-) : null}
+```diff
+-        {/* Author */}
+-        {item.author ? (
+-          <Text className="text-sm text-gray-500 mt-0.5" numberOfLines={1}>
+-            {item.author}
+-          </Text>
+-        ) : null}
++        {/* Source identity row — replaces bare author line */}
++        <View className="flex-row items-center gap-2 mt-1.5">
++          {(item.sourceName || item.sourceDomain) && (
++            <SourceIcon
++              sourceName={item.sourceName}
++              sourceDomain={item.sourceDomain}
++              sourceBrandColor={item.sourceBrandColor}
++              size={20}
++              fontSize={9}
++            />
++          )}
++          <Text className="text-sm text-gray-500" numberOfLines={1}>
++            {item.sourceName ?? item.author ?? item.sourceType.toUpperCase()}
++          </Text>
++        </View>
++
++        {/* Description preview */}
++        {item.description ? (
++          <Text className="text-xs text-gray-400 mt-1 leading-4" numberOfLines={2}>
++            {item.description}
++          </Text>
++        ) : null}
 ```
 
-### 8. Update `UpNextCard` in `native/app/(tabs)/index.tsx` to show `SourceIcon`
+### 7. Update `UpNextCard` in `native/app/(tabs)/index.tsx`
 
-Replace the source pill with `SourceIcon` + publisher name:
+**Diff** — add import:
 
-```tsx
-import SourceIcon from "../../components/SourceIcon";
-
-// Inside UpNextCard render, replace the source pill:
-<View className="flex-row items-center gap-2 mt-1">
-  <SourceIcon
-    sourceName={item.sourceName}
-    sourceDomain={item.sourceDomain}
-    sourceBrandColor={item.sourceBrandColor}
-    size={18}
-    fontSize={8}
-  />
-  <Text className="text-xs font-medium text-gray-600">
-    {item.sourceName ?? item.sourceType.toUpperCase()}
-  </Text>
-  <Text className="text-xs text-gray-400">{timeAgo(item.createdAt)}</Text>
-</View>
+```diff
++import SourceIcon from "../../components/SourceIcon";
+ import { getUnlistenedItems, libraryItemToPlayable } from "../../lib/libraryHelpers";
 ```
+
+**Diff** — replace the source pill in `UpNextCard` with `SourceIcon` + publisher name:
+
+```diff
+         <View className="flex-row items-center gap-2 mt-1">
+-          {/* Source pill */}
+-          <View
+-            className="px-2 py-0.5 rounded-full"
+-            style={{ backgroundColor: sourcePillBg(item.sourceType) }}
+-          >
+-            <Text className="text-xs font-medium text-gray-700">
+-              {item.sourceType.toUpperCase()}
+-            </Text>
+-          </View>
+-          {/* Time ago */}
+-          <Text className="text-xs text-gray-400">{timeAgo(item.createdAt)}</Text>
++          <SourceIcon
++            sourceName={item.sourceName}
++            sourceDomain={item.sourceDomain}
++            sourceBrandColor={item.sourceBrandColor}
++            size={18}
++            fontSize={8}
++          />
++          <Text className="text-xs font-medium text-gray-600">
++            {item.sourceName ?? item.sourceType.toUpperCase()}
++          </Text>
++          <Text className="text-xs text-gray-400">{timeAgo(item.createdAt)}</Text>
+         </View>
+```
+
+> The `sourcePillBg` helper and `SOURCE_COLOR` constant in `index.tsx` can be removed after this change since the source pill is no longer rendered. Leave them if any other component references them, otherwise delete.
 
 ## Files to Create/Modify
 
 | File | Change |
 |---|---|
 | `native/lib/types.ts` | Add 5 identity fields to `LibraryItem` |
-| `native/lib/db.ts` | Add `migrateV2` for identity columns, update `upsertEpisodes`, update row mappers in `getAllEpisodes` and `searchEpisodes` |
+| `native/lib/db.ts` | Add `migrateV2` for identity columns; update `upsertEpisodes`, `getAllEpisodes`, `searchEpisodes` |
 | `native/lib/sourceUtils.ts` | New — `extractDomain`, `deriveSourceIdentity`, `hashColor`, `KNOWN_SOURCES` |
-| `native/lib/sync.ts` | Enrich items with derived identity before upserting |
+| `native/lib/sync.ts` | Import `deriveSourceIdentity`; enrich items before upserting; return enriched items |
 | `native/components/SourceIcon.tsx` | New — branded circle component |
-| `native/components/EpisodeCard.tsx` | Show `SourceIcon`, `sourceName`, `description` |
-| `native/app/(tabs)/index.tsx` | Show `SourceIcon` in `UpNextCard` |
+| `native/components/EpisodeCard.tsx` | Import `SourceIcon`; replace author line with identity row; add description preview |
+| `native/app/(tabs)/index.tsx` | Import `SourceIcon`; replace source pill in `UpNextCard` with `SourceIcon` + publisher name |
 
 ## Tests
 
@@ -490,11 +742,7 @@ import SourceIcon from "../../components/SourceIcon";
 
 ```typescript
 import { describe, it, expect } from "@jest/globals";
-import {
-  extractDomain,
-  deriveSourceIdentity,
-  hashColor,
-} from "../sourceUtils";
+import { extractDomain, deriveSourceIdentity, hashColor } from "../sourceUtils";
 
 describe("extractDomain", () => {
   it("extracts registrable domain from a full URL", () => {
@@ -509,21 +757,19 @@ describe("extractDomain", () => {
     expect(extractDomain("https://arxiv.org/abs/2401.00001")).toBe("arxiv.org");
   });
 
-  it("handles substack custom domains as-is (two-part)", () => {
-    expect(extractDomain("https://astralcodexten.substack.com/p/post")).toBe(
-      "substack.com",
-    );
+  it("collapses substack custom domain to substack.com", () => {
+    expect(extractDomain("https://astralcodexten.substack.com/p/post")).toBe("substack.com");
   });
 
   it("returns null for null input", () => {
     expect(extractDomain(null)).toBeNull();
   });
 
-  it("returns null for an empty string", () => {
+  it("returns null for empty string", () => {
     expect(extractDomain("")).toBeNull();
   });
 
-  it("returns null for an unparseable URL", () => {
+  it("returns null for an unparseable string", () => {
     expect(extractDomain("not a url at all")).toBeNull();
   });
 });
@@ -542,6 +788,12 @@ describe("deriveSourceIdentity", () => {
     expect(result.sourceBrandColor).toBe("#2E1E5B");
   });
 
+  it("returns known name and brand color for arxiv.org", () => {
+    const result = deriveSourceIdentity("https://arxiv.org/abs/2401.00001");
+    expect(result.sourceName).toBe("arXiv");
+    expect(result.sourceBrandColor).toBe("#46A89B");
+  });
+
   it("returns title-cased domain name for unknown sources", () => {
     const result = deriveSourceIdentity("https://waitbutwhy.com/article");
     expect(result.sourceName).toBe("Waitbutwhy");
@@ -555,20 +807,30 @@ describe("deriveSourceIdentity", () => {
     expect(result.sourceName).toBeNull();
     expect(result.sourceBrandColor).toBeNull();
   });
+
+  it("returns all nulls for undefined URL", () => {
+    const result = deriveSourceIdentity(undefined);
+    expect(result.sourceDomain).toBeNull();
+  });
 });
 
 describe("hashColor", () => {
-  it("returns a valid hex color string", () => {
-    const color = hashColor("example.com");
-    expect(color).toMatch(/^#[0-9a-f]{6}$/i);
+  it("returns a valid 6-digit hex color string", () => {
+    expect(hashColor("example.com")).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
-  it("is deterministic for the same input", () => {
+  it("is deterministic — same input always produces same output", () => {
     expect(hashColor("waitbutwhy.com")).toBe(hashColor("waitbutwhy.com"));
+    expect(hashColor("example.com")).toBe(hashColor("example.com"));
   });
 
   it("produces different colors for different domains", () => {
     expect(hashColor("example.com")).not.toBe(hashColor("different.com"));
+  });
+
+  it("handles empty string without throwing", () => {
+    expect(() => hashColor("")).not.toThrow();
+    expect(hashColor("")).toMatch(/^#[0-9a-f]{6}$/i);
   });
 });
 ```
@@ -578,8 +840,9 @@ describe("hashColor", () => {
 ```typescript
 import { describe, it, expect } from "@jest/globals";
 import { getDb, upsertEpisodes, getAllEpisodes } from "../db";
+import type { LibraryItem } from "../types";
 
-const IDENTITY_ITEM = {
+const IDENTITY_ITEM: LibraryItem = {
   id: "content-identity-1",
   title: "Identity Test Episode",
   author: null,
@@ -605,26 +868,41 @@ describe("db schema v2 — identity columns", () => {
     expect(found?.sourceName).toBe("ESPN");
     expect(found?.sourceDomain).toBe("espn.com");
     expect(found?.sourceBrandColor).toBe("#C41230");
-    expect(found?.description).toBe(
-      "LeBron James leads the Lakers in a dominant win.",
-    );
+    expect(found?.description).toBe("LeBron James leads the Lakers in a dominant win.");
+    expect(found?.sourceIcon).toBeNull();
+  });
+
+  it("upsert overwrites identity fields on repeat calls", async () => {
+    await upsertEpisodes([IDENTITY_ITEM]);
+    await upsertEpisodes([{ ...IDENTITY_ITEM, sourceName: "ESPN Updated" }]);
+    const items = await getAllEpisodes();
+    const found = items.find((i) => i.id === "content-identity-1");
+    expect(found?.sourceName).toBe("ESPN Updated");
   });
 
   it("returns null for identity fields on pre-migration rows", async () => {
-    // Simulate a row inserted without identity columns
+    // Simulate a row inserted without identity columns (pre-v2)
     const db = await getDb();
     await db.runAsync(
       `INSERT OR REPLACE INTO episodes
          (content_id, title, author, source_type, source_url, word_count, created_at, json_versions)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      "old-content-1", "Old Episode", null, "url", null, 100,
-      new Date().toISOString(), "[]",
+      "old-content-1",
+      "Old Episode",
+      null,
+      "url",
+      null,
+      100,
+      new Date().toISOString(),
+      "[]",
     );
 
     const items = await getAllEpisodes();
     const old = items.find((i) => i.id === "old-content-1");
+    expect(old).toBeDefined();
     expect(old?.sourceName).toBeNull();
     expect(old?.sourceBrandColor).toBeNull();
+    expect(old?.description).toBeNull();
   });
 });
 ```
@@ -649,17 +927,19 @@ describe("SourceIcon", () => {
     const { getByText } = render(
       <SourceIcon sourceName="ESPN" sourceDomain="espn.com" sourceBrandColor="#C41230" />,
     );
-    // Navigate up to the container View
     const letter = getByText("E");
     const container = letter.parent;
     expect(container?.props.style).toMatchObject({ backgroundColor: "#C41230" });
   });
 
-  it("renders '?' when sourceName is null", () => {
+  it("uses hashColor when sourceBrandColor is null but domain is provided", () => {
     const { getByText } = render(
-      <SourceIcon sourceName={null} sourceDomain={null} sourceBrandColor={null} />,
+      <SourceIcon sourceName="Waitbutwhy" sourceDomain="waitbutwhy.com" sourceBrandColor={null} />,
     );
-    expect(getByText("?")).toBeTruthy();
+    const container = getByText("W").parent;
+    // Must be a hex color that is not the gray fallback
+    expect(container?.props.style.backgroundColor).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(container?.props.style.backgroundColor).not.toBe("#6B7280");
   });
 
   it("uses gray fallback when both brand color and domain are null", () => {
@@ -670,12 +950,26 @@ describe("SourceIcon", () => {
     expect(container?.props.style).toMatchObject({ backgroundColor: "#6B7280" });
   });
 
-  it("accepts a custom size prop", () => {
+  it("renders '?' when sourceName is null", () => {
+    const { getByText } = render(
+      <SourceIcon sourceName={null} sourceDomain={null} sourceBrandColor={null} />,
+    );
+    expect(getByText("?")).toBeTruthy();
+  });
+
+  it("accepts a custom size prop and applies it to the circle", () => {
     const { getByText } = render(
       <SourceIcon sourceName="HBR" sourceDomain="hbr.org" sourceBrandColor="#A51C30" size={48} />,
     );
     const container = getByText("H").parent;
     expect(container?.props.style).toMatchObject({ width: 48, height: 48, borderRadius: 24 });
+  });
+
+  it("renders uppercase letter even when sourceName is lowercase", () => {
+    const { getByText } = render(
+      <SourceIcon sourceName="example" sourceDomain="example.com" sourceBrandColor={null} />,
+    );
+    expect(getByText("E")).toBeTruthy();
   });
 });
 ```
@@ -685,29 +979,29 @@ describe("SourceIcon", () => {
 ```bash
 cd native
 npx jest lib/__tests__/sourceUtils.test.ts
-# 10 tests pass
+# 13 tests pass
 
 npx jest lib/__tests__/db-migration-v2.test.ts
-# 2 tests pass
+# 3 tests pass
 
 npx jest components/__tests__/SourceIcon.test.tsx
-# 5 tests pass
+# 7 tests pass
 
 npx tsc --noEmit
 # No type errors — all LibraryItem usages must provide or stub the 5 new fields
 ```
 
 Manual verification:
-- [ ] Library screen: episode cards show a small colored circle next to the source name
-- [ ] ESPN episodes show a red (#C41230) circle with "E"
-- [ ] Substack episodes show an orange (#FF6719) circle with "S"
-- [ ] Unknown source (e.g. personal blog) shows a hash-derived color circle
-- [ ] Episodes with null sourceName fall through to the sourceType badge gracefully
-- [ ] Episodes with a description show 2-line preview text below the title
-- [ ] Home screen Up Next cards show the SourceIcon instead of the source type pill
+- [ ] Library screen: episode cards show a small colored circle (20px) next to the source name
+- [ ] ESPN episodes: red (#C41230) circle with "E", text shows "ESPN"
+- [ ] Substack episodes: orange (#FF6719) circle with "S", text shows "Substack"
+- [ ] Unknown source (e.g. personal blog): hash-derived color circle, text shows title-cased domain
+- [ ] Episodes with null sourceName fall through to `item.author` then `sourceType.toUpperCase()` gracefully
+- [ ] Episodes with a description show 2-line preview text below the identity row
+- [ ] Home screen Up Next cards show SourceIcon instead of the colored source type pill
 - [ ] Pull-to-refresh enriches existing episodes with identity data from the new sync logic
-- [ ] Pre-migration rows (no identity columns) render without crashing
+- [ ] Pre-migration rows (no identity columns) render without crashing — fallback to gray circle
 
 ## Scope
 
-Client-side data model and display only. The backend `GET /api/library` response does not need to provide the identity fields — `sync.ts` derives them locally from `sourceUrl`. If the backend later starts returning these fields, `sync.ts` will use the server values preferentially (per the `item.sourceDomain ? {} : deriveSourceIdentity(...)` guard). Favicon fetching (`sourceIcon`) is reserved — the field is stored but no favicon fetch logic is implemented here. Full AI-powered source identification and brand color extraction is a future backend feature. The `KNOWN_SOURCES` table is the interim solution.
+Client-side data model and display only. The backend `GET /api/library` response does not need to provide the identity fields — `sync.ts` derives them locally from `sourceUrl`. If the backend later returns these fields, `sync.ts` uses the server values preferentially (per the `item.sourceDomain ? {} : deriveSourceIdentity(...)` guard). Favicon fetching (`sourceIcon`) is reserved — the field is stored but no fetch logic is implemented here. Full AI-powered source identification and brand color extraction is a future backend feature. The `KNOWN_SOURCES` table is the interim solution. No changes to `PlayableItem` — this spec is purely about `LibraryItem` and its storage.
