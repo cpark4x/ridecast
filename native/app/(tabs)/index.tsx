@@ -19,6 +19,7 @@ import { getUnlistenedItems, libraryItemToPlayable } from "../../lib/libraryHelp
 import { formatDuration, formatDurationMinutes, timeAgo } from "../../lib/utils";
 import type { LibraryItem, PlayableItem } from "../../lib/types";
 import UploadModal from "../../components/UploadModal";
+import EmptyState from "../../components/EmptyState";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -290,7 +291,7 @@ export default function HomeScreen() {
             )}
 
             {/* ── Currently Playing card ── */}
-            <CurrentlyPlayingCard onExpand={() => console.log("expand player")} />
+            <CurrentlyPlayingCard onExpand={() => player.setExpandedPlayerVisible(true)} />
 
             {/* ── Up Next header ── */}
             {episodeCount > 0 && (
@@ -302,12 +303,13 @@ export default function HomeScreen() {
           <UpNextCard item={item} playable={playable} onPlay={handlePlayItem} />
         )}
         ListEmptyComponent={
-          <View className="items-center justify-center py-20 px-8">
-            <Ionicons name="headset-outline" size={48} color="#D1D5DB" />
-            <Text className="text-base text-gray-400 mt-4 text-center">
-              {"All caught up!\nPull to refresh or add content in your Library."}
-            </Text>
-          </View>
+          <EmptyState
+            icon="headset"
+            title="Your Daily Drive is empty"
+            subtitle="Upload an article or URL to create your first episode"
+            actionLabel="Create Episode"
+            onAction={() => setUploadModalVisible(true)}
+          />
         }
       />
 

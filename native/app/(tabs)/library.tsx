@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 
 import EpisodeCard from "../../components/EpisodeCard";
 import UploadModal from "../../components/UploadModal";
+import EmptyState from "../../components/EmptyState";
 import { filterEpisodes } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
@@ -98,7 +99,7 @@ export default function LibraryScreen() {
       (v) => v.status === "ready" && v.audioId && v.audioUrl,
     );
     if (!readyVersion || !readyVersion.audioId || !readyVersion.audioUrl) {
-      console.log("play", item.title, "(no ready audio yet)");
+      // TODO: show a "still generating" toast once Toast API is wired
       return;
     }
 
@@ -195,14 +196,21 @@ export default function LibraryScreen() {
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={
-          <View className="items-center justify-center py-20 px-8">
-            <Ionicons name="library-outline" size={48} color="#D1D5DB" />
-            <Text className="text-base text-gray-400 mt-4 text-center">
-              {searchQuery
-                ? "No episodes match your search"
-                : "Your library is empty.\nTap + to add content."}
-            </Text>
-          </View>
+          episodes.length === 0 ? (
+            <EmptyState
+              icon="library-outline"
+              title="No episodes yet"
+              subtitle="Paste a URL or upload a file to get started"
+              actionLabel="Create Episode"
+              onAction={() => setUploadModalVisible(true)}
+            />
+          ) : (
+            <EmptyState
+              icon="search"
+              title="No matches"
+              subtitle="Try a different search or filter"
+            />
+          )
         }
       />
 
