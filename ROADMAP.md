@@ -44,6 +44,28 @@ PR #2 fixed several crashers (JSON fences, TTS token limits, duplicate content b
 
 The goal: no user-facing crash, ever. Fail with actionable messages.
 
+### 1.5 Native App UX Hardening *(new)*
+**Priority: Critical–High** | Label: `P0`–`P1` | Effort: Medium | 35 issues from UX audit, grouped into 9 tickets
+
+Full end-to-end UX audit of the native iOS app identified 35 issues across 4 severity levels (5 critical, 13 high, 10 medium, 7 low). One critical issue (error recovery in processing screen) was already fixed. The remaining 34 are grouped into 9 GitHub issues by feature area.
+
+**P0 — Blocks daily usage:**
+- [#33](https://github.com/cpark4x/ridecast2/issues/33) Remove non-functional queue button and delete option
+- [#34](https://github.com/cpark4x/ridecast2/issues/34) Add feedback for generating episodes and empty states
+- [#35](https://github.com/cpark4x/ridecast2/issues/35) Add offline guards for upload flow
+
+**P1 — Major UX problems:**
+- [#36](https://github.com/cpark4x/ridecast2/issues/36) Upload modal error handling and UX
+- [#37](https://github.com/cpark4x/ridecast2/issues/37) Player controls polish
+- [#38](https://github.com/cpark4x/ridecast2/issues/38) Episode card and library improvements
+
+**P2 — Noticeable, workaround exists:**
+- [#39](https://github.com/cpark4x/ridecast2/issues/39) Settings and onboarding polish
+- [#41](https://github.com/cpark4x/ridecast2/issues/41) Minor UX polish
+
+**P3 — Infrastructure / polish:**
+- [#40](https://github.com/cpark4x/ridecast2/issues/40) App infrastructure hardening
+
 ### 1.4 ProcessingScreen UI Upgrade *(new)*
 **Priority: High** | Label: `P1` | Effort: Small | Ships to: PWA (before native app)
 
@@ -117,6 +139,7 @@ Research across 9 audio apps (Blinkist, Spotify, Overcast, Pocket Casts, Audible
 | **Queue-first home screen** | Home screen primary content: queued episodes ready to play + total queue duration matched to user's commute time. One large "Play" CTA. Not a discovery/recommendation feed. | Users generated their content — they don't browse, they play. Blinkist's home is discovery-first; this is the gap to fix. |
 | **All primary player controls in bottom 40%** | Play/pause, skip ±15–30s, speed, chapter navigation — all reachable by one thumb without repositioning grip. 48px+ touch targets. | One-handed operation is the #1 commute constraint. Test: operate the player eyes-closed with one thumb. |
 | **Persistent mini player** | Artwork + title + progress bar + time remaining + play/pause. Visible on every screen. Tap to expand to full player. | Present in every 4.5★+ audio app. Absence produces perception of incompleteness. |
+| **iOS Share Extension** | "Share to Ridecast" from any iOS app — Safari, Twitter, email, Substack. Content URL or text sent to processing queue. Minimal UI: duration picker + "Process" button. | The mobile equivalent of Browser Extension (#8). NotebookLM already has this. Without it, users must open the app and paste URLs manually — every step is abandonment. This IS the mobile capture surface. |
 
 **P1 — Required for 4.8★ target (add in first sprint post-launch if not at launch):**
 
@@ -127,6 +150,27 @@ Research across 9 audio apps (Blinkist, Spotify, Overcast, Pocket Casts, Audible
 | **Chapter Explorer** | Medium | Swipe-up panel from player. Shows AI-generated 1-sentence chapter summaries, frame-accurate timestamps, word-level transcript seek (transcript already exists in pipeline). |
 | **Commute time preference** | Small | User-configured commute duration (onboarding). Prerequisite for home screen duration math and "Ready to Commute" notification (#3.7). |
 | **Dynamic color from artwork** | Small | Player background tints to match episode artwork color palette. Present in Spotify, Pocket Casts, Apple Podcasts. Correlates with 4.8★ apps. |
+
+### 2.5 Progressive Depth ("Go Deeper") *(new)*
+**Priority: Medium** | Label: `P1` | Effort: Medium | Depends on: #7 Episode Versioning
+
+After listening to a 5-minute overview, the user can "go deeper" and get a 20-minute version that *builds on* what they already heard — doesn't repeat the overview, continues from where it left off. The AI receives the previous script as context and produces a continuation, not a re-summarization. Progressive disclosure in audio form.
+
+This is an evolution of Episode Versioning (#7). Where #7 gives you independent versions at different durations, Progressive Depth makes them *aware of each other*. The pipeline already has all the pieces — source content, existing scripts, versioning. The new work is prompt engineering: pass the previous script as context with instructions to expand on what was already covered.
+
+No competitor has anything remotely like this — nobody has episode versioning at all. Also creates a natural upsell moment: free catalog gives you the 5-min overview, paid tier unlocks "go deeper."
+
+### 2.6 Format Expansion *(new)*
+**Priority: Medium** | Label: `P1`–`P2` | Effort: Medium per format
+
+Expand from 2 audio formats (narrator, two-host conversation) to 4–5. VISION.md claims "format intelligence" as a core differentiator — NotebookLM has 4 formats, Speechify has 4, Ridecast currently has 2. The claim is ahead of the product.
+
+Target formats:
+- **Debate** — Opposing perspectives on the source material. Two hosts who disagree. Great for research papers, opinion pieces, policy docs.
+- **Critique** — Constructive critical review. One host presents, the other asks hard questions. Great for proposals, reports, business docs.
+- **Storytelling** — Narrative-driven. Content is woven into a story arc rather than presented as information. Good for history, biography, long-form journalism.
+
+Each new format is primarily a prompt engineering task — different system prompts for the AI scriptwriter, possibly different voice configurations. The pipeline architecture doesn't change. Only ship formats that are *good* — a mediocre Debate mode hurts the brand. Build after narrator and two-host are reliably excellent.
 
 ---
 
@@ -182,6 +226,35 @@ Tap any word in the episode transcript to jump to that exact position in the aud
 
 First-party CarPlay support: episode queue in the dashboard, artwork + title on the car display, steering wheel controls, Siri handoff. The PWA's CarMode screen is the interim — it proves the layout concept. CarPlay is the production version for the primary commute context.
 
+### 3.10 Smart Queue Curation *(new)*
+**Priority: Medium** | Label: `P2` | Effort: Medium–Large | Depends on: Commute time preference, #13 Scheduled Production
+
+The app intelligently fills your commute session — not just "fill 34 minutes of audio" but *choose well*. Learn from playback history: what topics you engage with, what you skip, what you replay, what you favorite. Prioritize and rank episodes based on predicted interest. Auto-fill the commute queue so you press play and go.
+
+**Phase 3 scope:** Playback tracking + preference learning + smart queue auto-fill from catalog and user episodes. Rank by predicted interest based on history, favorites, and skip patterns.
+
+**Phase 3+ stretch — Maps/navigation integration:** When you start Google Maps turn-by-turn navigation, Ridecast sees the ETA and auto-queues. If traffic changes and your commute gets longer, queue an additional short episode. Syncing with the navigation session turns Ridecast into the audio layer of your commute.
+
+This is the system-level vision that makes "commute audio" a product category, not just a feature. Seeds already exist in the roadmap: commute time preference (P1 item) and "Ready to Commute" notification (#3.7). Smart Queue Curation is what those seeds grow toward.
+
+### 3.11 Newsletter / Email Digest *(new)*
+**Priority: Low** | Label: `P2` | Effort: Medium (RSS) / Large (email) | Depends on: #13 Scheduled Production
+
+Most content backlogs live in email now — newsletters are the dominant content format for knowledge workers. Nobody is turning email newsletters into commute audio.
+
+**Phase 3 — RSS version (ship first):** Support Substack RSS feeds and newsletter RSS feeds as input sources for Scheduled Production. User pastes a feed URL, Ridecast auto-generates episodes when new posts arrive. Gets 70% of the value at 20% of the effort. Naturally extends Scheduled Production (#13) and RSS Feed Output (#3.5).
+
+**Phase 3+ — Full email integration:** Connect your email via OAuth → auto-detect newsletters (Substack, Morning Brew, industry reports) → batch into a morning audio digest. *"Your morning briefing: 3 newsletters, 18 minutes."* This is the *real* Pocket successor play — native capture of the content people are actually drowning in. Requires email OAuth/IMAP, newsletter detection/extraction, batching logic.
+
+### 3.12 "What Did I Miss?" Recap *(new)*
+**Priority: Low** | Label: `P2` | Effort: Small–Medium
+
+Resume an episode you paused 3 days ago → get a 30-second AI-generated recap of what you heard before the pause point. "Previously on your episode..." Nobody does this for any audio format — podcasts, audiobooks, nothing.
+
+The transcript and script already exist in the pipeline. Generating a brief recap of the first N minutes of transcript is one AI call. The only new engineering: detect that the gap since last play is >X hours (configurable, default ~24h), generate recap, play before resuming. Must be skippable (tap to skip, jump straight to resume point).
+
+This is a signature UX moment — the kind of thing that shows up in App Store reviews. *"This app gives me a 'previously on...' recap when I come back to an episode. No podcast app does that."* Low effort, high delight, reinforces the "we thought about every detail of the listening experience" identity.
+
 ### 3.6 Pocket Refugee Capture *(new)* ⏰
 **Priority: Medium** | Label: `P2` | Effort: Small-Medium | Time-sensitive
 
@@ -189,7 +262,20 @@ Pocket shut down July 8, 2025, leaving millions of loyal read-it-later users wit
 
 Build: an import flow that accepts Pocket's standard JSON export format, ingests saved URLs as a batch queue, and auto-generates a library of commute-length episodes. The browser extension (#8) is the long-term capture surface for this audience.
 
-Start the positioning immediately — before the import flow ships. The acquisition window narrows as displaced users settle into permanent alternatives.
+**⚠️ Positioning starts NOW — don't wait for the import flow.** Begin "listen-it-later" messaging immediately: App Store description, landing page copy, social presence, blog content. The positioning needs to be established before the import flow ships so there's something to ship *into*. Some users will find Ridecast from the positioning alone. The acquisition window narrows as displaced users settle into permanent alternatives — by Q2 2026 it will have largely closed.
+
+---
+
+## Future Ideas
+
+*Interesting but not committed. Revisit after core product proves itself.*
+
+| Idea | Why It's Interesting | Why It's Parked |
+|------|---------------------|-----------------|
+| **Highlights & Clips** | Tap to mark moments while listening, get text excerpts from transcript, share audio clips. Creates knowledge artifacts from listening. | Scope creep beyond core "commute audio" identity. Transcript exists in pipeline — could be low-effort later. |
+| **Ambient Soundscapes** | Background audio (rain, coffee shop, lo-fi) during listening. ElevenReader shipped this Dec 2025. Masks commute noise. | Nice-to-have polish, doesn't drive adoption. Small effort when we get to it. |
+| **Interactive Q&A Post-Episode** | Ask questions about content after listening. Uses original source + script to answer. NotebookLM's stickiest feature. | Expands product surface from "audio production" to "audio + knowledge assistant." Bigger strategic decision than a feature. |
+| **Context-Aware Format Selection** | Auto-detect listening context (CarPlay → narrator, AirPods + walking → two-host). Format adapts to where you are. | Requires Format Expansion (§2.6) first. UX risk of auto-selecting wrong format. Needs usage data. |
 
 ---
 
@@ -235,10 +321,11 @@ These are conscious positioning decisions, not "someday" items:
 ### In Progress
 - Duration Accuracy tightening (#5) — specs written in `specs/features/phase1/`
 - Pipeline Error Resilience (#3) — specs written in `specs/features/phase1/`
+- Native App UX Hardening (§1.5) — 9 issues filed from comprehensive UX audit (#33–#41)
 
 ### Next Up
-Phase 1 completion, then Phase 2 in order: ElevenLabs (#9) > Browser Extension (#8) > Episode Versioning (#7) > Native Mobile App (#6).
+P0 native app fixes (#33, #34, #35), then Phase 1 completion, then Phase 2 in order: ElevenLabs (#9) > Browser Extension (#8) > Episode Versioning (#7) > Native Mobile App polish continues.
 
 ---
 
-*Last updated: 2026-03-06. Roadmap updated after competitive analysis — see `docs/plans/2026-03-06-competitive-brief.md` and VISION.md.*
+*Last updated: 2026-03-12. Added 7 items from competitive analysis: iOS Share Extension (P0 on #6), Progressive Depth §2.5, Format Expansion §2.6, Smart Queue Curation §3.10, Newsletter/Email Digest §3.11, "What Did I Miss?" Recap §3.12, Future Ideas section. Updated §3.6 Pocket positioning to start immediately. Full analysis: `docs/competitive/2026-03-12-competitive-brief.md`.*
