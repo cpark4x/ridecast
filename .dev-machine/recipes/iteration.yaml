@@ -54,6 +54,7 @@ steps:
   # ---------------------------------------------------------------------------
   - id: "spec-drift-check"
     type: "bash"
+    timeout: 60
     command: |
       cd /Users/chrispark/Projects/ridecast2
       python3 << 'SPECEOF'
@@ -62,7 +63,20 @@ steps:
 
       specs_dir = Path("./specs")
       STALE_THRESHOLD = 7 * 86400  # 7 days in seconds
+      SKIP_DIRS = {"node_modules", ".git", "dist", ".next", ".dev-machine", "specs"}
       drift_flags = []
+
+      # --- Collect all impl files ONCE (O(1) traversal, not O(N_specs)) ---
+      # Previously: Path(".").rglob(pattern) was called once per spec file × 3 patterns
+      # = 162 full directory walks on a 54-spec project → ~559s (timeout).
+      # Fix: walk the tree once, filter in-memory, then match against each spec.
+      impl_files = []
+      for root, dirs, files in os.walk("."):
+          # Prune skipped directories in-place so os.walk won't descend into them
+          dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+          for fname in files:
+              if fname.endswith((".ts", ".tsx", ".js")):
+                  impl_files.append(Path(root) / fname)
 
       if specs_dir.exists():
           for spec_file in sorted(specs_dir.rglob("*.md")):
@@ -73,18 +87,13 @@ steps:
               stem = stem.lower()
               if len(stem) < 4:
                   continue
-              for pattern in ("*.ts", "*.tsx", "*.js"):
-                  for impl_file in Path(".").rglob(pattern):
-                      parts = str(impl_file).split(os.sep)
-                      if any(skip in parts for skip in ("node_modules", ".git", "dist", ".next", ".dev-machine")):
-                          continue
-                      if "specs" in parts:
-                          continue
-                      if stem in impl_file.stem.lower():
-                          impl_mtime = impl_file.stat().st_mtime
-                          age_diff_s = impl_mtime - spec_mtime
-                          if age_diff_s > STALE_THRESHOLD:
-                              drift_flags.append((str(spec_file), str(impl_file), round(age_diff_s / 86400, 1)))
+              for impl_file in impl_files:
+                  if stem in impl_file.stem.lower():
+                      impl_mtime = impl_file.stat().st_mtime
+                      age_diff_s = impl_mtime - spec_mtime
+                      if age_diff_s > STALE_THRESHOLD:
+                          drift_flags.append((str(spec_file), str(impl_file), round(age_diff_s / 86400, 1)))
+
       if drift_flags:
           print(f"=== SPEC DRIFT DETECTED ({len(drift_flags)} candidate(s)) ===")
           for spec_f, impl_f, days in drift_flags[:10]:
@@ -355,7 +364,7 @@ steps:
         echo '{"build_status": "clean"}'
       fi
     output: "build_result"
-    timeout: 180
+    timeout: 300
 
   # ---------------------------------------------------------------------------
   # Step 4: Post-session — archive, track, audit
