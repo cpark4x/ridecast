@@ -262,95 +262,95 @@ features:
     description: "Pocket import, bookmarklet, marketing landing page — time-sensitive (Pocket shuts down July 2025)"
     size: M
 
-  # ── Night 3: Homepage Redesign (7 pts) ──
+  # ── Homepage Redesign (7 pts) ──
   homepage-redesign:
-    status: queued
+    status: ready
     spec: specs/features/phase4/homepage-redesign.md
     description: "Option B visual hybrid — hero now-playing card, episode carousel, rich list"
     size: L
     depends_on: [episode-identity, episode-card-redesign]
   episode-card-redesign:
-    status: queued
+    status: ready
     spec: specs/features/phase4/episode-card-redesign.md
     description: "Rich cards with SourceIcon, attribution, description preview, state indicators"
     size: M
     depends_on: [episode-identity]
   empty-states:
-    status: queued
+    status: ready
     spec: specs/features/phase4/empty-states.md
     description: "Context-aware empty states — new user onboarding, all caught up, stale library nudge"
     size: M
 
   # ── Night 4: Library Overhaul (8 pts) ──
   library-redesign:
-    status: queued
+    status: ready
     spec: specs/features/phase4/library-redesign.md
     description: "Time sections, upgraded filters with Sources/Topics dropdowns, sort control"
     size: L
     depends_on: [episode-card-redesign, active-filter-default]
   smart-search:
-    status: queued
+    status: ready
     spec: specs/features/phase4/smart-search.md
     description: "Search across title, author, source, themes, summary — not just title/author"
     size: M
     depends_on: [episode-identity]
   upload-polish:
-    status: queued
+    status: ready
     spec: specs/features/phase4/upload-polish.md
     description: "Upload modal error handling, loading states, bottom sheet behavior"
     size: S
   player-controls-polish:
-    status: queued
+    status: ready
     spec: specs/features/phase4/player-controls-polish.md
     description: "Skip boundary fixes, speed chip in mini bar, lock screen integration"
     size: S
   single-version-new-version:
-    status: queued
+    status: ready
     spec: specs/features/phase4/single-version-new-version.md
     description: "Direct path to create new version from single-version cards"
     size: S
 
   # ── Night 5: Following & Discovery (8 pts) ──
   source-author-following:
-    status: queued
+    status: ready
     spec: specs/features/phase4/source-author-following.md
     description: "Follow sources and authors — source/author cards, following filter"
     size: L
     depends_on: [episode-identity]
   settings-onboarding-polish:
-    status: queued
+    status: ready
     spec: specs/features/phase4/settings-onboarding-polish.md
     description: "Default duration, haptics toggle, notification prefs, first-run hints"
     size: S
   minor-ux-polish:
-    status: queued
+    status: ready
     spec: specs/features/phase4/minor-ux-polish.md
     description: "Animation timing, keyboard handling, scroll restoration, loading consistency"
     size: S
   app-infrastructure:
-    status: queued
+    status: ready
     spec: specs/features/phase4/app-infrastructure.md
     description: "Error boundaries, crash reporting, performance monitoring"
     size: M
 
   # ── Night 6+: Platform Expansion ──
   content-type-expansion:
-    status: queued
+    status: ready
     spec: specs/features/phase4/content-type-expansion.md
     description: "Support .docx, Google Docs, Notion, GitHub, Markdown"
     size: M
   generic-url-handling:
-    status: queued
+    status: ready
     spec: specs/features/phase4/generic-url-handling.md
     description: "Homepage detection, article extraction, multi-select picker"
     size: M
   browser-extension:
-    status: queued
+    status: ready
     spec: specs/features/phase4/browser-extension.md
     description: "Chrome extension — right-click any article, send to Ridecast"
     size: L
   ios-share-extension:
-    status: queued
+    status: ready
     spec: specs/features/phase4/ios-share-extension.md
     description: "iOS Share Extension — share from Safari or any app to Ridecast"
     size: M
