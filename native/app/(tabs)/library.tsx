@@ -14,11 +14,12 @@ import { useRouter } from "expo-router";
 import EpisodeCard from "../../components/EpisodeCard";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
+import NewVersionSheet from "../../components/NewVersionSheet";
 import { filterEpisodes } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
 import { usePlayer } from "../../lib/usePlayer";
-import type { LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
+import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
 const FILTERS: { key: LibraryFilter; label: string }[] = [
   { key: "all", label: "All" },
@@ -36,6 +37,7 @@ export default function LibraryScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [newVersionEpisode, setNewVersionEpisode] = useState<LibraryItem | null>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -94,6 +96,7 @@ export default function LibraryScreen() {
     }, 200);
   }
 
+  // Tap on the whole card → play the primary (first ready) version
   function handleCardPress(item: LibraryItem) {
     const readyVersion = item.versions.find(
       (v) => v.status === "ready" && v.audioId && v.audioUrl,
@@ -125,6 +128,17 @@ export default function LibraryScreen() {
 
     player.play(playable).catch((err) =>
       console.warn("[library] play error:", err),
+    );
+  }
+
+  // Tap a specific version pill → play that exact version
+  function handleVersionPress(
+    _item: LibraryItem,
+    _version: AudioVersion,
+    playable: PlayableItem,
+  ) {
+    player.play(playable).catch((err) =>
+      console.warn("[library] version play error:", err),
     );
   }
 
@@ -189,7 +203,13 @@ export default function LibraryScreen() {
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <EpisodeCard item={item} onPress={handleCardPress} />
+          <EpisodeCard
+            item={item}
+            onPress={handleCardPress}
+            onVersionPress={handleVersionPress}
+            currentAudioId={player.currentItem?.id ?? null}
+            onNewVersion={setNewVersionEpisode}
+          />
         )}
         contentContainerClassName="pt-1 pb-28"
         showsVerticalScrollIndicator={false}
@@ -229,6 +249,15 @@ export default function LibraryScreen() {
         visible={uploadModalVisible}
         onDismiss={() => setUploadModalVisible(false)}
       />
+
+      {/* New Version Sheet */}
+      {newVersionEpisode ? (
+        <NewVersionSheet
+          visible
+          onDismiss={() => setNewVersionEpisode(null)}
+          episode={newVersionEpisode}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
