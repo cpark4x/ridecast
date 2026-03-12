@@ -1,3 +1,6 @@
+import type { ComponentProps } from "react";
+import type { Ionicons } from "@expo/vector-icons";
+
 // Player
 export const SMART_RESUME_REWIND_SECS = 3;
 export const CAR_MODE_SKIP_SECS = 30; // Larger skip interval for eyes-off driving
@@ -31,7 +34,7 @@ export const STAGE_COPY: Record<ProcessingStage, string | null> = {
 export const STAGE_LABELS: {
   stage: ProcessingStage;
   label: string;
-  icon: string;
+  icon: ComponentProps<typeof Ionicons>["name"];
 }[] = [
   { stage: "analyzing",  label: "Reading content", icon: "search-outline" },
   { stage: "scripting",  label: "Writing script",  icon: "create-outline" },

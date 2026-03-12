@@ -36,7 +36,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   const [loading, setLoading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [targetMinutes, setTargetMinutes] = useState(DURATION_PRESETS[2].minutes); // default: 5 min
+  const [targetMinutes, setTargetMinutes] = useState<number>(DURATION_PRESETS[2].minutes); // default: 5 min
 
   const urlInputRef = useRef<TextInput>(null);
 

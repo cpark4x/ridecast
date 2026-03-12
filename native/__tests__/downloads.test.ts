@@ -1,9 +1,9 @@
 import { downloadEpisodeAudio, resolveAudioUrl, deleteDownload } from "../lib/downloads";
 import * as db from "../lib/db";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 jest.mock("../lib/db");
-jest.mock("expo-file-system", () => ({
+jest.mock("expo-file-system/legacy", () => ({
   documentDirectory: "/mock/docs/",
   downloadAsync: jest.fn(),
   getInfoAsync: jest.fn(),

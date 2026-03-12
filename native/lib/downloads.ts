@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as db from "./db";
 
 const DOWNLOADS_DIR = `${FileSystem.documentDirectory}episodes/`;
