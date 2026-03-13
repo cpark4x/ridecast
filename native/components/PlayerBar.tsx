@@ -5,13 +5,18 @@ import { usePlayer } from "../lib/usePlayer";
 import { smartTitle } from "../lib/libraryHelpers";
 import { Haptics } from "../lib/haptics";
 import SourceIcon from "./SourceIcon";
-import { sourceName, timeRemaining } from "../lib/utils";
+import { nextSpeed, sourceName, timeRemaining } from "../lib/utils";
+
+// Speed cycle used in both PlayerBar and ExpandedPlayer
+const MINI_SPEEDS = [1.0, 1.25, 1.5, 1.75, 2.0];
 
 export default function PlayerBar() {
   const {
     currentItem,
     isPlaying,
+    speed,
     togglePlay,
+    setSpeed,
     position,
     duration,
     setExpandedPlayerVisible,
@@ -71,6 +76,24 @@ export default function PlayerBar() {
             {subtitle}
           </Text>
         </View>
+
+        {/* Speed chip — cycles through MINI_SPEEDS without opening full player */}
+        <TouchableOpacity
+          onPress={() => {
+            const next = nextSpeed(speed, MINI_SPEEDS);
+            void Haptics.light();
+            setSpeed(next).catch((err: unknown) =>
+              console.warn("[PlayerBar] setSpeed error:", err),
+            );
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="bg-gray-100 px-2 py-1 rounded-lg"
+          accessibilityLabel={`Playback speed ${speed}x. Tap to change.`}
+        >
+          <Text className="text-xs font-bold text-gray-600">
+            {speed % 1 === 0 ? `${speed}.0×` : `${speed}×`}
+          </Text>
+        </TouchableOpacity>
 
         {/* Right: play / pause — separate handler so it doesn't bubble */}
         <TouchableOpacity
