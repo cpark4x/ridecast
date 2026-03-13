@@ -1,5 +1,12 @@
 import type { LibraryItem, LibraryFilter, PlayableItem } from "./types";
 
+export type SortOrder =
+  | "date_desc"
+  | "date_asc"
+  | "title_asc"
+  | "duration_asc"
+  | "source_asc";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Home screen helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,6 +89,75 @@ export function filterEpisodes(
 
     default:
       return items;
+  }
+}
+
+/**
+ * Group a flat list of LibraryItems into Today / This Week / Earlier sections.
+ * Sections with no items are omitted.
+ */
+export function groupByTimePeriod(
+  items: LibraryItem[],
+): Array<{ title: string; data: LibraryItem[] }> {
+  const today: LibraryItem[] = [];
+  const thisWeek: LibraryItem[] = [];
+  const earlier: LibraryItem[] = [];
+
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+  // "This Week" = last 6 full days before today
+  const sevenDaysAgo = startOfToday - 6 * 24 * 60 * 60 * 1000;
+
+  for (const item of items) {
+    const t = new Date(item.createdAt).getTime();
+    if (t >= startOfToday) {
+      today.push(item);
+    } else if (t >= sevenDaysAgo) {
+      thisWeek.push(item);
+    } else {
+      earlier.push(item);
+    }
+  }
+
+  const sections: Array<{ title: string; data: LibraryItem[] }> = [];
+  if (today.length > 0) sections.push({ title: "Today", data: today });
+  if (thisWeek.length > 0) sections.push({ title: "This Week", data: thisWeek });
+  if (earlier.length > 0) sections.push({ title: "Earlier", data: earlier });
+  return sections;
+}
+
+/**
+ * Sort a list of LibraryItems by the given order.
+ * Returns a new array (does not mutate input).
+ */
+export function sortEpisodes(
+  items: LibraryItem[],
+  order: SortOrder,
+): LibraryItem[] {
+  const sorted = [...items];
+  switch (order) {
+    case "date_desc":
+      return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    case "date_asc":
+      return sorted.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    case "title_asc":
+      return sorted.sort((a, b) => a.title.localeCompare(b.title));
+    case "source_asc":
+      return sorted.sort((a, b) =>
+        a.sourceType.localeCompare(b.sourceType),
+      );
+    case "duration_asc":
+      return sorted.sort((a, b) => {
+        const aDur = a.versions[0]?.targetDuration ?? Infinity;
+        const bDur = b.versions[0]?.targetDuration ?? Infinity;
+        return aDur - bDur;
+      });
+    default:
+      return sorted;
   }
 }
 

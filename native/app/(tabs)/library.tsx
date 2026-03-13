@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
   Alert,
-  FlatList,
+  Platform,
+  SectionList,
   ScrollView,
   Text,
   TextInput,
@@ -20,7 +22,14 @@ import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
 import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
 import SkeletonList from "../../components/SkeletonList";
-import { filterEpisodes, getLibraryContext, getTopSourceDomain } from "../../lib/libraryHelpers";
+import {
+  filterEpisodes,
+  getLibraryContext,
+  getTopSourceDomain,
+  groupByTimePeriod,
+  sortEpisodes,
+} from "../../lib/libraryHelpers";
+import type { SortOrder } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes, deleteEpisode as dbDeleteEpisode } from "../../lib/db";
 import { deleteEpisode as apiDeleteEpisode } from "../../lib/api";
 import { syncLibrary } from "../../lib/sync";
@@ -29,7 +38,9 @@ import { usePlayer } from "../../lib/usePlayer";
 import { Haptics } from "../../lib/haptics";
 import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
-const FILTERS: { key: LibraryFilter; label: string }[] = [
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const TOGGLE_FILTERS: { key: LibraryFilter; label: string }[] = [
   { key: "active",      label: "Active"      },
   { key: "all",         label: "All"         },
   { key: "in_progress", label: "In Progress" },
@@ -37,21 +48,47 @@ const FILTERS: { key: LibraryFilter; label: string }[] = [
   { key: "generating",  label: "Generating"  },
 ];
 
+const SORT_OPTIONS: { label: string; value: SortOrder }[] = [
+  { label: "Newest First",   value: "date_desc"    },
+  { label: "Oldest First",   value: "date_asc"     },
+  { label: "Title A→Z",      value: "title_asc"    },
+  { label: "Shortest First", value: "duration_asc" },
+  { label: "By Source",      value: "source_asc"   },
+];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function domainFromItem(item: LibraryItem): string {
+  if (item.sourceUrl) {
+    try {
+      return new URL(item.sourceUrl).hostname.replace(/^www\./, "");
+    } catch {
+      // fall through
+    }
+  }
+  return item.sourceType.toUpperCase();
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function LibraryScreen() {
   const router = useRouter();
   const player = usePlayer();
 
-  const [episodes, setEpisodes]                   = useState<LibraryItem[]>([]);
-  const [filter, setFilter]                       = useState<LibraryFilter>("active");
-  const [searchQuery, setSearchQuery]             = useState("");
-  const [refreshing, setRefreshing]               = useState(false);
-  const [isLoading, setIsLoading]                 = useState(true);
+  const [episodes, setEpisodes]                     = useState<LibraryItem[]>([]);
+  const [filter, setFilter]                         = useState<LibraryFilter>("active");
+  const [sortOrder, setSortOrder]                   = useState<SortOrder>("date_desc");
+  const [sourceFilter, setSourceFilter]             = useState<string | null>(null);
+  const [topicFilter, setTopicFilter]               = useState<string | null>(null);
+  const [searchQuery, setSearchQuery]               = useState("");
+  const [refreshing, setRefreshing]                 = useState(false);
+  const [isLoading, setIsLoading]                   = useState(true);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
-  const [newVersionEpisode, setNewVersionEpisode] = useState<LibraryItem | null>(null);
-  const [staleDismissed, setStaleDismissed]       = useState(false);
+  const [newVersionEpisode, setNewVersionEpisode]   = useState<LibraryItem | null>(null);
+  const [staleDismissed, setStaleDismissed]         = useState(false);
 
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const loadStartRef = useRef(Date.now());
+  const debounceTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadStartRef   = useRef(Date.now());
 
   // Load from SQLite on mount, then sync in background
   useEffect(() => {
@@ -113,7 +150,78 @@ export default function LibraryScreen() {
     }, 200);
   }
 
-  // Tap on the whole card → play the primary (first ready) version
+  // ── Sort picker ───────────────────────────────────────────────────────────
+  function handleSortPress() {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancel", ...SORT_OPTIONS.map((o) => o.label)],
+          cancelButtonIndex: 0,
+          title: "Sort By",
+        },
+        (idx) => {
+          if (idx === 0) return;
+          const chosen = SORT_OPTIONS[idx - 1];
+          if (chosen) setSortOrder(chosen.value);
+        },
+      );
+    }
+  }
+
+  // ── Source filter picker ──────────────────────────────────────────────────
+  function handleSourceFilterPress() {
+    if (sourceFilter !== null) {
+      // Already active — clear it directly
+      setSourceFilter(null);
+      return;
+    }
+    const sources = [
+      ...new Set(episodes.map((i) => domainFromItem(i))),
+    ].sort();
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["All Sources", ...sources, "Cancel"],
+          cancelButtonIndex: sources.length + 1,
+          title: "Filter by Source",
+        },
+        (idx) => {
+          if (idx === 0) setSourceFilter(null);
+          else if (idx <= sources.length) setSourceFilter(sources[idx - 1] ?? null);
+        },
+      );
+    }
+  }
+
+  // ── Topic filter picker ───────────────────────────────────────────────────
+  function handleTopicFilterPress() {
+    if (topicFilter !== null) {
+      setTopicFilter(null);
+      return;
+    }
+    const topics = [
+      ...new Set(episodes.flatMap((i) => i.versions.flatMap((v) => v.themes ?? []))),
+    ].sort();
+
+    if (topics.length === 0) return;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["All Topics", ...topics, "Cancel"],
+          cancelButtonIndex: topics.length + 1,
+          title: "Filter by Topic",
+        },
+        (idx) => {
+          if (idx === 0) setTopicFilter(null);
+          else if (idx <= topics.length) setTopicFilter(topics[idx - 1] ?? null);
+        },
+      );
+    }
+  }
+
+  // ── Card handlers ─────────────────────────────────────────────────────────
   function handleCardPress(item: LibraryItem) {
     const readyVersion = item.versions.find(
       (v) => v.status === "ready" && v.audioId && v.audioUrl,
@@ -125,13 +233,11 @@ export default function LibraryScreen() {
       );
 
       if (isStillGenerating) {
-        // Give error haptic — episode not ready yet
         void Haptics.error();
         showGeneratingToast();
         return;
       }
 
-      // All versions are completed or no versions exist — offer a new version
       setNewVersionEpisode(item);
       return;
     }
@@ -164,7 +270,6 @@ export default function LibraryScreen() {
     );
   }
 
-  // Tap a specific version pill → play that exact version
   function handleVersionPress(
     _item: LibraryItem,
     _version: AudioVersion,
@@ -181,7 +286,6 @@ export default function LibraryScreen() {
       await apiDeleteEpisode(item.id);
     } catch (err) {
       console.warn("[library] server delete error:", err);
-      // Proceed with local delete even if server call fails
     }
 
     const audioIds = item.versions
@@ -199,7 +303,25 @@ export default function LibraryScreen() {
     setEpisodes((prev) => prev.filter((e) => e.id !== item.id));
   }
 
-  const filtered = filterEpisodes(episodes, filter);
+  // ── Combined filter pipeline ──────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    // Search overrides filter/sort — show flat results from searchEpisodes
+    if (searchQuery.trim()) return episodes;
+
+    let result = filterEpisodes(episodes, filter);
+
+    if (sourceFilter) {
+      result = result.filter((i) => domainFromItem(i) === sourceFilter);
+    }
+    if (topicFilter) {
+      result = result.filter((i) =>
+        i.versions.some((v) => v.themes?.includes(topicFilter)),
+      );
+    }
+    return sortEpisodes(result, sortOrder);
+  }, [episodes, filter, sourceFilter, topicFilter, sortOrder, searchQuery]);
+
+  const sections = groupByTimePeriod(filtered);
 
   // Empty-state context detection (use unfiltered episodes)
   const context = getLibraryContext(episodes);
@@ -226,21 +348,35 @@ export default function LibraryScreen() {
     ? Math.floor((Date.now() - newestMs) / (24 * 60 * 60 * 1000))
     : 0;
 
+  const isSearching = searchQuery.trim().length > 0;
+
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────────────────────── */}
       <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
         <Text className="text-2xl font-bold text-gray-900">Library</Text>
-        <TouchableOpacity
-          onPress={() => router.push("/settings")}
-          className="p-2 -mr-1"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="settings-outline" size={22} color="#374151" />
-        </TouchableOpacity>
+        <View className="flex-row gap-1 items-center">
+          {/* Sort icon */}
+          <TouchableOpacity
+            onPress={handleSortPress}
+            className="p-2"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Sort episodes"
+          >
+            <Ionicons name="funnel-outline" size={20} color="#374151" />
+          </TouchableOpacity>
+          {/* Settings gear */}
+          <TouchableOpacity
+            onPress={() => router.push("/settings")}
+            className="p-2 -mr-1"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="settings-outline" size={22} color="#374151" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Search bar */}
+      {/* ── Search bar ──────────────────────────────────────────────────── */}
       <View className="mx-4 mb-3 flex-row items-center bg-gray-100 rounded-xl px-3 py-2 gap-2">
         <Ionicons name="search" size={16} color="#9CA3AF" />
         <TextInput
@@ -254,14 +390,15 @@ export default function LibraryScreen() {
         />
       </View>
 
-      {/* Filter chips */}
+      {/* ── Filter chips row ─────────────────────────────────────────────── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         className="mb-3"
         contentContainerClassName="px-4 gap-2"
       >
-        {FILTERS.map(({ key, label }) => (
+        {/* Toggle chips */}
+        {TOGGLE_FILTERS.map(({ key, label }) => (
           <TouchableOpacity
             key={key}
             onPress={() => { void Haptics.light(); setFilter(key); }}
@@ -278,9 +415,54 @@ export default function LibraryScreen() {
             </Text>
           </TouchableOpacity>
         ))}
+
+        {/* Divider */}
+        <View className="w-px bg-gray-200 mx-1 self-stretch" />
+
+        {/* Sources dropdown chip */}
+        <TouchableOpacity
+          onPress={handleSourceFilterPress}
+          className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
+            sourceFilter ? "bg-brand" : "bg-gray-100"
+          }`}
+        >
+          <Text
+            className={`text-sm font-medium ${
+              sourceFilter ? "text-white" : "text-gray-700"
+            }`}
+          >
+            {sourceFilter ?? "Sources"}
+          </Text>
+          <Ionicons
+            name={sourceFilter ? "close-circle" : "chevron-down"}
+            size={13}
+            color={sourceFilter ? "white" : "#9CA3AF"}
+          />
+        </TouchableOpacity>
+
+        {/* Topics dropdown chip */}
+        <TouchableOpacity
+          onPress={handleTopicFilterPress}
+          className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
+            topicFilter ? "bg-brand" : "bg-gray-100"
+          }`}
+        >
+          <Text
+            className={`text-sm font-medium ${
+              topicFilter ? "text-white" : "text-gray-700"
+            }`}
+          >
+            {topicFilter ?? "Topics"}
+          </Text>
+          <Ionicons
+            name={topicFilter ? "close-circle" : "chevron-down"}
+            size={13}
+            color={topicFilter ? "white" : "#9CA3AF"}
+          />
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Stale nudge — appears above episodes when content is stale */}
+      {/* ── Stale nudge ──────────────────────────────────────────────────── */}
       {context === "stale" && !staleDismissed && !isLoading && (
         <StaleLibraryNudge
           daysSinceNewest={daysSinceNewest}
@@ -290,12 +472,13 @@ export default function LibraryScreen() {
         />
       )}
 
-      {/* Episode list — skeleton during cold launch, real list after */}
+      {/* ── Episode list — skeleton during cold launch, SectionList after ── */}
       {isLoading ? (
         <SkeletonList count={5} />
-      ) : (
-        <FlatList
-          data={filtered}
+      ) : isSearching ? (
+        // Search mode: flat list (no sections)
+        <SectionList
+          sections={filtered.length > 0 ? [{ title: "", data: filtered }] : []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <EpisodeCard
@@ -307,16 +490,53 @@ export default function LibraryScreen() {
               onDelete={handleDelete}
             />
           )}
-          contentContainerClassName="pt-1 pb-28"
+          renderSectionHeader={() => null}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 112 }}
+          showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          ListEmptyComponent={
+            <EmptyState
+              icon="search"
+              title="No matches"
+              subtitle="Try a different search term"
+            />
+          }
+        />
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <EpisodeCard
+              item={item}
+              onPress={handleCardPress}
+              onVersionPress={handleVersionPress}
+              currentAudioId={player.currentItem?.id ?? null}
+              onNewVersion={setNewVersionEpisode}
+              onDelete={handleDelete}
+            />
+          )}
+          renderSectionHeader={({ section: { title } }) =>
+            title ? (
+              <View className="px-4 pt-5 pb-1">
+                <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  {title}
+                </Text>
+              </View>
+            ) : null
+          }
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 112 }}
           showsVerticalScrollIndicator={false}
           refreshing={refreshing}
           onRefresh={handleRefresh}
           ListEmptyComponent={
             searchQuery.trim() || (filtered.length === 0 && episodes.length > 0) ? (
               <EmptyState
-                icon="search"
-                title="No matches"
-                subtitle="Try a different search or filter"
+                icon="filter-outline"
+                title="No episodes match"
+                subtitle="Try a different filter or clear Sources / Topics"
               />
             ) : context === "new_user" ? (
               <NewUserEmptyState
@@ -340,7 +560,7 @@ export default function LibraryScreen() {
         />
       )}
 
-      {/* FAB */}
+      {/* ── FAB ──────────────────────────────────────────────────────────── */}
       <TouchableOpacity
         onPress={() => { void Haptics.medium(); setUploadModalVisible(true); }}
         className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
@@ -350,13 +570,13 @@ export default function LibraryScreen() {
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
 
-      {/* Upload Modal */}
+      {/* ── Upload Modal ─────────────────────────────────────────────────── */}
       <UploadModal
         visible={uploadModalVisible}
         onDismiss={() => setUploadModalVisible(false)}
       />
 
-      {/* New Version Sheet */}
+      {/* ── New Version Sheet ────────────────────────────────────────────── */}
       {newVersionEpisode ? (
         <NewVersionSheet
           visible
