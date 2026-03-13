@@ -209,32 +209,42 @@ completed_features:
 features:
   # ── Night 1: Critical Fixes + Foundations (8 pts) ──
   delete-episodes:
-    status: in-progress
+    status: done
     started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
     spec: specs/features/phase4/delete-episodes.md
     description: "Fix stubbed delete, add swipe-to-delete, remove non-functional queue button"
     size: S
   generating-feedback:
-    status: in-progress
+    status: done
     started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
     spec: specs/features/phase4/generating-feedback.md
     description: "Toast feedback when tapping a generating episode instead of silent failure"
     size: S
   offline-guards:
-    status: in-progress
+    status: done
     started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
     spec: specs/features/phase4/offline-guards.md
     description: "Network connectivity guards on upload flow with clear error messaging"
     size: S
   episode-identity:
-    status: in-progress
+    status: done
     started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
     spec: specs/features/phase4/episode-identity.md
     description: "Source icons, attribution metadata, SourceIcon component — foundational for all visual redesigns"
     size: M
   smart-titles:
-    status: in-progress
+    status: done
     started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
     spec: specs/features/phase4/smart-titles.md
     description: "Client-side title cleaning — strip publisher suffixes, clean PDF filenames"
     size: M
