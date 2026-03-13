@@ -101,6 +101,8 @@ export interface PlayableItem {
   sourceType?: string | null;
   sourceUrl?: string | null;
   sourceDomain?: string | null; // for smartTitle
+  sourceName?: string | null; // for player bar subtitle
+  sourceBrandColor?: string | null; // for SourceIcon
   contentType?: string | null;
   themes?: string[];
   summary?: string | null;

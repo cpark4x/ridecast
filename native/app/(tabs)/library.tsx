@@ -121,6 +121,8 @@ export default function LibraryScreen() {
       sourceType:       item.sourceType,
       sourceUrl:        item.sourceUrl,
       sourceDomain:     item.sourceDomain,
+      sourceName:       item.sourceName,
+      sourceBrandColor: item.sourceBrandColor,
       contentType:      readyVersion.contentType,
       themes:           readyVersion.themes,
       summary:          readyVersion.summary,

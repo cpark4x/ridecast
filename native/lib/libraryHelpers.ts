@@ -36,6 +36,8 @@ export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
     sourceType:       item.sourceType,
     sourceUrl:        item.sourceUrl,
     sourceDomain:     item.sourceDomain,   // for smartTitle
+    sourceName:       item.sourceName,     // for player bar subtitle
+    sourceBrandColor: item.sourceBrandColor, // for SourceIcon
     contentType:      version.contentType,
     themes:           version.themes,
     summary:          version.summary,

@@ -1,4 +1,4 @@
-import { formatDuration, formatDurationMinutes, timeAgo } from "../lib/utils";
+import { formatDuration, formatDurationMinutes, timeAgo, sourceName, timeRemaining } from "../lib/utils";
 
 describe("formatDuration", () => {
   it("formats 0 seconds as '0:00'", () => {
@@ -90,5 +90,79 @@ describe("timeAgo", () => {
   it("returns 'N days ago' for multiple days", () => {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
     expect(timeAgo(threeDaysAgo)).toBe("3 days ago");
+  });
+});
+
+// ─── sourceName ──────────────────────────────────────────────────────────────
+
+describe("sourceName", () => {
+  it("extracts domain from sourceUrl, stripping www", () => {
+    expect(sourceName("url", "https://www.espn.com/article/123", null)).toBe(
+      "espn.com",
+    );
+  });
+
+  it("extracts domain without www prefix", () => {
+    expect(sourceName("url", "https://nytimes.com/section/sports", null)).toBe(
+      "nytimes.com",
+    );
+  });
+
+  it("falls back to author when sourceUrl is null", () => {
+    expect(sourceName("pdf", null, "John Smith")).toBe("John Smith");
+  });
+
+  it("falls back to author when sourceUrl is empty string", () => {
+    expect(sourceName("pdf", "", "Jane Doe")).toBe("Jane Doe");
+  });
+
+  it("falls back to uppercase sourceType when no URL and no author", () => {
+    expect(sourceName("epub", null, null)).toBe("EPUB");
+  });
+
+  it("falls back to uppercase sourceType when URL is malformed", () => {
+    expect(sourceName("txt", "not-a-url", null)).toBe("TXT");
+  });
+
+  it("prioritises URL over author", () => {
+    expect(
+      sourceName("url", "https://medium.com/post/123", "Medium Staff"),
+    ).toBe("medium.com");
+  });
+
+  it("handles undefined sourceUrl and author gracefully", () => {
+    expect(sourceName("pocket", undefined, undefined)).toBe("POCKET");
+  });
+});
+
+// ─── timeRemaining ───────────────────────────────────────────────────────────
+
+describe("timeRemaining", () => {
+  it("returns minutes when ≥ 60 seconds remain", () => {
+    expect(timeRemaining(60, 780)).toBe("12 min left");
+  });
+
+  it("returns 1 min left when exactly 60 seconds remain", () => {
+    expect(timeRemaining(0, 60)).toBe("1 min left");
+  });
+
+  it("returns seconds when < 60 seconds remain", () => {
+    expect(timeRemaining(730, 760)).toBe("30 sec left");
+  });
+
+  it("returns '0 sec left' when position is past end", () => {
+    expect(timeRemaining(800, 760)).toBe("0 sec left");
+  });
+
+  it("returns '0 sec left' when position equals duration", () => {
+    expect(timeRemaining(600, 600)).toBe("0 sec left");
+  });
+
+  it("ceils fractional seconds", () => {
+    expect(timeRemaining(0.9, 60)).toBe("1 min left");
+  });
+
+  it("ceils fractional minutes", () => {
+    expect(timeRemaining(59, 780)).toBe("13 min left");
   });
 });

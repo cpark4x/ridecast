@@ -98,3 +98,40 @@ export function timeAgo(dateString: string): string {
   if (diffDays === 1) return "1 day ago";
   return `${diffDays} days ago`;
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Player bar helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns a human-readable source name from a PlayableItem.
+ * Priority: extracted domain from sourceUrl > author > sourceType label
+ */
+export function sourceName(
+  sourceType: string,
+  sourceUrl: string | null | undefined,
+  author: string | null | undefined,
+): string {
+  if (sourceUrl) {
+    try {
+      const host = new URL(sourceUrl).hostname.replace(/^www\./, "");
+      return host;
+    } catch {
+      // fall through
+    }
+  }
+  if (author) return author;
+  return sourceType.toUpperCase();
+}
+
+/**
+ * Returns "X min left" (when ≥ 60 s remaining) or "X sec left" (< 60 s).
+ * Clamps to 0 — never returns negative values.
+ */
+export function timeRemaining(positionSecs: number, durationSecs: number): string {
+  const remaining = Math.max(0, durationSecs - positionSecs);
+  if (remaining >= 60) {
+    return `${Math.ceil(remaining / 60)} min left`;
+  }
+  return `${Math.ceil(remaining)} sec left`;
+}
