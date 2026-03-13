@@ -387,12 +387,18 @@ features:
     description: "Default duration, haptics toggle, notification prefs, first-run hints"
     size: S
   minor-ux-polish:
-    status: ready
+    status: done
+    started_at: "2026-03-13T13:30:00Z"
+    completed_at: "2026-03-13T13:48:00Z"
+    commit: c772878
     spec: specs/features/phase4/minor-ux-polish.md
     description: "Animation timing, keyboard handling, scroll restoration, loading consistency"
     size: S
   app-infrastructure:
-    status: ready
+    status: done
+    started_at: "2026-03-13T13:30:00Z"
+    completed_at: "2026-03-13T13:48:00Z"
+    commit: c772878
     spec: specs/features/phase4/app-infrastructure.md
     description: "Error boundaries, crash reporting, performance monitoring"
     size: M
@@ -428,7 +434,7 @@ last_session: '2026-03-13'
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 47
+  total_features_completed: 49
   last_updated: '2026-03-13'
   session_count: 17
   zero_change_sessions: 0
