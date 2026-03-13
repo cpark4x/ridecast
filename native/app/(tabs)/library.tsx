@@ -27,6 +27,7 @@ import { Haptics } from "../../lib/haptics";
 import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
 const FILTERS: { key: LibraryFilter; label: string }[] = [
+  { key: "active",      label: "Active"      },
   { key: "all",         label: "All"         },
   { key: "in_progress", label: "In Progress" },
   { key: "completed",   label: "Completed"   },
@@ -38,7 +39,7 @@ export default function LibraryScreen() {
   const player = usePlayer();
 
   const [episodes, setEpisodes]                   = useState<LibraryItem[]>([]);
-  const [filter, setFilter]                       = useState<LibraryFilter>("all");
+  const [filter, setFilter]                       = useState<LibraryFilter>("active");
   const [searchQuery, setSearchQuery]             = useState("");
   const [refreshing, setRefreshing]               = useState(false);
   const [isLoading, setIsLoading]                 = useState(true);

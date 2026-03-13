@@ -51,6 +51,16 @@ export function filterEpisodes(
   filter: LibraryFilter,
 ): LibraryItem[] {
   switch (filter) {
+    case "active":
+      // Include items where NOT every version is completed.
+      // Covers: unlistened (position === 0), in-progress (position > 0, !completed),
+      //         still-generating versions, and items with no versions yet (queued).
+      return items.filter(
+        (item) =>
+          item.versions.length === 0 ||
+          !item.versions.every((v) => v.completed),
+      );
+
     case "all":
       return items;
 

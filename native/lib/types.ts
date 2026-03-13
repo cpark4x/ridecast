@@ -114,4 +114,4 @@ export interface PlayableItem {
   createdAt?: string | null;
 }
 
-export type LibraryFilter = "all" | "in_progress" | "completed" | "generating";
+export type LibraryFilter = "active" | "all" | "in_progress" | "completed" | "generating";

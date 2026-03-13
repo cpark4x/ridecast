@@ -89,4 +89,60 @@ describe("filterEpisodes", () => {
     const result = filterEpisodes([empty], "in_progress");
     expect(result).toHaveLength(0);
   });
+
+  // --- active filter ---
+
+  it("filter 'active' excludes items where every version is completed", () => {
+    const result = filterEpisodes(allItems, "active");
+    // completed item (id=3) has all versions completed → excluded
+    expect(result.map((i) => i.id)).not.toContain("3");
+  });
+
+  it("filter 'active' includes unlistened items (position=0, not completed)", () => {
+    const result = filterEpisodes(allItems, "active");
+    expect(result.map((i) => i.id)).toContain("1");
+  });
+
+  it("filter 'active' includes in-progress items", () => {
+    const result = filterEpisodes(allItems, "active");
+    expect(result.map((i) => i.id)).toContain("2");
+  });
+
+  it("filter 'active' includes generating items", () => {
+    const result = filterEpisodes(allItems, "active");
+    expect(result.map((i) => i.id)).toContain("4");
+  });
+
+  it("filter 'active' includes items with mixed completed/incomplete versions", () => {
+    const result = filterEpisodes(allItems, "active");
+    expect(result.map((i) => i.id)).toContain("5");
+  });
+
+  it("filter 'active' includes items with no versions (queued)", () => {
+    const empty = makeItem("7", []);
+    const result = filterEpisodes([empty], "active");
+    expect(result).toHaveLength(1);
+  });
+
+  it("filter 'active' excludes multi-version item where ALL versions are completed", () => {
+    const allDone = makeItem("8", [
+      makeVersion({ completed: true }),
+      makeVersion({ completed: true }),
+    ]);
+    const result = filterEpisodes([allDone], "active");
+    expect(result).toHaveLength(0);
+  });
+
+  it("filter 'active' includes items with processing status", () => {
+    const item = makeItem("9", [makeVersion({ status: "processing", completed: false })]);
+    const result = filterEpisodes([item], "active");
+    expect(result).toHaveLength(1);
+  });
+
+  it("filter 'active' returns correct count from mixed list", () => {
+    // allItems: 1=unstarted(active), 2=in_progress(active), 3=completed(excluded),
+    //           4=generating(active), 5=mixed(active)
+    const result = filterEpisodes(allItems, "active");
+    expect(result).toHaveLength(4);
+  });
 });
