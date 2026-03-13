@@ -60,9 +60,15 @@ export default function NewVersionSheet({
             <View className="w-10 h-1 rounded-full bg-gray-300" />
           </View>
 
-          {/* Header */}
+          {/* Header — context-aware title based on version count */}
           <View className="px-5 pt-3 pb-4">
-            <Text className="text-lg font-bold text-gray-900">New Version</Text>
+            <Text className="text-lg font-bold text-gray-900">
+              {episode.versions.length === 0
+                ? "Create Your First Episode"
+                : episode.versions.length === 1
+                  ? "Create a Second Version"
+                  : `Add Version ${episode.versions.length + 1}`}
+            </Text>
             <Text className="text-sm text-gray-500 mt-0.5" numberOfLines={1}>
               {episode.title}
             </Text>

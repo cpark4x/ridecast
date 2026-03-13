@@ -118,9 +118,21 @@ export default function LibraryScreen() {
     const readyVersion = item.versions.find(
       (v) => v.status === "ready" && v.audioId && v.audioUrl,
     );
+
     if (!readyVersion || !readyVersion.audioId || !readyVersion.audioUrl) {
-      void Haptics.error();
-      showGeneratingToast();
+      const isStillGenerating = item.versions.some(
+        (v) => v.status === "generating" || v.status === "processing",
+      );
+
+      if (isStillGenerating) {
+        // Give error haptic — episode not ready yet
+        void Haptics.error();
+        showGeneratingToast();
+        return;
+      }
+
+      // All versions are completed or no versions exist — offer a new version
+      setNewVersionEpisode(item);
       return;
     }
 

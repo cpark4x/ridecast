@@ -282,14 +282,19 @@ export default function EpisodeCard({
                 );
               })}
 
-              {/* "+" pill — triggers onNewVersion */}
+              {/* "+ Version" pill — labeled button, more discoverable than bare "+" */}
               {onNewVersion ? (
                 <TouchableOpacity
-                  onPress={() => onNewVersion(item)}
-                  className="bg-gray-100 px-2 py-0.5 rounded-full"
+                  onPress={() => {
+                    void Haptics.light();
+                    onNewVersion(item);
+                  }}
+                  className="flex-row items-center gap-0.5 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200"
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  accessibilityLabel="Create a new version"
                 >
-                  <Text className="text-xs font-medium text-gray-500">+</Text>
+                  <Ionicons name="add" size={11} color="#6B7280" />
+                  <Text className="text-xs font-medium text-gray-500">Version</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
