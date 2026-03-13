@@ -71,6 +71,12 @@ export interface LibraryItem {
   createdAt: string;
   wordCount: number;
   versions: AudioVersion[];
+  // Episode identity fields (optional + nullable for backward compat)
+  sourceIcon?: string | null;
+  sourceName?: string | null;
+  sourceDomain?: string | null;
+  sourceBrandColor?: string | null;
+  description?: string | null;
 }
 
 export interface PlaybackState {
@@ -94,6 +100,7 @@ export interface PlayableItem {
   author?: string | null;
   sourceType?: string | null;
   sourceUrl?: string | null;
+  sourceDomain?: string | null; // for smartTitle
   contentType?: string | null;
   themes?: string[];
   summary?: string | null;

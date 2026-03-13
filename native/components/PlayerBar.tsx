@@ -2,6 +2,7 @@ import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
+import { smartTitle } from "../lib/libraryHelpers";
 
 export default function PlayerBar() {
   const {
@@ -17,6 +18,9 @@ export default function PlayerBar() {
 
   const progressPercent =
     duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
+
+  // smart-titles: clean the display title
+  const displayTitle = smartTitle(currentItem.title, currentItem.sourceType ?? "url", currentItem.sourceDomain);
 
   return (
     <View className="bg-white border-t border-gray-200">
@@ -40,7 +44,7 @@ export default function PlayerBar() {
           className="flex-1 text-sm font-semibold text-gray-900"
           numberOfLines={1}
         >
-          {currentItem.title}
+          {displayTitle}
         </Text>
 
         {/* Play / Pause button — separate press handler so it doesn't bubble */}

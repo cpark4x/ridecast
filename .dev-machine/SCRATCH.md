@@ -499,3 +499,89 @@ Planned Phase 3 items (from ROADMAP.md):
 ./.worktrees/feat-playback-persistence/src/lib/extractors/types.ts:1:export interface ExtractionResult {
 
 ---
+
+## API Inventory (auto-generated 2026-03-12 23:48 UTC)
+
+### TypeScript / JavaScript public exports
+./native/app/settings.tsx:56:export default function SettingsScreen() {
+./native/app/(tabs)/index.tsx:166:export default function HomeScreen() {
+./native/app/(tabs)/library.tsx:31:export default function LibraryScreen() {
+./native/app/(tabs)/_layout.tsx:4:export default function TabLayout() {
+./native/app/+not-found.tsx:4:export default function NotFoundScreen() {
+./native/app/sign-in.tsx:11:export default function SignInScreen() {
+./native/app/_layout.tsx:82:export default function RootLayout() {
+./native/app/processing.tsx:98:export default function ProcessingScreen() {
+./native/app/+html.tsx:7:export default function Root({ children }: { children: React.ReactNode }) {
+./native/components/PlayerBar.tsx:6:export default function PlayerBar() {
+./native/components/OfflineBanner.tsx:12:export default function OfflineBanner() {
+./native/components/DurationPicker.tsx:14:export function findActivePreset(
+./native/components/DurationPicker.tsx:33:export default function DurationPicker({ value, onChange }: DurationPickerProps) {
+./native/components/EpisodeCard.tsx:25:export interface EpisodeCardProps {
+./native/components/EpisodeCard.tsx:40:export default function EpisodeCard({
+./native/components/ExpandedPlayer.tsx:62:export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerProps) {
+./native/components/CarMode.tsx:13:export default function CarMode({ visible, onDismiss }: CarModeProps) {
+./native/components/EmptyState.tsx:5:export interface EmptyStateProps {
+./native/components/EmptyState.tsx:13:export default function EmptyState({
+./native/components/NewVersionSheet.tsx:14:export interface NewVersionSheetProps {
+./native/components/NewVersionSheet.tsx:20:export default function NewVersionSheet({
+./native/components/UploadModal.tsx:32:export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
+./native/lib/carplay.ts:21:export async function initializeCarPlay(): Promise<void> {
+./native/lib/carplay.ts:114:export function isCarPlayAvailable(): boolean {
+./native/lib/player.ts:8:export async function setupPlayer(): Promise<boolean> {
+./native/lib/player.ts:44:export async function PlaybackService() {
+./native/lib/utils.ts:9:export function nextSpeed(current: number, speeds: number[]): number {
+./native/lib/utils.ts:24:export function formatDuration(secs: number): string {
+./native/lib/utils.ts:52:export function estimateReadingTime(wordCount: number): number {
+./native/lib/utils.ts:61:export function formatStorageSize(bytes: number): string {
+./native/lib/utils.ts:68:export function formatDurationMinutes(secs: number): string {
+./native/lib/utils.ts:86:export function timeAgo(dateString: string): string {
+./native/lib/api.ts:12:export function setTokenProvider(fn: () => Promise<string | null>) {
+./native/lib/api.ts:49:export async function uploadUrl(url: string): Promise<UploadResponse> {
+./native/lib/api.ts:66:export async function uploadFile(
+./native/lib/api.ts:93:export async function processContent(
+./native/lib/api.ts:106:export async function generateAudio(
+./native/lib/api.ts:122:export async function fetchLibrary(): Promise<LibraryItem[]> {
+./native/lib/api.ts:128:export async function getPlaybackState(
+./native/lib/api.ts:134:export async function savePlaybackState(state: {
+./native/lib/downloads.ts:13:export async function downloadEpisodeAudio(
+./native/lib/downloads.ts:38:export async function resolveAudioUrl(
+./native/lib/downloads.ts:50:export async function deleteDownload(audioId: string): Promise<void> {
+./native/lib/types.ts:3:export interface UploadResponse {
+./native/lib/types.ts:18:export interface ProcessResponse {
+./native/lib/types.ts:34:export interface GenerateResponse {
+./native/lib/types.ts:45:export interface AudioVersion {
+./native/lib/types.ts:65:export interface LibraryItem {
+./native/lib/types.ts:76:export interface PlaybackState {
+./native/lib/types.ts:88:export interface PlayableItem {
+./native/lib/types.ts:108:export type LibraryFilter = "all" | "in_progress" | "completed" | "generating";
+./native/lib/libraryHelpers.ts:11:export function getUnlistenedItems(items: LibraryItem[]): LibraryItem[] {
+./native/lib/libraryHelpers.ts:23:export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
+./native/lib/libraryHelpers.ts:45:export function filterEpisodes(
+./native/lib/constants.ts:5:export const SMART_RESUME_REWIND_SECS = 3;
+./native/lib/constants.ts:6:export const CAR_MODE_SKIP_SECS = 30; // Larger skip interval for eyes-off driving
+./native/lib/constants.ts:7:export const SMART_RESUME_THRESHOLD_MS = 10_000;
+./native/lib/constants.ts:8:export const POSITION_SAVE_INTERVAL_MS = 5_000;
+./native/lib/constants.ts:9:export const TTS_WPM = 150;
+./native/lib/constants.ts:10:export const READING_WPM = 250;
+./native/lib/constants.ts:13:export const DURATION_PRESETS = [
+./native/lib/constants.ts:21:export const DURATION_SLIDER = { min: 2, max: 60, step: 1 } as const;
+./native/lib/constants.ts:24:export type ProcessingStage = "analyzing" | "scripting" | "generating" | "ready";
+./native/lib/constants.ts:26:export const STAGE_COPY: Record<ProcessingStage, string | null> = {
+./native/lib/constants.ts:34:export const STAGE_LABELS: {
+./native/lib/constants.ts:48:export function getStageIndex(stage: ProcessingStage): number {
+./native/lib/constants.ts:53:export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+./native/lib/usePlayer.ts:55:export function usePlayer() {
+./native/lib/usePlayer.ts:79:export function PlayerProvider({ children }: { children: React.ReactNode }) {
+./native/lib/db.ts:6:export async function getDb(): Promise<SQLite.SQLiteDatabase> {
+./native/lib/db.ts:13:export function setDb(db: SQLite.SQLiteDatabase) {
+./native/lib/db.ts:49:export async function upsertEpisodes(items: LibraryItem[]) {
+./native/lib/db.ts:68:export async function getAllEpisodes(): Promise<LibraryItem[]> {
+./native/lib/db.ts:93:export async function searchEpisodes(query: string): Promise<LibraryItem[]> {
+./native/lib/db.ts:125:export async function getLocalPlayback(audioId: string): Promise<PlaybackState | null> {
+./native/lib/db.ts:145:export async function saveLocalPlayback(state: {
+./native/lib/db.ts:169:export async function getAllLocalPlayback(): Promise<PlaybackState[]> {
+./native/lib/db.ts:190:export async function recordDownload(audioId: string, localPath: string, sizeBytes: number) {
+./native/lib/db.ts:201:export async function getDownloadPath(audioId: string): Promise<string | null> {
+./native/lib/db.ts:210:export async function getStorageInfo(): Promise<{ count: number; totalBytes: number }> {
+
+---

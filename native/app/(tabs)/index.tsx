@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
-  ScrollView,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View,
-  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,15 +14,17 @@ import { useUser } from "@clerk/clerk-expo";
 import { usePlayer } from "../../lib/usePlayer";
 import { getAllEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
-import { getUnlistenedItems, libraryItemToPlayable } from "../../lib/libraryHelpers";
+import { getUnlistenedItems, libraryItemToPlayable, smartTitle } from "../../lib/libraryHelpers";
+import { showGeneratingToast } from "../../lib/toast";
 import { formatDuration, formatDurationMinutes, timeAgo } from "../../lib/utils";
 import type { LibraryItem, PlayableItem } from "../../lib/types";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
+import SourceIcon from "../../components/SourceIcon";
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -32,21 +33,9 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-const SOURCE_COLOR: Record<string, string> = {
-  pdf: "#FEE2E2",
-  url: "#DBEAFE",
-  epub: "#EDE9FE",
-  txt: "#F3F4F6",
-  pocket: "#D1FAE5",
-};
-
-function sourcePillBg(sourceType: string): string {
-  return SOURCE_COLOR[sourceType.toLowerCase()] ?? "#F3F4F6";
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Currently Playing Card
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface CurrentlyPlayingCardProps {
   onExpand: () => void;
@@ -58,6 +47,7 @@ function CurrentlyPlayingCard({ onExpand }: CurrentlyPlayingCardProps) {
   if (!currentItem) return null;
 
   const progressPercent = duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
+  const displayTitle    = smartTitle(currentItem.title, currentItem.sourceType ?? "url", currentItem.sourceDomain);
 
   return (
     <TouchableOpacity
@@ -77,7 +67,7 @@ function CurrentlyPlayingCard({ onExpand }: CurrentlyPlayingCardProps) {
             Now Playing
           </Text>
           <Text className="text-sm font-bold text-gray-900" numberOfLines={1}>
-            {currentItem.title}
+            {displayTitle}
           </Text>
           <Text className="text-xs text-gray-500 mt-0.5">
             {formatDuration(position)} / {formatDuration(duration)}
@@ -102,14 +92,14 @@ function CurrentlyPlayingCard({ onExpand }: CurrentlyPlayingCardProps) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Up Next Row Card
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface UpNextCardProps {
-  item: LibraryItem;
+  item:     LibraryItem;
   playable: PlayableItem;
-  onPlay: (p: PlayableItem) => void;
+  onPlay:   (p: PlayableItem) => void;
 }
 
 function UpNextCard({ item, playable, onPlay }: UpNextCardProps) {
@@ -117,6 +107,7 @@ function UpNextCard({ item, playable, onPlay }: UpNextCardProps) {
     (v) => v.status === "ready" && v.audioId,
   );
   const durationSecs = readyVersion?.durationSecs ?? (readyVersion?.targetDuration ?? 0) * 60;
+  const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
 
   return (
     <TouchableOpacity
@@ -133,18 +124,19 @@ function UpNextCard({ item, playable, onPlay }: UpNextCardProps) {
         {/* Content */}
         <View className="flex-1">
           <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>
-            {item.title}
+            {displayTitle}
           </Text>
           <View className="flex-row items-center gap-2 mt-1">
-            {/* Source pill */}
-            <View
-              className="px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: sourcePillBg(item.sourceType) }}
-            >
-              <Text className="text-xs font-medium text-gray-700">
-                {item.sourceType.toUpperCase()}
-              </Text>
-            </View>
+            {/* Source icon + publisher name (replaces old source-type pill) */}
+            <SourceIcon
+              sourceName={item.sourceName}
+              sourceDomain={item.sourceDomain}
+              sourceBrandColor={item.sourceBrandColor}
+              size={14}
+            />
+            <Text className="text-xs text-gray-500" numberOfLines={1}>
+              {item.sourceName ?? item.sourceType.toUpperCase()}
+            </Text>
             {/* Time ago */}
             <Text className="text-xs text-gray-400">{timeAgo(item.createdAt)}</Text>
           </View>
@@ -159,17 +151,17 @@ function UpNextCard({ item, playable, onPlay }: UpNextCardProps) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Home Screen
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const router = useRouter();
-  const player = usePlayer();
+  const router  = useRouter();
+  const player  = usePlayer();
   const { user } = useUser();
 
-  const [episodes, setEpisodes] = useState<LibraryItem[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [episodes, setEpisodes]                     = useState<LibraryItem[]>([]);
+  const [refreshing, setRefreshing]                 = useState(false);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   const firstName = user?.firstName ?? null;
@@ -222,7 +214,7 @@ export default function HomeScreen() {
   }
 
   const totalDurationSecs = upNextPairs.reduce((acc, { playable }) => acc + playable.duration, 0);
-  const episodeCount = upNextPairs.length;
+  const episodeCount      = upNextPairs.length;
 
   function handlePlayAll() {
     const playables = upNextPairs.map(({ playable }) => playable);
@@ -232,7 +224,12 @@ export default function HomeScreen() {
     );
   }
 
+  // offline-guards: guard against empty audioUrl (item not yet ready)
   function handlePlayItem(playable: PlayableItem) {
+    if (!playable.audioUrl) {
+      showGeneratingToast();
+      return;
+    }
     player.play(playable).catch((err) =>
       console.warn("[home] play error:", err),
     );

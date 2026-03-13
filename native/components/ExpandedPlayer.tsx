@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   Modal,
   ScrollView,
   Text,
@@ -12,32 +11,33 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayer } from "../lib/usePlayer";
 import { formatDuration, nextSpeed } from "../lib/utils";
+import { smartTitle } from "../lib/libraryHelpers";
 import CarMode from "./CarMode";
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Constants
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const SPEEDS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
 const SLEEP_OPTIONS: { label: string; value: number | "end" | null }[] = [
-  { label: "Off", value: null },
-  { label: "15 min", value: 15 },
-  { label: "30 min", value: 30 },
-  { label: "45 min", value: 45 },
+  { label: "Off",            value: null  },
+  { label: "15 min",         value: 15    },
+  { label: "30 min",         value: 30    },
+  { label: "45 min",         value: 45    },
   { label: "End of episode", value: "end" },
 ];
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Artwork background by content/source type
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const ARTWORK_BG: Record<string, string> = {
   article: "#FFF7ED",
-  url: "#FFF7ED",
-  pdf: "#FFF1F2",
-  epub: "#FAF5FF",
-  txt: "#F9FAFB",
+  url:     "#FFF7ED",
+  pdf:     "#FFF1F2",
+  epub:    "#FAF5FF",
+  txt:     "#F9FAFB",
 };
 
 function artworkBg(contentType?: string | null, sourceType?: string | null): string {
@@ -50,12 +50,12 @@ function artworkBg(contentType?: string | null, sourceType?: string | null): str
   return "#F8FAFC";
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // ExpandedPlayer
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface ExpandedPlayerProps {
-  visible: boolean;
+  visible:   boolean;
   onDismiss: () => void;
 }
 
@@ -79,14 +79,17 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
   } = usePlayer();
 
   // Local scrub position — only used while the user is dragging the slider
-  const [scrubPosition, setScrubPosition] = useState<number | null>(null);
+  const [scrubPosition, setScrubPosition]       = useState<number | null>(null);
   const [sleepModalVisible, setSleepModalVisible] = useState(false);
 
   if (!currentItem) return null;
 
   const displayPosition = scrubPosition ?? position;
-  const remaining = Math.max(0, duration - displayPosition);
-  const bg = artworkBg(currentItem.contentType, currentItem.sourceType);
+  const remaining       = Math.max(0, duration - displayPosition);
+  const bg              = artworkBg(currentItem.contentType, currentItem.sourceType);
+
+  // smart-titles: clean the display title
+  const displayTitle = smartTitle(currentItem.title, currentItem.sourceType ?? "url", currentItem.sourceDomain);
 
   // ── Speed cycling ──────────────────────────────────────────────────────────
   function handleSpeedPress() {
@@ -117,7 +120,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
         className="flex-1 bg-white"
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
-        {/* ── Header ─────────────────────────────────────────────────────── */}
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <View className="items-center pt-2 pb-1">
           {/* Drag handle */}
           <View className="w-10 h-1 rounded-full bg-gray-300" />
@@ -138,7 +141,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
           contentContainerStyle={{ paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Artwork ──────────────────────────────────────────────────── */}
+          {/* ── Artwork ───────────────────────────────────────────────────── */}
           <View className="items-center px-8 mt-4 mb-6">
             <View
               className="w-70 h-70 rounded-3xl items-center justify-center"
@@ -152,7 +155,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
               className="text-xl font-bold text-gray-900 mt-5 text-center"
               numberOfLines={2}
             >
-              {currentItem.title}
+              {displayTitle}
             </Text>
             {currentItem.author ? (
               <Text className="text-base text-gray-500 mt-1 text-center" numberOfLines={1}>
@@ -161,7 +164,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
             ) : null}
           </View>
 
-          {/* ── Scrubber ─────────────────────────────────────────────────── */}
+          {/* ── Scrubber ──────────────────────────────────────────────────── */}
           <View className="px-5 mb-2">
             <Slider
               style={{ width: "100%", height: 40 }}
@@ -180,7 +183,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
             </View>
           </View>
 
-          {/* ── Main controls ────────────────────────────────────────────── */}
+          {/* ── Main controls ─────────────────────────────────────────────── */}
           <View className="flex-row items-center justify-center gap-6 mt-2 mb-4 px-8">
             {/* Skip back 5s */}
             <TouchableOpacity
@@ -213,7 +216,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
             </TouchableOpacity>
           </View>
 
-          {/* ── Secondary controls ──────────────────────────────────────── */}
+          {/* ── Secondary controls ────────────────────────────────────────── */}
           <View className="flex-row items-center justify-center gap-8 px-8 mb-6">
             {/* Speed */}
             <TouchableOpacity
@@ -256,7 +259,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
             </TouchableOpacity>
           </View>
 
-          {/* ── Metadata / Info ──────────────────────────────────────────── */}
+          {/* ── Metadata / Info ───────────────────────────────────────────── */}
           {(currentItem.summary ||
             currentItem.contentType ||
             (currentItem.themes && currentItem.themes.length > 0)) && (
@@ -341,7 +344,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
         </TouchableOpacity>
       </Modal>
 
-      {/* ── Car Mode overlay ─────────────────────────────────────────────── */}
+      {/* ── Car Mode overlay ──────────────────────────────────────────────── */}
       <CarMode
         visible={carModeVisible}
         onDismiss={() => setCarModeVisible(false)}

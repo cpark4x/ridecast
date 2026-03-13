@@ -31,7 +31,10 @@ Execute these steps in order before doing any work:
    the constitution. All implementation must conform to it.
 4. **Read the module spec** for the module you're working on. Check
    `.dev-machine/STATE.yaml` `specs.modules` to see which modules have specs written.
-5. **Read feature specs** marked `ready` in `.dev-machine/STATE.yaml` `features` section.
+5. **Read feature specs** for THIS session's work only. The session plan passed to you (in the
+   recipe context) lists the specific feature IDs and spec paths in `session_features`. Read
+   only those spec files — do NOT scan STATE.yaml and load all features marked `ready`.
+   Loading all ready specs at once will exceed the context limit when many features are pending.
 
 After orientation, you should know:
 - What phase the project is in

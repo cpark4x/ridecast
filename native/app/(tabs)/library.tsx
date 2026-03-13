@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   FlatList,
   ScrollView,
   Text,
@@ -16,26 +17,28 @@ import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import NewVersionSheet from "../../components/NewVersionSheet";
 import { filterEpisodes } from "../../lib/libraryHelpers";
-import { getAllEpisodes, searchEpisodes } from "../../lib/db";
+import { getAllEpisodes, searchEpisodes, deleteEpisode as dbDeleteEpisode } from "../../lib/db";
+import { deleteEpisode as apiDeleteEpisode } from "../../lib/api";
 import { syncLibrary } from "../../lib/sync";
+import { showGeneratingToast } from "../../lib/toast";
 import { usePlayer } from "../../lib/usePlayer";
 import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
 const FILTERS: { key: LibraryFilter; label: string }[] = [
-  { key: "all", label: "All" },
+  { key: "all",         label: "All"         },
   { key: "in_progress", label: "In Progress" },
-  { key: "completed", label: "Completed" },
-  { key: "generating", label: "Generating" },
+  { key: "completed",   label: "Completed"   },
+  { key: "generating",  label: "Generating"  },
 ];
 
 export default function LibraryScreen() {
   const router = useRouter();
   const player = usePlayer();
 
-  const [episodes, setEpisodes] = useState<LibraryItem[]>([]);
-  const [filter, setFilter] = useState<LibraryFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
+  const [episodes, setEpisodes]                   = useState<LibraryItem[]>([]);
+  const [filter, setFilter]                       = useState<LibraryFilter>("all");
+  const [searchQuery, setSearchQuery]             = useState("");
+  const [refreshing, setRefreshing]               = useState(false);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [newVersionEpisode, setNewVersionEpisode] = useState<LibraryItem | null>(null);
 
@@ -102,28 +105,29 @@ export default function LibraryScreen() {
       (v) => v.status === "ready" && v.audioId && v.audioUrl,
     );
     if (!readyVersion || !readyVersion.audioId || !readyVersion.audioUrl) {
-      // TODO: show a "still generating" toast once Toast API is wired
+      showGeneratingToast();
       return;
     }
 
     const playable: PlayableItem = {
-      id: readyVersion.audioId,
-      title: item.title,
-      duration: readyVersion.durationSecs ?? readyVersion.targetDuration * 60,
-      format: readyVersion.format,
-      audioUrl: readyVersion.audioUrl,
-      author: item.author,
-      sourceType: item.sourceType,
-      sourceUrl: item.sourceUrl,
-      contentType: readyVersion.contentType,
-      themes: readyVersion.themes,
-      summary: readyVersion.summary,
-      targetDuration: readyVersion.targetDuration,
-      wordCount: item.wordCount,
+      id:               readyVersion.audioId,
+      title:            item.title,
+      duration:         readyVersion.durationSecs ?? readyVersion.targetDuration * 60,
+      format:           readyVersion.format,
+      audioUrl:         readyVersion.audioUrl,
+      author:           item.author,
+      sourceType:       item.sourceType,
+      sourceUrl:        item.sourceUrl,
+      sourceDomain:     item.sourceDomain,
+      contentType:      readyVersion.contentType,
+      themes:           readyVersion.themes,
+      summary:          readyVersion.summary,
+      targetDuration:   readyVersion.targetDuration,
+      wordCount:        item.wordCount,
       compressionRatio: readyVersion.compressionRatio,
-      voices: readyVersion.voices,
-      ttsProvider: readyVersion.ttsProvider,
-      createdAt: item.createdAt,
+      voices:           readyVersion.voices,
+      ttsProvider:      readyVersion.ttsProvider,
+      createdAt:        item.createdAt,
     };
 
     player.play(playable).catch((err) =>
@@ -140,6 +144,30 @@ export default function LibraryScreen() {
     player.play(playable).catch((err) =>
       console.warn("[library] version play error:", err),
     );
+  }
+
+  // delete-episodes: server first, then local, then optimistic state update
+  async function handleDelete(item: LibraryItem) {
+    try {
+      await apiDeleteEpisode(item.id);
+    } catch (err) {
+      console.warn("[library] server delete error:", err);
+      // Proceed with local delete even if server call fails
+    }
+
+    const audioIds = item.versions
+      .filter((v) => v.audioId)
+      .map((v) => v.audioId as string);
+
+    try {
+      await dbDeleteEpisode(item.id, audioIds);
+    } catch (err) {
+      console.warn("[library] local delete error:", err);
+      Alert.alert("Error", "Could not delete the episode. Please try again.");
+      return;
+    }
+
+    setEpisodes((prev) => prev.filter((e) => e.id !== item.id));
   }
 
   const filtered = filterEpisodes(episodes, filter);
@@ -209,6 +237,7 @@ export default function LibraryScreen() {
             onVersionPress={handleVersionPress}
             currentAudioId={player.currentItem?.id ?? null}
             onNewVersion={setNewVersionEpisode}
+            onDelete={handleDelete}
           />
         )}
         contentContainerClassName="pt-1 pb-28"

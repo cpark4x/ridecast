@@ -19,12 +19,18 @@ steps:
       cd /Users/chrispark/Projects/ridecast2
       python3 << 'PYEOF'
       import json, yaml
+
+      SIZE_POINTS = {"S": 1, "M": 2, "L": 3, "XL": 5}
+      MAX_SESSION_POINTS = 8
+
       try:
           with open(".dev-machine/STATE.yaml") as f:
               state = yaml.safe_load(f)
           blockers = state.get("blockers", [])
           completed_list = set(state.get("completed_features", []))
           features = state.get("features", {})
+
+          # --- Count ready / in-progress for summary ---
           ready = in_progress = 0
           for fid, fd in features.items():
               s = fd.get("status", "")
@@ -34,14 +40,67 @@ steps:
                       ready += 1
               elif s == "in-progress":
                   in_progress += 1
+
+          # --- Build session work list (up to MAX_SESSION_POINTS) ---
+          # This is the ONLY list the working session should read specs for.
+          # Loading all ready specs at once overflows the context window.
+          session_features = []
+          session_points = 0
+
+          # 1. Always include in-progress features (already started, must finish)
+          for fid, fd in features.items():
+              if fd.get("status") == "in-progress":
+                  pts = SIZE_POINTS.get(fd.get("size", "M"), 2)
+                  session_features.append({
+                      "id": fid,
+                      "spec": fd.get("spec", ""),
+                      "description": fd.get("description", ""),
+                      "size": fd.get("size", "M"),
+                      "points": pts,
+                      "status": "in-progress",
+                  })
+                  session_points += pts
+
+          # 2. Fill remaining budget with ready features whose deps are satisfied.
+          #    Preserve declaration order from STATE.yaml.
+          #    Use `continue` (not `break`) on budget overflow so a smaller feature
+          #    later in the list can still fit if the current one is too big.
+          for fid, fd in features.items():
+              if fd.get("status") != "ready":
+                  continue
+              if session_points >= MAX_SESSION_POINTS:
+                  break
+              deps = fd.get("depends_on", [])
+              if not all(
+                  d in completed_list or features.get(d, {}).get("status") in ("completed", "done")
+                  for d in deps
+              ):
+                  continue  # dependency not yet satisfied
+              pts = SIZE_POINTS.get(fd.get("size", "M"), 2)
+              if session_points + pts > MAX_SESSION_POINTS:
+                  continue  # too big for remaining budget; try next (smaller) feature
+              session_features.append({
+                  "id": fid,
+                  "spec": fd.get("spec", ""),
+                  "description": fd.get("description", ""),
+                  "size": fd.get("size", "M"),
+                  "points": pts,
+                  "status": "ready",
+              })
+              session_points += pts
+
           print(json.dumps({
               "phase": state.get("phase", 0),
               "phase_name": state.get("phase_name", "unknown"),
               "epoch": state.get("epoch", 0),
               "next_action": state.get("next_action", ""),
               "ready_count": ready,
+              "in_progress_count": in_progress,
               "completed_count": len(completed_list),
-              "status": "blocked" if blockers else "healthy"
+              "status": "blocked" if blockers else "healthy",
+              "session_features": session_features,
+              "session_points": session_points,
+              "session_budget": MAX_SESSION_POINTS,
           }))
       except Exception as e:
           print(json.dumps({"status": "blocked", "error": str(e)}))
@@ -222,7 +281,10 @@ steps:
       THEN READ THE RELEVANT SPECS:
       5. specs/architecture.md — the overall architecture (always read this)
       6. specs/modules/content-pipeline.md — interface contracts
-      7. Feature specs marked "ready" in STATE.yaml features section
+      7. ONLY the spec files listed in `session_features` from the orient step output above.
+         Each entry has an "id", "spec" path, "size", and "status". Read those files and
+         NO others. Do NOT scan STATE.yaml for all ready features and load them all —
+         there may be 20-30 ready specs and loading them all will exceed the context limit.
 
       ## Platform Grounding (MANDATORY before writing any code)
 
@@ -235,8 +297,9 @@ steps:
          Add a blocker to .dev-machine/STATE.yaml and stop.
 
       YOUR MISSION THIS SESSION:
-      - Determine what work is ready from STATE.yaml (next_action + ready features)
-      - Pick the next batch of ready work (up to 8 points: S=1, M=2, L=3, XL=5)
+      - Your work list is already computed: see `session_features` in the orient step output
+        above. Work those features in the order listed. Do NOT re-scan STATE.yaml for
+        additional ready features — orient has already applied the 8-point budget cap.
       - For each piece of work:
         * Update STATE.yaml to mark it in-progress with timestamp
         * Apply Platform Grounding — enumerate actual APIs before writing code

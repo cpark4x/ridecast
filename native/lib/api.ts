@@ -143,3 +143,11 @@ export async function savePlaybackState(state: {
     body: JSON.stringify(state),
   });
 }
+
+// --- Delete ---
+
+export async function deleteEpisode(contentId: string): Promise<void> {
+  await fetchJSON<{ ok: boolean }>(`/api/library/${contentId}`, {
+    method: "DELETE",
+  });
+}

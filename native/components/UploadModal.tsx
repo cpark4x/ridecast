@@ -18,10 +18,26 @@ import { uploadFile, uploadUrl } from "../lib/api";
 import { DURATION_PRESETS } from "../lib/constants";
 import type { UploadResponse } from "../lib/types";
 import { estimateReadingTime } from "../lib/utils";
+import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import DurationPicker from "./DurationPicker";
 
 // ---------------------------------------------------------------------------
-// Component
+// Offline banner (shown when device has no connectivity)
+// ---------------------------------------------------------------------------
+
+function OfflineModalBanner() {
+  return (
+    <View className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex-row items-center gap-2">
+      <Ionicons name="wifi-outline" size={18} color="#D97706" />
+      <Text className="text-sm text-amber-700 font-medium flex-1">
+        No internet connection — uploads are disabled until you reconnect.
+      </Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Props
 // ---------------------------------------------------------------------------
 
 interface UploadModalProps {
@@ -29,14 +45,20 @@ interface UploadModalProps {
   onDismiss: () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   const router = useRouter();
+  const { isConnected, isLoading: networkLoading } = useNetworkStatus();
+  const offline = !networkLoading && isConnected === false;
 
-  const [urlText, setUrlText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [urlText, setUrlText]           = useState("");
+  const [loading, setLoading]           = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [targetMinutes, setTargetMinutes] = useState<number>(DURATION_PRESETS[2].minutes); // default: 5 min
+  const [errorMsg, setErrorMsg]         = useState<string | null>(null);
+  const [targetMinutes, setTargetMinutes] = useState<number>(DURATION_PRESETS[2].minutes);
 
   const urlInputRef = useRef<TextInput>(null);
 
@@ -52,6 +74,10 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
 
   // ── URL upload ────────────────────────────────────────────────────────────
   async function handleUrlSubmit() {
+    if (offline) {
+      Alert.alert("No Connection", "Please check your internet connection and try again.");
+      return;
+    }
     const trimmed = urlText.trim();
     if (!trimmed) return;
 
@@ -70,6 +96,11 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
 
   // ── File upload ───────────────────────────────────────────────────────────
   async function handleFilePick() {
+    if (offline) {
+      Alert.alert("No Connection", "Please check your internet connection and try again.");
+      return;
+    }
+
     let result;
     try {
       result = await DocumentPicker.getDocumentAsync({
@@ -87,9 +118,9 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
 
     if (result.canceled || !result.assets?.[0]) return;
 
-    const asset = result.assets[0];
+    const asset    = result.assets[0];
     const mimeType = asset.mimeType ?? "application/octet-stream";
-    const name = asset.name ?? "upload";
+    const name     = asset.name ?? "upload";
 
     setLoading(true);
     setErrorMsg(null);
@@ -107,11 +138,15 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   // ── Create Episode ────────────────────────────────────────────────────────
   function handleCreateEpisode() {
     if (!uploadResult) return;
+    if (offline) {
+      Alert.alert("No Connection", "Please check your internet connection and try again.");
+      return;
+    }
     handleDismiss();
     router.push({
       pathname: "/processing",
       params: {
-        contentId: uploadResult.id,
+        contentId:     uploadResult.id,
         targetMinutes: String(targetMinutes),
       },
     });
@@ -149,6 +184,9 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
         >
           <Text className="text-xl font-bold text-gray-900 mt-3 mb-5">Add Content</Text>
 
+          {/* Offline banner */}
+          {offline && <OfflineModalBanner />}
+
           {/* ── Section 1: Input ─────────────────────────────────────────── */}
           {!uploadResult && (
             <>
@@ -166,14 +204,18 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
                 returnKeyType="go"
                 onSubmitEditing={handleUrlSubmit}
                 autoFocus
+                editable={!offline}
               />
 
               {urlText.trim().length > 0 && !loading && (
                 <TouchableOpacity
                   onPress={handleUrlSubmit}
-                  className="mt-2 bg-brand py-2.5 rounded-xl items-center"
+                  disabled={offline}
+                  className={`mt-2 py-2.5 rounded-xl items-center ${offline ? "bg-gray-300" : "bg-brand"}`}
                 >
-                  <Text className="text-white font-semibold text-sm">Fetch URL</Text>
+                  <Text className={`font-semibold text-sm ${offline ? "text-gray-500" : "text-white"}`}>
+                    Fetch URL
+                  </Text>
                 </TouchableOpacity>
               )}
 
@@ -187,11 +229,15 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
               {/* File picker */}
               <TouchableOpacity
                 onPress={handleFilePick}
-                disabled={loading}
-                className="flex-row items-center justify-center border-2 border-dashed border-gray-300 rounded-xl py-4 gap-2"
+                disabled={loading || offline}
+                className={`flex-row items-center justify-center border-2 border-dashed rounded-xl py-4 gap-2 ${
+                  offline ? "border-gray-200 opacity-50" : "border-gray-300"
+                }`}
               >
-                <Ionicons name="document-outline" size={20} color="#6B7280" />
-                <Text className="text-base text-gray-600 font-medium">Choose File</Text>
+                <Ionicons name="document-outline" size={20} color={offline ? "#D1D5DB" : "#6B7280"} />
+                <Text className={`text-base font-medium ${offline ? "text-gray-400" : "text-gray-600"}`}>
+                  Choose File
+                </Text>
                 <Text className="text-xs text-gray-400">(PDF, EPUB, TXT)</Text>
               </TouchableOpacity>
 
@@ -249,9 +295,12 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
               {/* Create Episode button */}
               <TouchableOpacity
                 onPress={handleCreateEpisode}
-                className="mt-6 bg-brand py-4 rounded-2xl items-center"
+                disabled={offline}
+                className={`mt-6 py-4 rounded-2xl items-center ${offline ? "bg-gray-300" : "bg-brand"}`}
               >
-                <Text className="text-white font-bold text-base">Create Episode</Text>
+                <Text className={`font-bold text-base ${offline ? "text-gray-500" : "text-white"}`}>
+                  Create Episode
+                </Text>
               </TouchableOpacity>
 
               {/* Change content */}
