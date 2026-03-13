@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -22,6 +22,7 @@ import { Haptics } from "../../lib/haptics";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import SourceIcon from "../../components/SourceIcon";
+import SkeletonList from "../../components/SkeletonList";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -163,7 +164,10 @@ export default function HomeScreen() {
 
   const [episodes, setEpisodes]                     = useState<LibraryItem[]>([]);
   const [refreshing, setRefreshing]                 = useState(false);
+  const [isLoading, setIsLoading]                   = useState(true);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+
+  const loadStartRef = useRef(Date.now());
 
   const firstName = user?.firstName ?? null;
 
@@ -180,6 +184,11 @@ export default function HomeScreen() {
       setEpisodes(items);
     } catch (err) {
       console.warn("[home] loadLocal error:", err);
+    } finally {
+      // Enforce 200ms minimum to avoid sub-50ms shimmer flicker
+      const elapsed = Date.now() - loadStartRef.current;
+      const delay = Math.max(0, 200 - elapsed);
+      setTimeout(() => setIsLoading(false), delay);
     }
   }
 
@@ -291,8 +300,11 @@ export default function HomeScreen() {
             {/* ── Currently Playing card ── */}
             <CurrentlyPlayingCard onExpand={() => player.setExpandedPlayerVisible(true)} />
 
+            {/* ── Skeleton loading for cold launch ── */}
+            {isLoading && <SkeletonList count={4} />}
+
             {/* ── Up Next header ── */}
-            {episodeCount > 0 && (
+            {!isLoading && episodeCount > 0 && (
               <Text className="px-4 text-lg font-bold text-gray-900 mb-3">Up Next</Text>
             )}
           </>

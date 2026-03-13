@@ -16,6 +16,7 @@ import EpisodeCard from "../../components/EpisodeCard";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import NewVersionSheet from "../../components/NewVersionSheet";
+import SkeletonList from "../../components/SkeletonList";
 import { filterEpisodes } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes, deleteEpisode as dbDeleteEpisode } from "../../lib/db";
 import { deleteEpisode as apiDeleteEpisode } from "../../lib/api";
@@ -40,10 +41,12 @@ export default function LibraryScreen() {
   const [filter, setFilter]                       = useState<LibraryFilter>("all");
   const [searchQuery, setSearchQuery]             = useState("");
   const [refreshing, setRefreshing]               = useState(false);
+  const [isLoading, setIsLoading]                 = useState(true);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [newVersionEpisode, setNewVersionEpisode] = useState<LibraryItem | null>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadStartRef = useRef(Date.now());
 
   // Load from SQLite on mount, then sync in background
   useEffect(() => {
@@ -58,6 +61,11 @@ export default function LibraryScreen() {
       setEpisodes(items);
     } catch (err) {
       console.warn("[library] loadLocal error:", err);
+    } finally {
+      // Enforce 200ms minimum to avoid sub-50ms shimmer flicker
+      const elapsed = Date.now() - loadStartRef.current;
+      const delay = Math.max(0, 200 - elapsed);
+      setTimeout(() => setIsLoading(false), delay);
     }
   }
 
@@ -230,42 +238,46 @@ export default function LibraryScreen() {
         ))}
       </ScrollView>
 
-      {/* Episode list */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <EpisodeCard
-            item={item}
-            onPress={handleCardPress}
-            onVersionPress={handleVersionPress}
-            currentAudioId={player.currentItem?.id ?? null}
-            onNewVersion={setNewVersionEpisode}
-            onDelete={handleDelete}
-          />
-        )}
-        contentContainerClassName="pt-1 pb-28"
-        showsVerticalScrollIndicator={false}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        ListEmptyComponent={
-          episodes.length === 0 ? (
-            <EmptyState
-              icon="library-outline"
-              title="No episodes yet"
-              subtitle="Paste a URL or upload a file to get started"
-              actionLabel="Create Episode"
-              onAction={() => setUploadModalVisible(true)}
+      {/* Episode list — skeleton during cold launch, real list after */}
+      {isLoading ? (
+        <SkeletonList count={5} />
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <EpisodeCard
+              item={item}
+              onPress={handleCardPress}
+              onVersionPress={handleVersionPress}
+              currentAudioId={player.currentItem?.id ?? null}
+              onNewVersion={setNewVersionEpisode}
+              onDelete={handleDelete}
             />
-          ) : (
-            <EmptyState
-              icon="search"
-              title="No matches"
-              subtitle="Try a different search or filter"
-            />
-          )
-        }
-      />
+          )}
+          contentContainerClassName="pt-1 pb-28"
+          showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          ListEmptyComponent={
+            episodes.length === 0 ? (
+              <EmptyState
+                icon="library-outline"
+                title="No episodes yet"
+                subtitle="Paste a URL or upload a file to get started"
+                actionLabel="Create Episode"
+                onAction={() => setUploadModalVisible(true)}
+              />
+            ) : (
+              <EmptyState
+                icon="search"
+                title="No matches"
+                subtitle="Try a different search or filter"
+              />
+            )
+          }
+        />
+      )}
 
       {/* FAB */}
       <TouchableOpacity
