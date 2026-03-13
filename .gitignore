@@ -54,3 +54,6 @@ next-env.d.ts
 
 # Git worktrees
 .worktrees/
+
+# Python linter cache (not a Python project)
+.ruff_cache/
