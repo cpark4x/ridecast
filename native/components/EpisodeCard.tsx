@@ -12,23 +12,34 @@ import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Ionicons } from "@expo/vector-icons";
 import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 import { smartTitle } from "../lib/libraryHelpers";
+import { sourceName } from "../lib/utils";
 import { Haptics } from "../lib/haptics";
 import SourceIcon from "./SourceIcon";
 
 // ---------------------------------------------------------------------------
-// Source badge colours
+// ShimmerPill — animated placeholder shown when isGenerating
 // ---------------------------------------------------------------------------
 
-const SOURCE_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  pdf:    { bg: "bg-red-100",    text: "text-red-700",    label: "PDF"    },
-  url:    { bg: "bg-blue-100",   text: "text-blue-700",   label: "URL"    },
-  epub:   { bg: "bg-purple-100", text: "text-purple-700", label: "EPUB"   },
-  txt:    { bg: "bg-gray-100",   text: "text-gray-700",   label: "TXT"    },
-  pocket: { bg: "bg-green-100",  text: "text-green-700",  label: "Pocket" },
-};
+function ShimmerPill() {
+  const shimmer = useRef(new Animated.Value(0)).current;
 
-function defaultBadge(sourceType: string) {
-  return { bg: "bg-gray-100", text: "text-gray-700", label: sourceType.toUpperCase() };
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1, duration: 700, useNativeDriver: false }),
+        Animated.timing(shimmer, { toValue: 0, duration: 700, useNativeDriver: false }),
+      ]),
+    ).start();
+  }, [shimmer]);
+
+  const backgroundColor = shimmer.interpolate({
+    inputRange:  [0, 1],
+    outputRange: ["#F3F4F6", "#E5E7EB"],
+  });
+
+  return (
+    <Animated.View style={{ width: 48, height: 22, borderRadius: 6, backgroundColor }} />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -66,52 +77,25 @@ export default function EpisodeCard({
   // smart-titles: clean display title
   const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
 
-  const badge = SOURCE_BADGE[item.sourceType.toLowerCase()] ?? defaultBadge(item.sourceType);
-
-  const isGenerating = versions.some((v) => v.status === "generating");
-  const allCompleted = versions.length > 0 && versions.every((v) => v.completed);
-
   // Primary version: first ready version, or first overall
   const primaryVersion = versions.find((v) => v.status === "ready") ?? versions[0];
 
-  const hasProgress =
-    primaryVersion &&
-    primaryVersion.position > 0 &&
-    !primaryVersion.completed;
+  // State flags — mutually exclusive for the dominant indicator
+  const isGenerating = versions.some((v) => v.status === "generating");
+  const allCompleted = versions.length > 0 && versions.every((v) => v.completed);
+  const isNew        = !allCompleted
+    && !isGenerating
+    && !!primaryVersion
+    && primaryVersion.position === 0
+    && !primaryVersion.completed;
+  const hasProgress  = !!primaryVersion
+    && primaryVersion.position > 0
+    && !primaryVersion.completed;
 
   const progressPercent =
     hasProgress && primaryVersion.durationSecs && primaryVersion.durationSecs > 0
       ? Math.min((primaryVersion.position / primaryVersion.durationSecs) * 100, 100)
       : 0;
-
-  // ---------------------------------------------------------------------------
-  // generating-feedback: pulse animation on the "Generating" badge
-  // ---------------------------------------------------------------------------
-
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (isGenerating) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue:         1.15,
-            duration:        600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue:         1.0,
-            duration:        600,
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      pulse.start();
-      return () => pulse.stop();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [isGenerating, pulseAnim]);
 
   // ---------------------------------------------------------------------------
   // delete-episodes: confirm + execute
@@ -181,7 +165,7 @@ export default function EpisodeCard({
   }
 
   // ---------------------------------------------------------------------------
-  // Render
+  // Render — three-column layout
   // ---------------------------------------------------------------------------
 
   return (
@@ -196,110 +180,132 @@ export default function EpisodeCard({
         onPress={() => onPress(item)}
         onLongPress={handleLongPress}
         delayLongPress={400}
-        className="bg-white rounded-2xl shadow-sm mx-4 mb-3 overflow-hidden"
-        style={{ opacity: allCompleted ? 0.5 : 1 }}
         activeOpacity={0.75}
+        className="bg-white rounded-2xl shadow-sm mx-4 mb-3 overflow-hidden"
+        // No opacity dimming — completed state shown via green checkmark
       >
-        {/* Progress bar */}
+        {/* — Progress bar: absolute at card bottom, only when in-progress — */}
         {hasProgress && (
-          <View className="h-1 bg-gray-100 w-full">
+          <View className="absolute bottom-0 left-0 right-0 h-1 bg-gray-100">
             <View className="h-1 bg-brand" style={{ width: `${progressPercent}%` }} />
           </View>
         )}
 
-        <View className="p-4">
-          {/* Title row */}
-          <View className="flex-row items-start justify-between gap-2">
-            <Text className="text-base font-bold text-gray-900 flex-1" numberOfLines={2}>
-              {displayTitle}
-            </Text>
+        <View className="p-4 flex-row gap-3 items-start">
 
-            {/* generating-feedback: pulsing badge */}
-            {isGenerating && (
-              <Animated.View
-                className="bg-amber-100 px-2 py-0.5 rounded-full self-start"
-                style={{ transform: [{ scale: pulseAnim }] }}
-              >
-                <Text className="text-xs text-amber-700 font-medium">Generating</Text>
-              </Animated.View>
-            )}
-          </View>
-
-          {/* episode-identity: source icon + publisher name */}
-          <View className="flex-row items-center gap-1.5 mt-0.5">
+          {/* — LEFT column: SourceIcon + state indicator — */}
+          <View className="items-center gap-1.5 pt-0.5">
             <SourceIcon
               sourceName={item.sourceName}
               sourceDomain={item.sourceDomain}
               sourceBrandColor={item.sourceBrandColor}
-              size={14}
+              size={36}
             />
-            <Text className="text-sm text-gray-500 flex-1" numberOfLines={1}>
-              {item.sourceName ?? item.author ?? item.sourceType.toUpperCase()}
-            </Text>
+            {isNew && (
+              <View className="w-2 h-2 rounded-full bg-orange-500" />
+            )}
+            {allCompleted && (
+              <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
+            )}
           </View>
 
-          {/* episode-identity: description snippet */}
-          {item.description ? (
-            <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={2}>
-              {item.description}
+          {/* — CENTER column: title, source subtitle, summary, version pills — */}
+          <View className="flex-1 min-w-0">
+
+            {/* Title */}
+            <Text className="text-sm font-bold text-gray-900" numberOfLines={2}>
+              {displayTitle}
             </Text>
-          ) : null}
 
-          {/* Footer: source badge + version pills */}
-          <View className="flex-row items-center mt-3 gap-2 flex-wrap">
-            {/* Source badge */}
-            <View className={`${badge.bg} px-2 py-0.5 rounded-full`}>
-              <Text className={`text-xs font-medium ${badge.text}`}>{badge.label}</Text>
-            </View>
+            {/* Source · contentType subtitle */}
+            <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>
+              {sourceName(item.sourceType, item.sourceUrl, item.author)}
+              {primaryVersion?.contentType ? ` · ${primaryVersion.contentType}` : ""}
+            </Text>
 
-            {/* Per-version duration pills */}
-            {versions.map((v) => {
-              const isActive = !!currentAudioId && currentAudioId === v.audioId;
-              const label    = `${v.targetDuration} min`;
+            {/* Summary — only rendered when present, max 2 lines */}
+            {primaryVersion?.summary ? (
+              <Text className="text-xs text-gray-500 mt-1.5 leading-4" numberOfLines={2}>
+                {primaryVersion.summary}
+              </Text>
+            ) : null}
 
-              if (v.status === "ready" && v.audioId && onVersionPress) {
-                const playable: PlayableItem = {
-                  id:             v.audioId,
-                  title:          item.title,
-                  duration:       v.durationSecs ?? v.targetDuration * 60,
-                  format:         v.format,
-                  audioUrl:       v.audioUrl ?? "",
-                  author:         item.author,
-                  sourceType:     item.sourceType,
-                  sourceDomain:   item.sourceDomain,
-                  contentType:    v.contentType,
-                  themes:         v.themes,
-                  summary:        v.summary,
-                  targetDuration: v.targetDuration,
-                  createdAt:      item.createdAt,
-                };
+            {/* Version pills + "+" pill */}
+            <View className="flex-row items-center mt-2 gap-1.5 flex-wrap">
+              {versions.map((v) => {
+                const isActive = !!currentAudioId && currentAudioId === v.audioId;
+                const label    = `${v.targetDuration} min`;
+
+                if (v.status === "ready" && v.audioId && onVersionPress) {
+                  const playable: PlayableItem = {
+                    id:              v.audioId,
+                    title:           item.title,
+                    duration:        v.durationSecs ?? v.targetDuration * 60,
+                    format:          v.format,
+                    audioUrl:        v.audioUrl ?? "",
+                    author:          item.author,
+                    sourceType:      item.sourceType,
+                    sourceUrl:       item.sourceUrl,
+                    sourceDomain:    item.sourceDomain,
+                    sourceName:      item.sourceName,
+                    sourceBrandColor: item.sourceBrandColor,
+                    contentType:     v.contentType,
+                    themes:          v.themes,
+                    summary:         v.summary,
+                    targetDuration:  v.targetDuration,
+                    createdAt:       item.createdAt,
+                  };
+                  return (
+                    <TouchableOpacity
+                      key={v.scriptId}
+                      onPress={() => { void Haptics.light(); onVersionPress(item, v, playable); }}
+                      className={`px-2 py-0.5 rounded-full ${isActive ? "bg-brand" : "bg-gray-100"}`}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Text className={`text-xs font-medium ${isActive ? "text-white" : "text-gray-600"}`}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }
+
+                // Non-tappable (generating / processing)
                 return (
-                  <TouchableOpacity
+                  <View
                     key={v.scriptId}
-                    onPress={() => { void Haptics.light(); onVersionPress(item, v, playable); }}
                     className={`px-2 py-0.5 rounded-full ${isActive ? "bg-brand" : "bg-gray-100"}`}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
                     <Text className={`text-xs font-medium ${isActive ? "text-white" : "text-gray-600"}`}>
                       {label}
                     </Text>
-                  </TouchableOpacity>
+                  </View>
                 );
-              }
+              })}
 
-              // Non-tappable (generating / processing)
-              return (
-                <View
-                  key={v.scriptId}
-                  className={`px-2 py-0.5 rounded-full ${isActive ? "bg-brand" : "bg-gray-100"}`}
+              {/* "+" pill — triggers onNewVersion */}
+              {onNewVersion ? (
+                <TouchableOpacity
+                  onPress={() => onNewVersion(item)}
+                  className="bg-gray-100 px-2 py-0.5 rounded-full"
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 >
-                  <Text className={`text-xs font-medium ${isActive ? "text-white" : "text-gray-600"}`}>
-                    {label}
-                  </Text>
-                </View>
-              );
-            })}
+                  <Text className="text-xs font-medium text-gray-500">+</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
+
+          {/* — RIGHT column: duration pill or shimmer — */}
+          {isGenerating ? (
+            <ShimmerPill />
+          ) : (
+            <View className="bg-gray-100 px-2 py-1 rounded-lg self-start">
+              <Text className="text-xs font-semibold text-gray-600">
+                {primaryVersion ? `${primaryVersion.targetDuration} min` : "—"}
+              </Text>
+            </View>
+          )}
+
         </View>
       </TouchableOpacity>
     </Swipeable>

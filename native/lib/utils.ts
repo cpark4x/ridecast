@@ -108,20 +108,27 @@ export function timeAgo(dateString: string): string {
  * Priority: extracted domain from sourceUrl > author > sourceType label
  */
 export function sourceName(
-  sourceType: string,
+  sourceType: string | null | undefined,
   sourceUrl: string | null | undefined,
   author: string | null | undefined,
 ): string {
-  if (sourceUrl) {
+  const type = (sourceType ?? "").toLowerCase();
+  if (type === "url" && sourceUrl) {
     try {
-      const host = new URL(sourceUrl).hostname.replace(/^www\./, "");
-      return host;
+      return new URL(sourceUrl).hostname.replace(/^www\./, "");
     } catch {
-      // fall through
+      // fall through to label
     }
   }
-  if (author) return author;
-  return sourceType.toUpperCase();
+  if ((type === "pdf" || type === "epub") && author) return author;
+  const LABELS: Record<string, string> = {
+    pdf:    "PDF",
+    epub:   "EPUB",
+    txt:    "Text",
+    pocket: "Pocket",
+    url:    "Article",
+  };
+  return LABELS[type] ?? type.toUpperCase();
 }
 
 /**

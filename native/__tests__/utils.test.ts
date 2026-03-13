@@ -120,8 +120,8 @@ describe("sourceName", () => {
     expect(sourceName("epub", null, null)).toBe("EPUB");
   });
 
-  it("falls back to uppercase sourceType when URL is malformed", () => {
-    expect(sourceName("txt", "not-a-url", null)).toBe("TXT");
+  it("returns label for txt when URL is malformed", () => {
+    expect(sourceName("txt", "not-a-url", null)).toBe("Text");
   });
 
   it("prioritises URL over author", () => {
@@ -131,7 +131,7 @@ describe("sourceName", () => {
   });
 
   it("handles undefined sourceUrl and author gracefully", () => {
-    expect(sourceName("pocket", undefined, undefined)).toBe("POCKET");
+    expect(sourceName("pocket", undefined, undefined)).toBe("Pocket");
   });
 });
 
