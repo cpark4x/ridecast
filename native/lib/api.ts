@@ -46,7 +46,10 @@ async function fetchJSON<T>(
 
 // --- Upload ---
 
-export async function uploadUrl(url: string): Promise<UploadResponse> {
+export async function uploadUrl(
+  url: string,
+  options?: Pick<RequestInit, "signal">,
+): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("url", url);
 
@@ -55,10 +58,13 @@ export async function uploadUrl(url: string): Promise<UploadResponse> {
     method: "POST",
     headers: auth,
     body: formData,
+    signal: options?.signal,
   });
   const data = await res.json();
   if (!res.ok && res.status !== 409) {
-    throw new Error(data.error ?? "Upload failed");
+    const err = new Error(data.error ?? "Upload failed");
+    (err as Error & { statusCode: number }).statusCode = res.status;
+    throw err;
   }
   return data as UploadResponse;
 }
