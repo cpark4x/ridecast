@@ -1,5 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import type { LibraryItem, AudioVersion, PlaybackState } from "./types";
+import { sourceName } from "./utils";
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
@@ -14,7 +15,61 @@ export function setDb(db: SQLite.SQLiteDatabase) {
   _db = db;
 }
 
-async function migrate(db: SQLite.SQLiteDatabase) {
+// ─── Internal row type + mapper ─────────────────────────────────────────────
+
+type EpisodeRow = {
+  content_id: string;
+  title: string;
+  author: string | null;
+  source_type: string;
+  source_url: string | null;
+  word_count: number;
+  created_at: string;
+  json_versions: string;
+  source_icon: string | null;
+  source_name: string | null;
+  source_domain: string | null;
+  source_brand_color: string | null;
+  description: string | null;
+  themes_text: string;
+  summary_snippet: string;
+};
+
+function rowToLibraryItem(row: EpisodeRow): LibraryItem {
+  return {
+    id:               row.content_id,
+    title:            row.title,
+    author:           row.author,
+    sourceType:       row.source_type,
+    sourceUrl:        row.source_url,
+    wordCount:        row.word_count,
+    createdAt:        row.created_at,
+    versions:         JSON.parse(row.json_versions) as AudioVersion[],
+    sourceIcon:       row.source_icon,
+    sourceName:       row.source_name,
+    sourceDomain:     row.source_domain,
+    sourceBrandColor: row.source_brand_color,
+    description:      row.description,
+  };
+}
+
+// ─── Migrations ─────────────────────────────────────────────────────────────
+
+async function addColumnIfMissing(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+  definition: string,
+) {
+  const info = await db.getAllAsync<{ name: string }>(
+    `PRAGMA table_info(${table})`,
+  );
+  if (!info.some((col) => col.name === column)) {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+export async function migrate(db: SQLite.SQLiteDatabase) {
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS episodes (
       content_id    TEXT PRIMARY KEY,
@@ -44,6 +99,7 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   `);
 
   await migrateV2(db);
+  await migrateV3(db);
 }
 
 /**
@@ -69,16 +125,67 @@ async function migrateV2(db: SQLite.SQLiteDatabase) {
   }
 }
 
+/**
+ * V3 migration: adds 2 denormalized search columns + backfills existing rows.
+ */
+async function migrateV3(db: SQLite.SQLiteDatabase) {
+  await addColumnIfMissing(db, "episodes", "themes_text",     "TEXT NOT NULL DEFAULT ''");
+  await addColumnIfMissing(db, "episodes", "summary_snippet", "TEXT NOT NULL DEFAULT ''");
+  await backfillSearchColumns(db);
+}
+
+/**
+ * Backfill themes_text and summary_snippet for rows that predate V3.
+ * Re-derives source_name (if empty), themes_text, and summary_snippet from
+ * stored json_versions data. Runs once per startup but is a no-op when all
+ * rows are already populated.
+ */
+async function backfillSearchColumns(db: SQLite.SQLiteDatabase) {
+  const rows = await db.getAllAsync<EpisodeRow>(
+    "SELECT * FROM episodes WHERE themes_text = '' AND json_versions != '[]'",
+  );
+  for (const row of rows) {
+    const versions = JSON.parse(row.json_versions) as AudioVersion[];
+    const srcName = row.source_name || sourceName(row.source_type, row.source_url, row.author);
+    const themesText = [
+      ...new Set(versions.flatMap((v) => v.themes ?? [])),
+    ]
+      .join(" ")
+      .toLowerCase();
+    const summary =
+      versions.find((v) => v.status === "ready")?.summary ?? "";
+    await db.runAsync(
+      `UPDATE episodes
+       SET source_name = ?, themes_text = ?, summary_snippet = ?
+       WHERE content_id = ?`,
+      srcName,
+      themesText,
+      summary.slice(0, 300).toLowerCase(),
+      row.content_id,
+    );
+  }
+}
+
 // --- Episodes (library cache) ---
 
 export async function upsertEpisodes(items: LibraryItem[]) {
   const db = await getDb();
   for (const item of items) {
+    // Derive denormalized search columns
+    const derivedSourceName = item.sourceName ?? sourceName(item.sourceType, item.sourceUrl, item.author);
+    const themesText = [
+      ...new Set(item.versions.flatMap((v) => v.themes ?? [])),
+    ].join(" ").toLowerCase();
+    const summarySnippet = (
+      item.versions.find((v) => v.status === "ready")?.summary ?? ""
+    ).slice(0, 300).toLowerCase();
+
     await db.runAsync(
       `INSERT OR REPLACE INTO episodes
         (content_id, title, author, source_type, source_url, word_count, created_at, json_versions,
-         source_icon, source_name, source_domain, source_brand_color, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         source_icon, source_name, source_domain, source_brand_color, description,
+         themes_text, summary_snippet)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       item.id,
       item.title,
       item.author,
@@ -88,87 +195,46 @@ export async function upsertEpisodes(items: LibraryItem[]) {
       item.createdAt,
       JSON.stringify(item.versions),
       item.sourceIcon       ?? null,
-      item.sourceName       ?? null,
+      derivedSourceName,
       item.sourceDomain     ?? null,
       item.sourceBrandColor ?? null,
       item.description      ?? null,
+      themesText,
+      summarySnippet,
     );
   }
 }
 
 export async function getAllEpisodes(): Promise<LibraryItem[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{
-    content_id: string;
-    title: string;
-    author: string | null;
-    source_type: string;
-    source_url: string | null;
-    word_count: number;
-    created_at: string;
-    json_versions: string;
-    source_icon: string | null;
-    source_name: string | null;
-    source_domain: string | null;
-    source_brand_color: string | null;
-    description: string | null;
-  }>("SELECT * FROM episodes ORDER BY created_at DESC");
-
-  return rows.map((row) => ({
-    id:               row.content_id,
-    title:            row.title,
-    author:           row.author,
-    sourceType:       row.source_type,
-    sourceUrl:        row.source_url,
-    wordCount:        row.word_count,
-    createdAt:        row.created_at,
-    versions:         JSON.parse(row.json_versions) as AudioVersion[],
-    sourceIcon:       row.source_icon,
-    sourceName:       row.source_name,
-    sourceDomain:     row.source_domain,
-    sourceBrandColor: row.source_brand_color,
-    description:      row.description,
-  }));
+  const rows = await db.getAllAsync<EpisodeRow>(
+    "SELECT * FROM episodes ORDER BY created_at DESC",
+  );
+  return rows.map(rowToLibraryItem);
 }
 
 export async function searchEpisodes(query: string): Promise<LibraryItem[]> {
   const db = await getDb();
-  const pattern = `%${query}%`;
-  const rows = await db.getAllAsync<{
-    content_id: string;
-    title: string;
-    author: string | null;
-    source_type: string;
-    source_url: string | null;
-    word_count: number;
-    created_at: string;
-    json_versions: string;
-    source_icon: string | null;
-    source_name: string | null;
-    source_domain: string | null;
-    source_brand_color: string | null;
-    description: string | null;
-  }>(
-    "SELECT * FROM episodes WHERE title LIKE ? OR author LIKE ? ORDER BY created_at DESC",
+  const pattern = `%${query.toLowerCase()}%`;
+
+  const rows = await db.getAllAsync<EpisodeRow>(
+    `SELECT * FROM episodes
+     WHERE lower(title)          LIKE ?
+        OR lower(author)         LIKE ?
+        OR lower(source_name)    LIKE ?
+        OR lower(source_type)    LIKE ?
+        OR themes_text           LIKE ?
+        OR summary_snippet       LIKE ?
+     ORDER BY created_at DESC`,
+    pattern,
+    pattern,
+    pattern,
+    pattern,
     pattern,
     pattern,
   );
 
-  return rows.map((row) => ({
-    id:               row.content_id,
-    title:            row.title,
-    author:           row.author,
-    sourceType:       row.source_type,
-    sourceUrl:        row.source_url,
-    wordCount:        row.word_count,
-    createdAt:        row.created_at,
-    versions:         JSON.parse(row.json_versions) as AudioVersion[],
-    sourceIcon:       row.source_icon,
-    sourceName:       row.source_name,
-    sourceDomain:     row.source_domain,
-    sourceBrandColor: row.source_brand_color,
-    description:      row.description,
-  }));
+  return rows.map(rowToLibraryItem);
 }
 
 // --- Delete ---
