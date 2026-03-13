@@ -12,6 +12,7 @@ import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Ionicons } from "@expo/vector-icons";
 import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 import { smartTitle } from "../lib/libraryHelpers";
+import { Haptics } from "../lib/haptics";
 import SourceIcon from "./SourceIcon";
 
 // ---------------------------------------------------------------------------
@@ -156,6 +157,7 @@ export default function EpisodeCard({
   // ---------------------------------------------------------------------------
 
   function handleLongPress() {
+    void Haptics.medium();
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -274,7 +276,7 @@ export default function EpisodeCard({
                 return (
                   <TouchableOpacity
                     key={v.scriptId}
-                    onPress={() => onVersionPress(item, v, playable)}
+                    onPress={() => { void Haptics.light(); onVersionPress(item, v, playable); }}
                     className={`px-2 py-0.5 rounded-full ${isActive ? "bg-brand" : "bg-gray-100"}`}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >

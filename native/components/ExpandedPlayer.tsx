@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayer } from "../lib/usePlayer";
 import { formatDuration, nextSpeed } from "../lib/utils";
 import { smartTitle } from "../lib/libraryHelpers";
+import { Haptics } from "../lib/haptics";
 import CarMode from "./CarMode";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
 
   // ── Speed cycling ──────────────────────────────────────────────────────────
   function handleSpeedPress() {
+    void Haptics.light();
     const newSpeed = nextSpeed(speed, SPEEDS);
     setSpeed(newSpeed).catch((err) => console.warn("[player] setSpeed error:", err));
   }
@@ -187,7 +189,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
           <View className="flex-row items-center justify-center gap-6 mt-2 mb-4 px-8">
             {/* Skip back 5s */}
             <TouchableOpacity
-              onPress={() => void skipBack(5)}
+              onPress={() => { void Haptics.light(); void skipBack(5); }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="play-back" size={30} color="#374151" />
@@ -195,7 +197,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
 
             {/* Play / Pause */}
             <TouchableOpacity
-              onPress={() => void togglePlay()}
+              onPress={() => { void Haptics.light(); void togglePlay(); }}
               className="w-16 h-16 rounded-full bg-brand items-center justify-center"
               style={{ elevation: 4 }}
             >
@@ -209,7 +211,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
 
             {/* Skip forward 15s */}
             <TouchableOpacity
-              onPress={() => void skipForward(15)}
+              onPress={() => { void Haptics.light(); void skipForward(15); }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="play-forward" size={30} color="#374151" />

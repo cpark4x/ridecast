@@ -6,6 +6,16 @@ import * as downloads from "../lib/downloads";
 jest.mock("../lib/api");
 jest.mock("../lib/db");
 jest.mock("../lib/downloads");
+jest.mock("../lib/haptics", () => ({
+  Haptics: {
+    light: jest.fn().mockResolvedValue(undefined),
+    medium: jest.fn().mockResolvedValue(undefined),
+    heavy: jest.fn().mockResolvedValue(undefined),
+    success: jest.fn().mockResolvedValue(undefined),
+    error: jest.fn().mockResolvedValue(undefined),
+    warning: jest.fn().mockResolvedValue(undefined),
+  },
+}));
 
 const mockApi = api as jest.Mocked<typeof api>;
 const mockDb = db as jest.Mocked<typeof db>;

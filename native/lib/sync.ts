@@ -2,9 +2,14 @@ import * as api from "./api";
 import * as db from "./db";
 import { downloadEpisodeAudio } from "./downloads";
 import { deriveSourceIdentity } from "./sourceUtils";
+import { Haptics } from "./haptics";
 import type { LibraryItem } from "./types";
 
 export async function syncLibrary(): Promise<LibraryItem[]> {
+  // Read existing local state before overwriting — used to detect transitions
+  const localItems = await db.getAllEpisodes();
+  const localById = new Map(localItems.map((i) => [i.id, i]));
+
   const serverItems = await api.fetchLibrary();
 
   // Enrich each item with client-derived identity fields.
@@ -19,6 +24,22 @@ export async function syncLibrary(): Promise<LibraryItem[]> {
       sourceBrandColor: item.sourceBrandColor ?? derived.sourceBrandColor,
     };
   });
+
+  // Detect generating → ready transitions and fire success haptic
+  let anyNewlyReady = false;
+  for (const serverItem of enriched) {
+    const localItem = localById.get(serverItem.id);
+    if (!localItem) continue;
+    const localWasGenerating = localItem.versions.some((v) => v.status === "generating");
+    const serverNowReady = serverItem.versions.some((v) => v.status === "ready");
+    if (localWasGenerating && serverNowReady) {
+      anyNewlyReady = true;
+      break;
+    }
+  }
+  if (anyNewlyReady) {
+    void Haptics.success();
+  }
 
   await db.upsertEpisodes(enriched);
 

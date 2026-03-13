@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
 import { smartTitle } from "../lib/libraryHelpers";
+import { Haptics } from "../lib/haptics";
 
 export default function PlayerBar() {
   const {
@@ -49,7 +50,7 @@ export default function PlayerBar() {
 
         {/* Play / Pause button — separate press handler so it doesn't bubble */}
         <TouchableOpacity
-          onPress={() => void togglePlay()}
+          onPress={() => { void Haptics.light(); void togglePlay(); }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           className="p-1"
         >

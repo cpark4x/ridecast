@@ -18,6 +18,7 @@ import { getUnlistenedItems, libraryItemToPlayable, smartTitle } from "../../lib
 import { showGeneratingToast } from "../../lib/toast";
 import { formatDuration, formatDurationMinutes, timeAgo } from "../../lib/utils";
 import type { LibraryItem, PlayableItem } from "../../lib/types";
+import { Haptics } from "../../lib/haptics";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import SourceIcon from "../../components/SourceIcon";
@@ -276,7 +277,7 @@ export default function HomeScreen() {
             {/* ── Play All button ── */}
             {episodeCount > 0 && (
               <TouchableOpacity
-                onPress={handlePlayAll}
+                onPress={() => { void Haptics.medium(); handlePlayAll(); }}
                 activeOpacity={0.85}
                 className="mx-4 mb-4 bg-brand py-4 rounded-2xl items-center"
               >
@@ -312,7 +313,7 @@ export default function HomeScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        onPress={() => setUploadModalVisible(true)}
+        onPress={() => { void Haptics.medium(); setUploadModalVisible(true); }}
         className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
         style={{ elevation: 6 }}
         accessibilityLabel="Add content"

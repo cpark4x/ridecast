@@ -22,6 +22,7 @@ import { deleteEpisode as apiDeleteEpisode } from "../../lib/api";
 import { syncLibrary } from "../../lib/sync";
 import { showGeneratingToast } from "../../lib/toast";
 import { usePlayer } from "../../lib/usePlayer";
+import { Haptics } from "../../lib/haptics";
 import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
 const FILTERS: { key: LibraryFilter; label: string }[] = [
@@ -105,6 +106,7 @@ export default function LibraryScreen() {
       (v) => v.status === "ready" && v.audioId && v.audioUrl,
     );
     if (!readyVersion || !readyVersion.audioId || !readyVersion.audioUrl) {
+      void Haptics.error();
       showGeneratingToast();
       return;
     }
@@ -210,7 +212,7 @@ export default function LibraryScreen() {
         {FILTERS.map(({ key, label }) => (
           <TouchableOpacity
             key={key}
-            onPress={() => setFilter(key)}
+            onPress={() => { void Haptics.light(); setFilter(key); }}
             className={`px-4 py-1.5 rounded-full ${
               filter === key ? "bg-brand" : "bg-gray-100"
             }`}
@@ -265,7 +267,7 @@ export default function LibraryScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        onPress={() => setUploadModalVisible(true)}
+        onPress={() => { void Haptics.medium(); setUploadModalVisible(true); }}
         className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
         style={{ elevation: 6 }}
         accessibilityLabel="Add content"
