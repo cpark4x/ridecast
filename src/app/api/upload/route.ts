@@ -14,7 +14,8 @@ export async function POST(request: Request) {
     const gate = await requireSubscription(userId);
     if (gate) return gate;
 
-    const rawBody = await request.formData();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawBody: any = await request.formData();
     const file = rawBody.get('file') as File | null;
     const url = rawBody.get('url') as string | null;
 

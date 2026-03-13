@@ -15,7 +15,8 @@ export async function POST(request: Request) {
     const gate = await requireSubscription(userId);
     if (gate) return gate;
 
-    const formData = await request.formData();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formData: any = await request.formData();
     const file = formData.get('file') as File | null;
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });

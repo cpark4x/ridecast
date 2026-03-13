@@ -38,7 +38,9 @@ describe("db", () => {
   describe("getDb", () => {
     it("initializes database and runs migrations", async () => {
       await getDb();
-      expect(mockExecAsync).toHaveBeenCalledTimes(1);
+      // Call 0: main CREATE TABLE statements
+      // Calls 1-5: migrateV2 ALTER TABLE ADD COLUMN for identity fields
+      expect(mockExecAsync).toHaveBeenCalledTimes(6);
       const sql = mockExecAsync.mock.calls[0][0] as string;
       expect(sql).toContain("CREATE TABLE IF NOT EXISTS episodes");
       expect(sql).toContain("CREATE TABLE IF NOT EXISTS playback");

@@ -14,7 +14,7 @@ const mockDownloads = downloads as jest.Mocked<typeof downloads>;
 beforeEach(() => jest.clearAllMocks());
 
 describe("syncLibrary", () => {
-  it("fetches from server, caches in SQLite, returns items", async () => {
+  it("fetches from server, enriches with identity fields, caches in SQLite, returns items", async () => {
     const items = [
       {
         id: "c1",
@@ -32,8 +32,21 @@ describe("syncLibrary", () => {
     const result = await syncLibrary();
 
     expect(mockApi.fetchLibrary).toHaveBeenCalledTimes(1);
-    expect(mockDb.upsertEpisodes).toHaveBeenCalledWith(items);
-    expect(result).toEqual(items);
+    // syncLibrary enriches items with derived identity fields before upserting
+    expect(mockDb.upsertEpisodes).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "c1",
+          title: "Episode 1",
+          sourceIcon: expect.any(String),
+          sourceName: expect.any(String),
+        }),
+      ]),
+    );
+    expect(result[0]).toMatchObject({ id: "c1", title: "Episode 1" });
+    // Enriched fields should be present
+    expect(result[0]).toHaveProperty("sourceIcon");
+    expect(result[0]).toHaveProperty("sourceName");
   });
 
   it("triggers downloads for ready episodes without local files", async () => {
