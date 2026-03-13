@@ -18,10 +18,20 @@ steps:
     command: |
       cd /Users/chrispark/Projects/ridecast2
       python3 << 'PYEOF'
-      import json, yaml
+      import json, os, yaml
 
       SIZE_POINTS = {"S": 1, "M": 2, "L": 3, "XL": 5}
       MAX_SESSION_POINTS = 5
+      # Specs larger than this are loaded alone — never bundled with other features.
+      # A 55KB spec + base files + conversation history easily overflows 200k tokens.
+      MAX_SPEC_SIZE_BYTES = 40_000
+
+      def spec_size(spec_path):
+          """Return file size in bytes, or 0 if missing/unreadable."""
+          try:
+              return os.path.getsize(spec_path) if spec_path else 0
+          except OSError:
+              return 0
 
       try:
           with open(".dev-machine/STATE.yaml") as f:
@@ -47,10 +57,13 @@ steps:
           session_features = []
           session_points = 0
 
-          # 1. Always include in-progress features (already started, must finish)
+          # 1. Always include in-progress features (already started, must finish).
+          #    LARGE-SPEC GUARD: if any in-progress spec exceeds MAX_SPEC_SIZE_BYTES,
+          #    cap the budget immediately so no ready features are appended after it.
           for fid, fd in features.items():
               if fd.get("status") == "in-progress":
                   pts = SIZE_POINTS.get(fd.get("size", "M"), 2)
+                  is_large = spec_size(fd.get("spec", "")) > MAX_SPEC_SIZE_BYTES
                   session_features.append({
                       "id": fid,
                       "spec": fd.get("spec", ""),
@@ -58,13 +71,20 @@ steps:
                       "size": fd.get("size", "M"),
                       "points": pts,
                       "status": "in-progress",
+                      "large_spec": is_large,
                   })
                   session_points += pts
+                  if is_large:
+                      # Consume the entire budget — do not append any ready features.
+                      session_points = MAX_SESSION_POINTS
 
           # 2. Fill remaining budget with ready features whose deps are satisfied.
           #    Preserve declaration order from STATE.yaml.
           #    Use `continue` (not `break`) on budget overflow so a smaller feature
           #    later in the list can still fit if the current one is too big.
+          #    LARGE-SPEC GUARD: a spec > MAX_SPEC_SIZE_BYTES is only scheduled when
+          #    the session is otherwise empty (session_points == 0).  After adding it,
+          #    cap the budget so nothing else gets bundled with it.
           for fid, fd in features.items():
               if fd.get("status") != "ready":
                   continue
@@ -77,6 +97,9 @@ steps:
               ):
                   continue  # dependency not yet satisfied
               pts = SIZE_POINTS.get(fd.get("size", "M"), 2)
+              is_large = spec_size(fd.get("spec", "")) > MAX_SPEC_SIZE_BYTES
+              if is_large and session_points > 0:
+                  continue  # large spec needs a dedicated solo session; skip for now
               if session_points + pts > MAX_SESSION_POINTS:
                   continue  # too big for remaining budget; try next (smaller) feature
               session_features.append({
@@ -86,8 +109,12 @@ steps:
                   "size": fd.get("size", "M"),
                   "points": pts,
                   "status": "ready",
+                  "large_spec": is_large,
               })
               session_points += pts
+              if is_large:
+                  # Solo session for this large spec — cap budget now.
+                  session_points = MAX_SESSION_POINTS
 
           print(json.dumps({
               "phase": state.get("phase", 0),
