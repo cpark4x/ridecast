@@ -291,7 +291,8 @@ features:
 
   # ── Homepage Redesign (7 pts) ──
   homepage-redesign:
-    status: ready
+    status: in-progress
+    started_at: "2026-03-13T04:14:00Z"
     spec: specs/features/phase4/homepage-redesign.md
     description: "Option B visual hybrid — hero now-playing card, episode carousel, rich list"
     size: L
