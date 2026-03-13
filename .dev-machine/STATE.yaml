@@ -160,8 +160,8 @@ recently_shipped:
     '
 phase: 4
 phase_name: phase-4-native-intelligence-polish
-epoch: 15
-next_action: "Continue Phase 4. Next priorities: homepage-redesign (L), library-redesign (L), smart-search (M)."
+epoch: 16
+next_action: "Continue Phase 4. Next priorities: library-redesign (L), smart-search (M), upload-polish (S)."
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -206,6 +206,7 @@ completed_features:
 - library-upload-modal
 - library-process-new-version
 - library-screen-rewrite
+- homepage-redesign
 features:
   # ── Night 1: Critical Fixes + Foundations (8 pts) ──
   delete-episodes:
@@ -291,8 +292,10 @@ features:
 
   # ── Homepage Redesign (7 pts) ──
   homepage-redesign:
-    status: in-progress
+    status: done
     started_at: "2026-03-13T04:14:00Z"
+    completed_at: "2026-03-13T05:04:00Z"
+    commit: d95f316
     spec: specs/features/phase4/homepage-redesign.md
     description: "Option B visual hybrid — hero now-playing card, episode carousel, rich list"
     size: L
@@ -403,12 +406,12 @@ next_steps:
 - step: 1
   task: "Run Night 1 — critical fixes + foundations (8 pts)"
   action: "10 features with status:ready across Night 1 and Night 2. Run iteration.yaml."
-last_session: '2026-03-11'
+last_session: '2026-03-13'
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 43
-  last_updated: '2026-03-11'
-  session_count: 14
+  total_features_completed: 44
+  last_updated: '2026-03-13'
+  session_count: 16
   zero_change_sessions: 0
-  last_session_head: ccfd6fa
+  last_session_head: d95f316
