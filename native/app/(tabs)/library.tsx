@@ -18,6 +18,7 @@ import EpisodeCard from "../../components/EpisodeCard";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import NewVersionSheet from "../../components/NewVersionSheet";
+import { getPrefs, setPrefs } from "../../lib/prefs";
 import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
 import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
@@ -86,6 +87,7 @@ export default function LibraryScreen() {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [newVersionEpisode, setNewVersionEpisode]   = useState<LibraryItem | null>(null);
   const [staleDismissed, setStaleDismissed]         = useState(false);
+  const [showOnboardingHint, setShowOnboardingHint] = useState(false);
 
   const debounceTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadStartRef   = useRef(Date.now());
@@ -96,6 +98,15 @@ export default function LibraryScreen() {
     syncInBackground();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Show first-run onboarding hint when library is empty
+  useEffect(() => {
+    if (!isLoading && episodes.length === 0) {
+      getPrefs().then((p) => {
+        if (!p.hasSeenOnboarding) setShowOnboardingHint(true);
+      }).catch(() => {});
+    }
+  }, [isLoading, episodes.length]);
 
   async function loadLocal() {
     try {
@@ -130,6 +141,11 @@ export default function LibraryScreen() {
     } finally {
       setRefreshing(false);
     }
+  }
+
+  async function dismissOnboardingHint() {
+    setShowOnboardingHint(false);
+    await setPrefs({ hasSeenOnboarding: true }).catch(() => {});
   }
 
   function handleSearchChange(text: string) {
@@ -562,7 +578,7 @@ export default function LibraryScreen() {
 
       {/* ── FAB ──────────────────────────────────────────────────────────── */}
       <TouchableOpacity
-        onPress={() => { void Haptics.medium(); setUploadModalVisible(true); }}
+        onPress={() => { void Haptics.medium(); void dismissOnboardingHint(); setUploadModalVisible(true); }}
         className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
         style={{ elevation: 6 }}
         accessibilityLabel="Add content"
@@ -570,6 +586,28 @@ export default function LibraryScreen() {
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
 
+
+      {/* Onboarding Tooltip */}
+      {showOnboardingHint && (
+        <TouchableOpacity
+          onPress={() => void dismissOnboardingHint()}
+          className="absolute bottom-24 right-4"
+          activeOpacity={0.8}
+        >
+          <View className="bg-gray-900 rounded-2xl px-4 py-3 max-w-52">
+            <Text className="text-sm text-white font-medium">
+              Tap + to add your first episode
+            </Text>
+            <Text className="text-xs text-gray-400 mt-0.5">
+              Paste a URL or upload a file
+            </Text>
+            <View
+              className="absolute -bottom-2 right-6 w-3 h-3 bg-gray-900"
+              style={{ transform: [{ rotate: "45deg" }] }}
+            />
+          </View>
+        </TouchableOpacity>
+      )}
       {/* ── Upload Modal ─────────────────────────────────────────────────── */}
       <UploadModal
         visible={uploadModalVisible}

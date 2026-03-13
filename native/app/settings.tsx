@@ -1,53 +1,38 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
+  Linking,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
-import * as FileSystem from "expo-file-system";
+import * as Notifications from "expo-notifications";
 import { useAuth, useUser } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getStorageInfo, deleteDownloadRecord, getAllEpisodes } from "../lib/db";
+import { getStorageInfo, getAllEpisodes } from "../lib/db";
 import { deleteDownload } from "../lib/downloads";
 import { formatStorageSize, nextSpeed } from "../lib/utils";
+import { getPrefs, setPrefs, DEFAULT_PREFS, type AppPrefs } from "../lib/prefs";
 import { usePlayer } from "../lib/usePlayer";
+import SettingsSection from "../components/settings/SettingsSection";
+import SettingsRow from "../components/settings/SettingsRow";
+import SettingsToggleRow from "../components/settings/SettingsToggleRow";
+import SettingsDivider from "../components/settings/SettingsDivider";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
+const DURATION_OPTIONS = [5, 10, 15, 20, 30];
 const SPEEDS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
-const ELEVENLABS_STORE_KEY = "elevenlabs_api_key";
 const APP_VERSION = "1.0.0";
-
-// ---------------------------------------------------------------------------
-// Section + Row helpers
-// ---------------------------------------------------------------------------
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 mb-2 mt-6">
-      {title}
-    </Text>
-  );
-}
-
-function SettingsCard({ children }: { children: React.ReactNode }) {
-  return (
-    <View className="mx-4 bg-white rounded-xl overflow-hidden border border-gray-100">
-      {children}
-    </View>
-  );
-}
-
-function RowDivider() {
-  return <View className="h-px bg-gray-100 mx-4" />;
-}
+const BUILD_NUMBER = "42";
+const ELEVENLABS_STORE_KEY = "elevenlabs_api_key";
 
 // ---------------------------------------------------------------------------
 // Settings Screen
@@ -59,51 +44,77 @@ export default function SettingsScreen() {
   const { user } = useUser();
   const { speed, setSpeed } = usePlayer();
 
-  // ElevenLabs key state
+  const [prefs, setPrefsState] = useState<AppPrefs>(DEFAULT_PREFS);
+  const [storageCount, setStorageCount] = useState(0);
+  const [storageBytes, setStorageBytes] = useState(0);
+
+  // ElevenLabs key state (inline — no /elevenlabs-key route)
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [keyDirty, setKeyDirty] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
 
-  // Storage state
-  const [storageCount, setStorageCount] = useState(0);
-  const [storageBytes, setStorageBytes] = useState(0);
-
-  // Load stored key + storage info on mount
-  useEffect(() => {
-    SecureStore.getItemAsync(ELEVENLABS_STORE_KEY)
-      .then((val) => {
-        if (val) setElevenLabsKey(val);
-      })
-      .catch(() => {});
-
-    refreshStorageInfo();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getPrefs().then(setPrefsState).catch(() => {});
+      refreshStorageInfo();
+      SecureStore.getItemAsync(ELEVENLABS_STORE_KEY)
+        .then((v) => { if (v) setElevenLabsKey(v); })
+        .catch(() => {});
+    }, []),
+  );
 
   async function refreshStorageInfo() {
     try {
       const info = await getStorageInfo();
       setStorageCount(info.count);
       setStorageBytes(info.totalBytes);
-    } catch {
-      /* ignore */
+    } catch { /* ignore */ }
+  }
+
+  async function updatePref<K extends keyof AppPrefs>(
+    key: K,
+    value: AppPrefs[K],
+  ) {
+    await setPrefs({ [key]: value });
+    setPrefsState((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleDefaultDurationPress() {
+    Alert.alert(
+      "Default Duration",
+      "Select the default episode length",
+      [
+        ...DURATION_OPTIONS.map((min) => ({
+          text: `${min} min${prefs.defaultDuration === min ? " ✓" : ""}`,
+          onPress: () => updatePref("defaultDuration", min),
+        })),
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
+  }
+
+  async function handleNotificationsToggle(enabled: boolean) {
+    if (enabled) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Notifications Disabled",
+          "Enable notifications in Settings to get alerts when episodes finish generating.",
+          [
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+            { text: "Cancel", style: "cancel" },
+          ],
+        );
+        return; // don't flip toggle if system permission denied
+      }
     }
+    await updatePref("notificationsEnabled", enabled);
   }
-
-  // ── Account ──────────────────────────────────────────────────────────────
-
-  async function handleSignOut() {
-    await signOut();
-    router.replace("/sign-in");
-  }
-
-  // ── Playback ─────────────────────────────────────────────────────────────
 
   function handleSpeedCycle() {
     const newSpeed = nextSpeed(speed, SPEEDS);
     setSpeed(newSpeed).catch(() => {});
   }
-
-  // ── ElevenLabs ───────────────────────────────────────────────────────────
 
   async function handleSaveKey() {
     try {
@@ -116,7 +127,10 @@ export default function SettingsScreen() {
     }
   }
 
-  // ── Storage ──────────────────────────────────────────────────────────────
+  async function handleSignOut() {
+    await signOut();
+    router.replace("/sign-in");
+  }
 
   function handleClearDownloads() {
     Alert.alert(
@@ -149,144 +163,167 @@ export default function SettingsScreen() {
 
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || null;
-  const email =
-    user?.primaryEmailAddress?.emailAddress ?? null;
+  const email = user?.primaryEmailAddress?.emailAddress ?? null;
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      contentContainerStyle={{ paddingBottom: 48 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── Account ──────────────────────────────────────────────────── */}
-      <SectionHeader title="Account" />
-      <SettingsCard>
-        {/* User info */}
-        <View className="px-4 py-4 flex-row items-center gap-3">
-          <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center">
-            <Ionicons name="person" size={18} color="#EA580C" />
-          </View>
-          <View className="flex-1">
-            {fullName ? (
-              <Text className="text-base font-semibold text-gray-900">{fullName}</Text>
-            ) : null}
-            {email ? (
-              <Text className="text-sm text-gray-500" numberOfLines={1}>{email}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        <RowDivider />
-
-        {/* Sign out */}
+    <SafeAreaView className="flex-1 bg-gray-50">
+      {/* Header with back button */}
+      <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
         <TouchableOpacity
-          onPress={handleSignOut}
-          className="px-4 py-4 flex-row items-center justify-between"
+          onPress={() => router.back()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="mr-3"
         >
-          <Text className="text-base text-red-500 font-medium">Sign Out</Text>
-          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+          <Ionicons name="chevron-back" size={24} color="#374151" />
         </TouchableOpacity>
-      </SettingsCard>
+        <Text className="text-xl font-bold text-gray-900">Settings</Text>
+      </View>
 
-      {/* ── Playback ─────────────────────────────────────────────────── */}
-      <SectionHeader title="Playback" />
-      <SettingsCard>
-        <TouchableOpacity
-          onPress={handleSpeedCycle}
-          className="px-4 py-4 flex-row items-center justify-between"
-        >
-          <View>
-            <Text className="text-base font-medium text-gray-900">Playback Speed</Text>
-            <Text className="text-xs text-gray-500 mt-0.5">Tap to cycle through speeds</Text>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 48 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Account ──────────────────────────────────────── */}
+        <SettingsSection title="Account">
+          <View className="px-4 py-4 flex-row items-center gap-3">
+            <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center">
+              <Ionicons name="person" size={18} color="#EA580C" />
+            </View>
+            <View className="flex-1">
+              {fullName ? (
+                <Text className="text-base font-semibold text-gray-900">{fullName}</Text>
+              ) : null}
+              {email ? (
+                <Text className="text-sm text-gray-500" numberOfLines={1}>{email}</Text>
+              ) : null}
+            </View>
           </View>
-          <View className="bg-orange-100 px-3 py-1 rounded-full">
-            <Text className="text-sm font-bold text-brand">{speed.toFixed(2)}x</Text>
-          </View>
-        </TouchableOpacity>
-      </SettingsCard>
-
-      {/* ── ElevenLabs ───────────────────────────────────────────────── */}
-      <SectionHeader title="ElevenLabs" />
-      <SettingsCard>
-        <View className="px-4 pt-4 pb-3">
-          <Text className="text-base font-medium text-gray-900 mb-1">API Key</Text>
-          <Text className="text-xs text-gray-500 mb-3">
-            Optional. Enables premium voice quality for your episodes.
-          </Text>
-          <TextInput
-            className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
-            placeholder="sk-..."
-            placeholderTextColor="#9CA3AF"
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={elevenLabsKey}
-            onChangeText={(v) => {
-              setElevenLabsKey(v);
-              setKeyDirty(true);
-              setKeySaved(false);
-            }}
-          />
-          <TouchableOpacity
-            onPress={handleSaveKey}
-            disabled={!keyDirty}
-            className={`mt-3 py-2.5 rounded-xl items-center ${
-              keyDirty ? "bg-brand" : "bg-gray-200"
-            }`}
+          <SettingsDivider />
+          <SettingsRow
+            label="Sign Out"
+            onPress={handleSignOut}
+            destructive
           >
-            <Text
-              className={`text-sm font-semibold ${
-                keyDirty ? "text-white" : "text-gray-400"
+            <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* ── Playback ─────────────────────────────────────── */}
+        <SettingsSection title="Playback">
+          <SettingsRow
+            label="Default Duration"
+            subtitle="Pre-selected length when creating an episode"
+            onPress={handleDefaultDurationPress}
+            rightLabel={`${prefs.defaultDuration} min`}
+          />
+          <SettingsDivider />
+          <SettingsToggleRow
+            label="Haptic Feedback"
+            subtitle="Vibrations on button taps and completions"
+            value={prefs.hapticsEnabled}
+            onChange={(v) => updatePref("hapticsEnabled", v)}
+          />
+          <SettingsDivider />
+          <SettingsRow
+            label="Playback Speed"
+            subtitle="Tap to cycle through speeds"
+            onPress={handleSpeedCycle}
+          >
+            <View className="bg-orange-100 px-3 py-1 rounded-full">
+              <Text className="text-sm font-bold text-brand">{speed.toFixed(2)}x</Text>
+            </View>
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* ── Notifications ──────────────────────────────────── */}
+        <SettingsSection title="Notifications">
+          <SettingsToggleRow
+            label="Episode Ready"
+            subtitle="Notify when an episode finishes generating"
+            value={prefs.notificationsEnabled}
+            onChange={handleNotificationsToggle}
+          />
+        </SettingsSection>
+
+        {/* ── ElevenLabs ────────────────────────────────────── */}
+        <SettingsSection title="ElevenLabs">
+          <View className="px-4 pt-4 pb-3">
+            <Text className="text-base font-medium text-gray-900 mb-1">API Key</Text>
+            <Text className="text-xs text-gray-500 mb-3">
+              Optional. Enables premium voice quality for your episodes.
+            </Text>
+            <TextInput
+              className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
+              placeholder="sk-..."
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={elevenLabsKey}
+              onChangeText={(v) => {
+                setElevenLabsKey(v);
+                setKeyDirty(true);
+                setKeySaved(false);
+              }}
+            />
+            <TouchableOpacity
+              onPress={handleSaveKey}
+              disabled={!keyDirty}
+              className={`mt-3 py-2.5 rounded-xl items-center ${
+                keyDirty ? "bg-brand" : "bg-gray-200"
               }`}
             >
-              {keySaved ? "Saved ✓" : "Save Key"}
+              <Text
+                className={`text-sm font-semibold ${
+                  keyDirty ? "text-white" : "text-gray-400"
+                }`}
+              >
+                {keySaved ? "Saved ✓" : "Save Key"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SettingsSection>
+
+        {/* ── Storage ───────────────────────────────────────── */}
+        <SettingsSection title="Storage">
+          <View className="px-4 py-4 flex-row items-center justify-between">
+            <Text className="text-base font-medium text-gray-900">
+              Downloaded Episodes
             </Text>
-          </TouchableOpacity>
-        </View>
-      </SettingsCard>
-
-      {/* ── Storage ──────────────────────────────────────────────────── */}
-      <SectionHeader title="Storage" />
-      <SettingsCard>
-        {/* Storage info row */}
-        <View className="px-4 py-4 flex-row items-center justify-between">
-          <Text className="text-base font-medium text-gray-900">Downloaded Episodes</Text>
-          <Text className="text-sm text-gray-500">
-            {storageCount} episode{storageCount !== 1 ? "s" : ""} · {formatStorageSize(storageBytes)}
-          </Text>
-        </View>
-
-        <RowDivider />
-
-        {/* Clear downloads */}
-        <TouchableOpacity
-          onPress={handleClearDownloads}
-          disabled={storageCount === 0}
-          className="px-4 py-4 flex-row items-center justify-between"
-        >
-          <Text
-            className={`text-base font-medium ${
-              storageCount === 0 ? "text-gray-400" : "text-red-500"
-            }`}
+            <Text className="text-sm text-gray-500">
+              {storageCount} file{storageCount !== 1 ? "s" : ""} ·{" "}
+              {formatStorageSize(storageBytes)}
+            </Text>
+          </View>
+          <SettingsDivider />
+          <SettingsRow
+            label="Clear Downloads"
+            onPress={handleClearDownloads}
+            destructive
+            disabled={storageCount === 0}
           >
-            Clear Downloads
-          </Text>
-          <Ionicons
-            name="trash-outline"
-            size={18}
-            color={storageCount === 0 ? "#D1D5DB" : "#EF4444"}
-          />
-        </TouchableOpacity>
-      </SettingsCard>
+            <Ionicons
+              name="trash-outline"
+              size={18}
+              color={storageCount === 0 ? "#D1D5DB" : "#EF4444"}
+            />
+          </SettingsRow>
+        </SettingsSection>
 
-      {/* ── About ────────────────────────────────────────────────────── */}
-      <SectionHeader title="About" />
-      <SettingsCard>
-        <View className="px-4 py-4 flex-row items-center justify-between">
-          <Text className="text-base font-medium text-gray-900">Ridecast</Text>
-          <Text className="text-sm text-gray-500">v{APP_VERSION}</Text>
-        </View>
-      </SettingsCard>
-    </ScrollView>
+        {/* ── About ─────────────────────────────────────────── */}
+        <SettingsSection title="About">
+          <SettingsRow
+            label="Ridecast"
+            rightLabel={`v${APP_VERSION} (${BUILD_NUMBER})`}
+          />
+          <SettingsDivider />
+          <SettingsRow
+            label="Privacy Policy"
+            onPress={() => Linking.openURL("https://ridecast.app/privacy")}
+          />
+        </SettingsSection>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

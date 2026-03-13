@@ -26,7 +26,7 @@
     "moduleNameMapper": {
       "^expo/src/winter$": "<rootDir>/__mocks__/expo-winter-runtime.js",
       "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expo-import-meta-registry.js",
-      "^\\.\/ImportMetaRegistry$": "<rootDir>/__mocks__/expo-import-meta-registry.js",
+      "^\\./ImportMetaRegistry$": "<rootDir>/__mocks__/expo-import-meta-registry.js",
       "expo/src/winter/runtime(\\.native)?$": "<rootDir>/__mocks__/expo-winter-runtime.js",
       "^@g4rb4g3/react-native-carplay$": "<rootDir>/__mocks__/@g4rb4g3/react-native-carplay.js"
     }
@@ -34,6 +34,7 @@
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.31",
     "@gorhom/bottom-sheet": "^5.2.8",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.5.2",
     "@react-native-community/slider": "5.1.2",
     "@react-navigation/native": "^7.1.28",
@@ -48,6 +49,7 @@
     "expo-haptics": "~55.0.8",
     "expo-linear-gradient": "~55.0.8",
     "expo-linking": "~55.0.7",
+    "expo-notifications": "~55.0.12",
     "expo-router": "~55.0.5",
     "expo-secure-store": "~55.0.8",
     "expo-splash-screen": "~55.0.10",

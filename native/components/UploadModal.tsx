@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { uploadFile, uploadUrl } from "../lib/api";
 import { DURATION_PRESETS } from "../lib/constants";
+import { getPrefs } from "../lib/prefs";
 import type { UploadResponse } from "../lib/types";
 import { estimateReadingTime } from "../lib/utils";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
