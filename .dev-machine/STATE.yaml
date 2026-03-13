@@ -285,7 +285,9 @@ features:
     description: "Default library filter to Active (unlistened + in-progress), not All"
     size: S
   native-jest-fix:
-    status: ready
+    status: done
+    started_at: "2026-03-13T09:46:00Z"
+    completed_at: "2026-03-13T10:46:00Z"
     spec: specs/features/phase4/native-jest-fix.md
     description: "Fix native Jest environment — all 31 suites fail with ExpoImportMetaRegistry error"
     size: S
