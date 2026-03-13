@@ -21,7 +21,7 @@ steps:
       import json, yaml
 
       SIZE_POINTS = {"S": 1, "M": 2, "L": 3, "XL": 5}
-      MAX_SESSION_POINTS = 8
+      MAX_SESSION_POINTS = 5
 
       try:
           with open(".dev-machine/STATE.yaml") as f:
@@ -167,27 +167,32 @@ steps:
     on_error: continue
 
   # ---------------------------------------------------------------------------
-  # Step 1.4: API inventory — scan for public types, write to SCRATCH.md
+  # Step 1.4: API inventory — scan for public types, write to API-INVENTORY.md
+  # NOTE: Writes to a SEPARATE file (not SCRATCH.md) and OVERWRITES each run.
+  #       SCRATCH.md is for human notes only. API-INVENTORY.md is machine-generated.
   # ---------------------------------------------------------------------------
   - id: "api-inventory"
     type: "bash"
     command: |
       cd /Users/chrispark/Projects/ridecast2
       echo "=== API INVENTORY ==="
-      SCRATCH_FILE=".dev-machine/SCRATCH.md"
+      INV_FILE=".dev-machine/API-INVENTORY.md"
       {
+        echo "# API Inventory"
         echo ""
-        echo "## API Inventory (auto-generated $(date -u '+%Y-%m-%d %H:%M UTC'))"
+        echo "> Auto-generated $(date -u '+%Y-%m-%d %H:%M UTC') — overwritten each session. Do not edit."
         echo ""
-        echo "### TypeScript / JavaScript public exports"
+        echo "## TypeScript / JavaScript public exports"
+        echo ""
         grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
             -E "^export (default )?(interface|type|class|function|async function|const|enum|abstract class)" \
             --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git --exclude-dir=.next --exclude-dir=build \
+            --exclude-dir=.worktrees \
             . 2>/dev/null | head -80 || echo "(none found)"
         echo ""
         echo "---"
-      } >> "$SCRATCH_FILE"
-      echo "API inventory appended to $SCRATCH_FILE"
+      } > "$INV_FILE"
+      echo "API inventory written to $INV_FILE (overwritten, not appended)"
     output: "api_inventory_result"
     on_error: continue
 
@@ -272,54 +277,62 @@ steps:
       You are a WORKING SESSION of the ridecast2 development machine.
       You start with ZERO prior context. Your job: read state, do work, persist state, exit.
 
+      ## CONTEXT BUDGET WARNING
+      The context window is limited. To stay within budget:
+      - Read ONLY the files listed below at startup — nothing else upfront.
+      - Read feature specs LAZILY: read each spec file only when you are about to start
+        that feature, NOT all at once at the beginning.
+      - Do NOT read SCRATCH.md, content-pipeline.md, or any spec not in your work list.
+
       START BY READING THESE FILES (in this order):
       1. .dev-machine/STATE.yaml — current phase, what's done, what's next
       2. .dev-machine/CONTEXT-TRANSFER.md — recent decisions and handoff context
       3. .dev-machine/working-session-instructions.md — your detailed operating procedure
-      4. .dev-machine/SCRATCH.md — API inventory and working notes
+      4. specs/architecture.md — the overall architecture (always read this)
 
-      THEN READ THE RELEVANT SPECS:
-      5. specs/architecture.md — the overall architecture (always read this)
-      6. specs/modules/content-pipeline.md — interface contracts
-      7. ONLY the spec files listed in `session_features` from the orient step output above.
-         Each entry has an "id", "spec" path, "size", and "status". Read those files and
-         NO others. Do NOT scan STATE.yaml for all ready features and load them all —
-         there may be 20-30 ready specs and loading them all will exceed the context limit.
+      DO NOT read any spec files yet. See LAZY SPEC LOADING below.
 
       ## Platform Grounding (MANDATORY before writing any code)
 
       Before writing ANY code that uses project-internal APIs, types, or interfaces:
-      1. **Enumerate actual types/interfaces**: Read source files or SCRATCH.md API inventory
-         to find what actually exists. DO NOT rely on your training data.
+      1. **Enumerate actual types/interfaces**: Read .dev-machine/API-INVENTORY.md to find
+         what actually exists. DO NOT rely on your training data or invent APIs.
       2. **Map each requirement to an existing type**: For each feature requirement, identify the
          actual type/API you will call. Write this mapping as a comment before coding.
       3. **If a requirement cannot be mapped to an existing type**: Do NOT invent an API.
          Add a blocker to .dev-machine/STATE.yaml and stop.
 
-      YOUR MISSION THIS SESSION:
-      - Your work list is already computed: see `session_features` in the orient step output
-        above. Work those features in the order listed. Do NOT re-scan STATE.yaml for
-        additional ready features — orient has already applied the 8-point budget cap.
-      - For each piece of work:
-        * Update STATE.yaml to mark it in-progress with timestamp
-        * Apply Platform Grounding — enumerate actual APIs before writing code
-        * Write failing tests first (TDD)
-        * Implement minimal code to pass tests
-        * Run: npm run test
-        * Run: npm run build
-        * BOTH must pass before proceeding.
-        * Verify integration: confirm features are reachable through actual entry
-          points, and that no stub/mock implementations remain in production paths.
-        * Spawn a fresh sub-agent for antagonistic review (give it the spec + your diff)
-        * Fix any review issues found
-        * Commit: feat(<scope>): <description>
-        * Update STATE.yaml to mark it done with commit hash
-      - Update CONTEXT-TRANSFER.md with decisions made and work completed
+      ## LAZY SPEC LOADING (CRITICAL — saves context budget)
+
+      Your work list is in `session_features` from the orient step output above.
+      Orient has already applied the 5-point budget cap — do NOT re-scan STATE.yaml.
+
+      For each feature in `session_features`, work in this order:
+        1. READ that feature's spec file (the "spec" path in session_features).
+           Do this JUST BEFORE starting work on it — not before.
+        2. Update STATE.yaml to mark it in-progress with timestamp.
+        3. Apply Platform Grounding — read API-INVENTORY.md, enumerate actual APIs.
+        4. Write failing tests first (TDD).
+        5. Implement minimal code to pass tests.
+        6. Run: npm run test
+        7. Run: npm run build
+        8. BOTH must pass before proceeding.
+        9. Verify integration: confirm features are reachable through actual entry
+           points, and that no stub/mock implementations remain in production paths.
+        10. Spawn a fresh sub-agent for antagonistic review (give it the spec + your diff).
+        11. Fix any review issues found.
+        12. Commit: feat(<scope>): <description>
+        13. Update STATE.yaml to mark it done with commit hash.
+        THEN move to the next feature and read its spec.
+
+      - Update CONTEXT-TRANSFER.md with decisions made and work completed.
 
       ## Important: Files are Factored (Do NOT Read Archives)
 
       STATE.yaml and CONTEXT-TRANSFER.md are kept slim (~300 lines each).
       - Do NOT read FEATURE-ARCHIVE.yaml or SESSION-ARCHIVE.md — they are append-only archives.
+      - Do NOT read SCRATCH.md — it contains outdated human notes, not machine state.
+      - API-INVENTORY.md is the authoritative source for current public exports.
 
       IF BLOCKED: add blocker to STATE.yaml blockers list, update CONTEXT-TRANSFER.md, stop.
       IF DEGRADATION DETECTED (repeating yourself, losing coherence): commit work, update state, stop.

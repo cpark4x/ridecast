@@ -251,18 +251,25 @@ features:
 
   # ── Night 2: Polish + Pocket (7 pts) ──
   haptic-feedback:
-    status: ready
+    status: done
+    started_at: "2026-03-12T18:30:00Z"
+    completed_at: "2026-03-12T18:35:00Z"
+    commit: b8371fa
     spec: specs/features/phase4/haptic-feedback.md
     description: "expo-haptics throughout the app — light/medium/error on all touch points"
     size: S
   player-bar-upgrade:
-    status: ready
+    status: done
+    started_at: "2026-03-12T18:36:00Z"
+    completed_at: "2026-03-12T18:38:00Z"
+    commit: 89ded0e
     spec: specs/features/phase4/player-bar-upgrade.md
     description: "Add SourceIcon, source name, and time remaining to mini player"
     size: S
     depends_on: [episode-identity]
   skeleton-loading:
-    status: ready
+    status: in-progress
+    started_at: "2026-03-12T18:39:00Z"
     spec: specs/features/phase4/skeleton-loading.md
     description: "Shimmer loading states for home and library on cold launch"
     size: S
