@@ -338,7 +338,10 @@ features:
     size: L
     depends_on: [episode-card-redesign, active-filter-default]
   smart-search:
-    status: ready
+    status: done
+    started_at: "2026-03-13T12:30:00Z"
+    completed_at: "2026-03-13T13:10:00Z"
+    commit: 0a6b63d
     spec: specs/features/phase4/smart-search.md
     description: "Search across title, author, source, themes, summary — not just title/author"
     size: M
@@ -422,7 +425,7 @@ last_session: '2026-03-13'
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 45
+  total_features_completed: 46
   last_updated: '2026-03-13'
   session_count: 17
   zero_change_sessions: 0
