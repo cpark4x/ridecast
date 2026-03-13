@@ -16,8 +16,11 @@ import EpisodeCard from "../../components/EpisodeCard";
 import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import NewVersionSheet from "../../components/NewVersionSheet";
+import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
+import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
+import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
 import SkeletonList from "../../components/SkeletonList";
-import { filterEpisodes } from "../../lib/libraryHelpers";
+import { filterEpisodes, getLibraryContext, getTopSourceDomain } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes, deleteEpisode as dbDeleteEpisode } from "../../lib/db";
 import { deleteEpisode as apiDeleteEpisode } from "../../lib/api";
 import { syncLibrary } from "../../lib/sync";
@@ -45,6 +48,7 @@ export default function LibraryScreen() {
   const [isLoading, setIsLoading]                 = useState(true);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [newVersionEpisode, setNewVersionEpisode] = useState<LibraryItem | null>(null);
+  const [staleDismissed, setStaleDismissed]       = useState(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadStartRef = useRef(Date.now());
@@ -185,6 +189,31 @@ export default function LibraryScreen() {
 
   const filtered = filterEpisodes(episodes, filter);
 
+  // Empty-state context detection (use unfiltered episodes)
+  const context = getLibraryContext(episodes);
+
+  const computedStats = {
+    episodeCount: episodes.filter(
+      (item) => item.versions.length > 0 && item.versions.every((v) => v.completed),
+    ).length,
+    totalHours:
+      episodes.reduce((acc, item) => {
+        const secsCompleted = item.versions
+          .filter((v) => v.completed)
+          .reduce((s, v) => s + (v.durationSecs ?? 0), 0);
+        return acc + secsCompleted;
+      }, 0) / 3600,
+  };
+
+  const topSourceDomain = getTopSourceDomain(episodes);
+
+  const newestMs = episodes.length > 0
+    ? episodes.reduce((max, item) => Math.max(max, new Date(item.createdAt).getTime()), 0)
+    : 0;
+  const daysSinceNewest = newestMs > 0
+    ? Math.floor((Date.now() - newestMs) / (24 * 60 * 60 * 1000))
+    : 0;
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
@@ -239,6 +268,16 @@ export default function LibraryScreen() {
         ))}
       </ScrollView>
 
+      {/* Stale nudge — appears above episodes when content is stale */}
+      {context === "stale" && !staleDismissed && !isLoading && (
+        <StaleLibraryNudge
+          daysSinceNewest={daysSinceNewest}
+          topSourceDomain={topSourceDomain}
+          onDismiss={() => setStaleDismissed(true)}
+          onAddNew={() => setUploadModalVisible(true)}
+        />
+      )}
+
       {/* Episode list — skeleton during cold launch, real list after */}
       {isLoading ? (
         <SkeletonList count={5} />
@@ -261,19 +300,28 @@ export default function LibraryScreen() {
           refreshing={refreshing}
           onRefresh={handleRefresh}
           ListEmptyComponent={
-            episodes.length === 0 ? (
+            filtered.length === 0 && episodes.length > 0 ? (
+              <EmptyState
+                icon="search"
+                title="No matches"
+                subtitle="Try a different search or filter"
+              />
+            ) : context === "new_user" ? (
+              <NewUserEmptyState
+                onCreateEpisode={() => setUploadModalVisible(true)}
+              />
+            ) : context === "all_caught_up" ? (
+              <AllCaughtUpEmptyState
+                stats={computedStats}
+                onAddNew={() => setUploadModalVisible(true)}
+              />
+            ) : (
               <EmptyState
                 icon="library-outline"
                 title="No episodes yet"
                 subtitle="Paste a URL or upload a file to get started"
                 actionLabel="Create Episode"
                 onAction={() => setUploadModalVisible(true)}
-              />
-            ) : (
-              <EmptyState
-                icon="search"
-                title="No matches"
-                subtitle="Try a different search or filter"
               />
             )
           }

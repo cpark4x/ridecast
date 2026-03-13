@@ -215,3 +215,54 @@ export function smartTitle(
 
   return title || rawTitle; // never return empty string
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty-state context detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type LibraryContext =
+  | "new_user"      // no episodes at all (ever)
+  | "all_caught_up" // every episode's every version is completed
+  | "stale"         // has active episodes but newest createdAt > 7 days ago
+  | "normal";       // active content, nothing special
+
+/**
+ * Classify the user's library into one of four contexts.
+ * Used to pick the correct empty state or nudge card.
+ */
+export function getLibraryContext(items: LibraryItem[]): LibraryContext {
+  if (items.length === 0) return "new_user";
+
+  const allCompleted = items.every(
+    (item) => item.versions.length > 0 && item.versions.every((v) => v.completed),
+  );
+  if (allCompleted) return "all_caught_up";
+
+  const newestMs = items
+    .map((i) => new Date(i.createdAt).getTime())
+    .reduce((a, b) => Math.max(a, b), 0);
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  if (newestMs < sevenDaysAgo) return "stale";
+
+  return "normal";
+}
+
+/**
+ * Return the most-frequently-occurring source domain in the library.
+ * Used by StaleLibraryNudge to suggest a source the user already knows.
+ * Returns null if no items have a sourceUrl.
+ */
+export function getTopSourceDomain(items: LibraryItem[]): string | null {
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    if (!item.sourceUrl) continue;
+    try {
+      const domain = new URL(item.sourceUrl).hostname.replace(/^www\./, "");
+      counts[domain] = (counts[domain] ?? 0) + 1;
+    } catch {
+      // skip malformed URLs
+    }
+  }
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return top?.[0] ?? null;
+}

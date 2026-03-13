@@ -14,7 +14,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { usePlayer } from "../../lib/usePlayer";
 import { getAllEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
-import { getUnlistenedItems, libraryItemToPlayable, smartTitle } from "../../lib/libraryHelpers";
+import { getUnlistenedItems, libraryItemToPlayable, smartTitle, getLibraryContext, getTopSourceDomain } from "../../lib/libraryHelpers";
 import { showGeneratingToast } from "../../lib/toast";
 import { formatDuration, formatDurationMinutes, timeAgo } from "../../lib/utils";
 import type { LibraryItem, PlayableItem } from "../../lib/types";
@@ -23,6 +23,9 @@ import UploadModal from "../../components/UploadModal";
 import EmptyState from "../../components/EmptyState";
 import SourceIcon from "../../components/SourceIcon";
 import SkeletonList from "../../components/SkeletonList";
+import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
+import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
+import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -166,6 +169,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing]                 = useState(false);
   const [isLoading, setIsLoading]                   = useState(true);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [staleDismissed, setStaleDismissed]         = useState(false);
 
   const loadStartRef = useRef(Date.now());
 
@@ -226,6 +230,31 @@ export default function HomeScreen() {
   const totalDurationSecs = upNextPairs.reduce((acc, { playable }) => acc + playable.duration, 0);
   const episodeCount      = upNextPairs.length;
 
+  // Empty-state context detection
+  const context = getLibraryContext(episodes);
+
+  const computedStats = {
+    episodeCount: episodes.filter(
+      (item) => item.versions.length > 0 && item.versions.every((v) => v.completed),
+    ).length,
+    totalHours:
+      episodes.reduce((acc, item) => {
+        const secsCompleted = item.versions
+          .filter((v) => v.completed)
+          .reduce((s, v) => s + (v.durationSecs ?? 0), 0);
+        return acc + secsCompleted;
+      }, 0) / 3600,
+  };
+
+  const topSourceDomain = getTopSourceDomain(episodes);
+
+  const newestMs = episodes.length > 0
+    ? episodes.reduce((max, item) => Math.max(max, new Date(item.createdAt).getTime()), 0)
+    : 0;
+  const daysSinceNewest = newestMs > 0
+    ? Math.floor((Date.now() - newestMs) / (24 * 60 * 60 * 1000))
+    : 0;
+
   function handlePlayAll() {
     const playables = upNextPairs.map(({ playable }) => playable);
     if (playables.length === 0) return;
@@ -257,6 +286,16 @@ export default function HomeScreen() {
         contentContainerClassName="pb-32"
         ListHeaderComponent={
           <>
+            {/* Stale nudge — appears above the episode list when content is stale */}
+            {context === "stale" && !staleDismissed && (
+              <StaleLibraryNudge
+                daysSinceNewest={daysSinceNewest}
+                topSourceDomain={topSourceDomain}
+                onDismiss={() => setStaleDismissed(true)}
+                onAddNew={() => setUploadModalVisible(true)}
+              />
+            )}
+
             {/* ── Header row ── */}
             <View className="flex-row items-start justify-between px-4 pt-3 pb-4">
               <View className="flex-1">
@@ -313,13 +352,24 @@ export default function HomeScreen() {
           <UpNextCard item={item} playable={playable} onPlay={handlePlayItem} />
         )}
         ListEmptyComponent={
-          <EmptyState
-            icon="headset"
-            title="Your Daily Drive is empty"
-            subtitle="Upload an article or URL to create your first episode"
-            actionLabel="Create Episode"
-            onAction={() => setUploadModalVisible(true)}
-          />
+          context === "new_user" ? (
+            <NewUserEmptyState
+              onCreateEpisode={() => setUploadModalVisible(true)}
+            />
+          ) : context === "all_caught_up" ? (
+            <AllCaughtUpEmptyState
+              stats={computedStats}
+              onAddNew={() => setUploadModalVisible(true)}
+            />
+          ) : (
+            <EmptyState
+              icon="headset"
+              title="Your Daily Drive is empty"
+              subtitle="Upload an article or URL to create your first episode"
+              actionLabel="Create Episode"
+              onAction={() => setUploadModalVisible(true)}
+            />
+          )
         }
       />
 
