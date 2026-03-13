@@ -24,7 +24,7 @@ function ConfettiParticle({ color, offsetX, offsetY, delay, size = 6 }: Confetti
   const opacity    = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
         Animated.parallel([
@@ -52,7 +52,9 @@ function ConfettiParticle({ color, offsetX, offsetY, delay, size = 6 }: Confetti
           Animated.timing(opacity,    { toValue: 0, duration: 0, useNativeDriver: true }),
         ]),
       ]),
-    ).start();
+    );
+    loop.start();
+    return () => loop.stop();
   }, [translateY, opacity, delay]);
 
   return (

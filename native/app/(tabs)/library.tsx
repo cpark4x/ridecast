@@ -312,7 +312,7 @@ export default function LibraryScreen() {
           refreshing={refreshing}
           onRefresh={handleRefresh}
           ListEmptyComponent={
-            filtered.length === 0 && episodes.length > 0 ? (
+            searchQuery.trim() || (filtered.length === 0 && episodes.length > 0) ? (
               <EmptyState
                 icon="search"
                 title="No matches"
