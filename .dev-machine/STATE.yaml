@@ -161,7 +161,7 @@ recently_shipped:
 phase: 4
 phase_name: phase-4-native-intelligence-polish
 epoch: 16
-next_action: "Continue Phase 4. Next priorities: library-redesign (L), smart-search (M), upload-polish (S)."
+next_action: "Phase 4 final batch. Queue: native-jest-fix (S), library-redesign (L solo), smart-search (M), settings-onboarding-polish (S), minor-ux-polish (S), app-infrastructure (M). Deferred: pocket-refugee-capture, source-author-following, platform expansion."
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -284,8 +284,14 @@ features:
     spec: specs/features/phase4/active-filter-default.md
     description: "Default library filter to Active (unlistened + in-progress), not All"
     size: S
-  pocket-refugee-capture:
+  native-jest-fix:
     status: ready
+    spec: specs/features/phase4/native-jest-fix.md
+    description: "Fix native Jest environment — all 31 suites fail with ExpoImportMetaRegistry error"
+    size: S
+
+  pocket-refugee-capture:
+    status: deferred
     spec: specs/features/phase3/pocket-refugee-capture.md
     description: "Pocket import, bookmarklet, marketing landing page — time-sensitive (Pocket shuts down July 2025)"
     size: M
@@ -358,7 +364,7 @@ features:
 
   # ── Night 5: Following & Discovery (8 pts) ──
   source-author-following:
-    status: ready
+    status: deferred
     spec: specs/features/phase4/source-author-following.md
     description: "Follow sources and authors — source/author cards, following filter"
     size: L
@@ -381,22 +387,22 @@ features:
 
   # ── Night 6+: Platform Expansion ──
   content-type-expansion:
-    status: ready
+    status: deferred
     spec: specs/features/phase4/content-type-expansion.md
     description: "Support .docx, Google Docs, Notion, GitHub, Markdown"
     size: M
   generic-url-handling:
-    status: ready
+    status: deferred
     spec: specs/features/phase4/generic-url-handling.md
     description: "Homepage detection, article extraction, multi-select picker"
     size: M
   browser-extension:
-    status: ready
+    status: deferred
     spec: specs/features/phase4/browser-extension.md
     description: "Chrome extension — right-click any article, send to Ridecast"
     size: L
   ios-share-extension:
-    status: ready
+    status: deferred
     spec: specs/features/phase4/ios-share-extension.md
     description: "iOS Share Extension — share from Safari or any app to Ridecast"
     size: M
