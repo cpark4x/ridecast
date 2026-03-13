@@ -2,6 +2,13 @@
 
 Canonical interactive mockups organized by app area. Each HTML file is self-contained and opens directly in a browser.
 
+## Adding New Screens
+
+1. Place the HTML file in the matching app area folder (e.g. `home/`, `library/`, `player/`)
+2. If no folder exists for the area, create one and add a section to this README
+3. Add a row to the table in the matching section below
+4. If the new screen supersedes an existing one, move the old file to `archive/` and log it in the Archive table with a reason
+
 ## Screens
 
 ### Home
