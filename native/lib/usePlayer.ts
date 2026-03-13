@@ -96,6 +96,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Sleep timer handle
   const sleepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup sleep timer on unmount (prevents setState on unmounted component)
+  useEffect(() => {
+    return () => {
+      if (sleepTimeoutRef.current) {
+        clearTimeout(sleepTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const isPlaying =
     playbackState.state === State.Playing ||
     playbackState.state === State.Buffering;

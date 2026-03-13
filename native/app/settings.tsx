@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import {
   Alert,
   Linking,
@@ -38,7 +39,7 @@ const ELEVENLABS_STORE_KEY = "elevenlabs_api_key";
 // Settings Screen
 // ---------------------------------------------------------------------------
 
-export default function SettingsScreen() {
+function SettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const { user } = useUser();
@@ -325,5 +326,13 @@ export default function SettingsScreen() {
         </SettingsSection>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+export default function SettingsScreenWrapper() {
+  return (
+    <ErrorBoundary fallbackTitle="Settings unavailable">
+      <SettingsScreen />
+    </ErrorBoundary>
   );
 }

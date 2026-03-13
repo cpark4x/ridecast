@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
@@ -22,6 +23,7 @@ import { getPrefs, setPrefs } from "../../lib/prefs";
 import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
 import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 import SkeletonList from "../../components/SkeletonList";
 import {
   filterEpisodes,
@@ -72,7 +74,7 @@ function domainFromItem(item: LibraryItem): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function LibraryScreen() {
+function LibraryScreen() {
   const router = useRouter();
   const player = usePlayer();
 
@@ -91,6 +93,8 @@ export default function LibraryScreen() {
 
   const debounceTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadStartRef   = useRef(Date.now());
+  const listRef        = useRef<SectionList<LibraryItem>>(null);
+  useScrollToTop(listRef);
 
   // Load from SQLite on mount, then sync in background
   useEffect(() => {
@@ -623,5 +627,13 @@ export default function LibraryScreen() {
         />
       ) : null}
     </SafeAreaView>
+  );
+}
+
+export default function LibraryScreenWrapper() {
+  return (
+    <ErrorBoundary fallbackTitle="Library unavailable">
+      <LibraryScreen />
+    </ErrorBoundary>
   );
 }

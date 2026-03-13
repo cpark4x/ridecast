@@ -1,6 +1,6 @@
 // native/app/(tabs)/index.tsx — homepage-redesign: ScrollView layout with new components
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@clerk/clerk-expo";
 
@@ -34,12 +35,13 @@ import UploadModal from "../../components/UploadModal";
 import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
 import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeScreen
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function HomeScreen() {
+function HomeScreen() {
   const player     = usePlayer();
   const { user }   = useUser();
 
@@ -48,6 +50,9 @@ export default function HomeScreen() {
   const [uploadModalVisible, setUploadModalVisible]  = useState(false);
   const [isLoading,          setIsLoading]           = useState(true);
   const [staleDismissed,     setStaleDismissed]      = useState(false);
+
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
 
   const firstName = user?.firstName ?? null;
 
@@ -182,6 +187,8 @@ export default function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView
+        ref={scrollRef}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
@@ -294,5 +301,13 @@ export default function HomeScreen() {
         onDismiss={() => setUploadModalVisible(false)}
       />
     </SafeAreaView>
+  );
+}
+
+export default function HomeScreenWrapper() {
+  return (
+    <ErrorBoundary fallbackTitle="Home unavailable">
+      <HomeScreen />
+    </ErrorBoundary>
   );
 }

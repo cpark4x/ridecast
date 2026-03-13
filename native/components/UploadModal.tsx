@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -284,7 +285,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
       <TouchableOpacity
         className="flex-1 bg-black/40"
         activeOpacity={1}
-        onPress={handleDismiss}
+        onPress={() => { Keyboard.dismiss(); handleDismiss(); }}
       />
 
       {/* Animated sheet */}
@@ -307,6 +308,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
           <ScrollView
             keyboardShouldPersistTaps="handled"

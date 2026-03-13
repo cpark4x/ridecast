@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Haptics } from "../../lib/haptics";
 
 export default function TabLayout() {
   return (
@@ -10,6 +11,13 @@ export default function TabLayout() {
         tabBarInactiveTintColor: "#9CA3AF",
         tabBarStyle: {
           borderTopColor: "rgba(0,0,0,0.06)",
+        },
+        lazy: true,
+        unmountOnBlur: false,
+      }}
+      screenListeners={{
+        tabPress: () => {
+          void Haptics.light();
         },
       }}
     >
