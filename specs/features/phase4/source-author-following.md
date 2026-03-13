@@ -7,8 +7,8 @@
 Users have favorite sources (ESPN, NYT, specific blogs) and authors they trust. Right now there's no way to filter by who made the content or to signal interest. A following system turns Ridecast from a passive document player into a personalized listening feed — and enables future features like "auto-create when new article drops from followed source."
 
 **Mockup references:**
-- Source/author card bottom sheet: `docs/mockups/source-author-card.html`
-- Following management screen: `docs/mockups/following-screen.html`
+- Source/author card bottom sheet: `docs/mockups/discovery/source-author-card.html`
+- Following management screen: `docs/mockups/discovery/following-screen.html`
 
 ## Scope
 

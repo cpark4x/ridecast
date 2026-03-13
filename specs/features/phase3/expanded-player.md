@@ -1,4 +1,4 @@
-> **Design reference:** `docs/mockups/expanded-player.html` (v2)
+> **Design reference:** `docs/mockups/player/expanded-player.html` (v2)
 
 # Expanded Player Redesign — Dev-Machine Spec
 

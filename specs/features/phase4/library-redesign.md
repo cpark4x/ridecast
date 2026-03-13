@@ -4,7 +4,7 @@
 
 ## Motivation
 
-The library is Ridecast's primary content surface but currently looks like a flat list with minimal filter chips. As the library grows, users need: time sections ("Today", "This Week") for temporal orientation; richer filter options including per-source and per-topic filtering; and sort controls for power users. The mockup (`docs/mockups/library-redesign-v2.html`) shows a polished, iOS-native-feeling library that matches the quality of the home screen redesign.
+The library is Ridecast's primary content surface but currently looks like a flat list with minimal filter chips. As the library grows, users need: time sections ("Today", "This Week") for temporal orientation; richer filter options including per-source and per-topic filtering; and sort controls for power users. The mockup (`docs/mockups/library/library-redesign-v2.html`) shows a polished, iOS-native-feeling library that matches the quality of the home screen redesign.
 
 **Depends on:** `active-filter-default` (adds `"active"` to `LibraryFilter` and the `filterEpisodes` switch).
 

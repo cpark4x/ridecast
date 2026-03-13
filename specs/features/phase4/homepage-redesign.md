@@ -4,7 +4,7 @@
 
 ## Motivation
 
-The current home screen is a functional but visually sparse `FlatList` of `UpNextCard` rows with a Play All button. Option B (visual hybrid) in `docs/mockups/option-b-visual-hybrid.html` adds:
+The current home screen is a functional but visually sparse `FlatList` of `UpNextCard` rows with a Play All button. Option B (visual hybrid) in `docs/mockups/archive/option-b-visual-hybrid.html` adds:
 
 - A **hero card** when audio is playing — gradient branded background, progress bar, skip controls
 - A **horizontal carousel** of all recent episodes — flick to scan upcoming content

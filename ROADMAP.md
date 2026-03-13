@@ -57,10 +57,10 @@ Option B visual hybrid. The home screen becomes a place you want to open.
 
 | # | Feature | Size | Spec | Status | Notes |
 |---|---------|------|------|--------|-------|
-| 8 | Homepage redesign Option B | L | — | 🆕 | Hero card, carousel, rich list. Mockup: `docs/mockups/option-b-visual-hybrid.html` |
+| 8 | Homepage redesign Option B | L | — | 🆕 | Hero card, carousel, rich list. Mockup: `docs/mockups/archive/option-b-visual-hybrid.html` |
 | 9 | Episode card redesign | M | — | 🆕 | Rich cards with source icons, descriptions, visual hierarchy |
-| 10 | Empty state: new user | M | — | 🆕 | Onboarding flow for first launch. Mockup: `docs/mockups/empty-state-new-user.html` |
-| 11 | Empty state: all caught up | S | — | 🆕 | Celebratory + suggestions. Mockup: `docs/mockups/empty-state-caught-up.html` |
+| 10 | Empty state: new user | M | — | 🆕 | Onboarding flow for first launch. Mockup: `docs/mockups/empty-states/empty-state-new-user.html` |
+| 11 | Empty state: all caught up | S | — | 🆕 | Celebratory + suggestions. Mockup: `docs/mockups/empty-states/empty-state-caught-up.html` |
 | 12 | Stale library nudge | S | — | 🆕 | Dormant user re-engagement when no new episodes in 7+ days |
 
 ### Theme 4: Library Overhaul
@@ -69,7 +69,7 @@ The library should be fast to scan, easy to search, and smart about what it show
 
 | # | Feature | Size | Spec | Status | Notes |
 |---|---------|------|------|--------|-------|
-| 13 | Library redesign | L | — | 🆕 | Time sections, rich cards, upgraded filters. Mockup: `docs/mockups/library-redesign-v2.html` |
+| 13 | Library redesign | L | — | 🆕 | Time sections, rich cards, upgraded filters. Mockup: `docs/mockups/library/library-redesign-v2.html` |
 | 14 | Default to Active filter | S | — | 🆕 | Hide completed episodes from default view |
 | 15 | Smart search | M | — | 🆕 | Search across title, author, themes, summary |
 
@@ -79,8 +79,8 @@ Follow sources and authors. The beginning of a content graph.
 
 | # | Feature | Size | Spec | Status | Notes |
 |---|---------|------|------|--------|-------|
-| 16 | Source/author following | L | — | 🆕 | Follow button on sources and authors. Mockup: `docs/mockups/source-author-card.html` |
-| 17 | Following management screen | M | — | 🆕 | Manage follows, suggestions. Mockup: `docs/mockups/following-screen.html` |
+| 16 | Source/author following | L | — | 🆕 | Follow button on sources and authors. Mockup: `docs/mockups/discovery/source-author-card.html` |
+| 17 | Following management screen | M | — | 🆕 | Manage follows, suggestions. Mockup: `docs/mockups/discovery/following-screen.html` |
 
 ### Theme 6: Native App Polish
 

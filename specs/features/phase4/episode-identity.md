@@ -4,7 +4,7 @@
 
 ## Motivation
 
-Every episode in the library currently shows a generic source-type badge ("URL", "PDF"). There is no way to tell at a glance that one URL episode is from ESPN, another from Substack, and a third from arXiv. The library redesign mockups (`docs/mockups/library-redesign-v2.html`), the homepage redesign, and the proposed following system all assume a richer identity layer exists. Without it, those features cannot be built.
+Every episode in the library currently shows a generic source-type badge ("URL", "PDF"). There is no way to tell at a glance that one URL episode is from ESPN, another from Substack, and a third from arXiv. The library redesign mockups (`docs/mockups/library/library-redesign-v2.html`), the homepage redesign, and the proposed following system all assume a richer identity layer exists. Without it, those features cannot be built.
 
 This spec adds five fields to `LibraryItem` and the `episodes` SQLite table:
 - `sourceIcon` — a favicon URL or a generated icon identifier for the source

@@ -4,11 +4,11 @@
 
 **Goal:** Rebuild the Home tab into a playback-focused queue screen with time-based greeting, "Play All" with auto-advance, progress tracking, and a streamlined 2-tab navigation bar with FAB for upload.
 
-**Architecture:** The API layer gains playback state joins and author fields. PlayerContext gains queue support and a userId fix. The BottomNav shrinks to 2 tabs with a FAB overlay for Upload. HomeScreen is rewritten from scratch to match the mockup in `docs/mockups/home-daily-drive.html`. Shared utilities (gradients, timeAgo, source icons) are extracted from LibraryScreen into a shared module.
+**Architecture:** The API layer gains playback state joins and author fields. PlayerContext gains queue support and a userId fix. The BottomNav shrinks to 2 tabs with a FAB overlay for Upload. HomeScreen is rewritten from scratch to match the mockup in `docs/mockups/home/home-daily-drive.html`. Shared utilities (gradients, timeAgo, source icons) are extracted from LibraryScreen into a shared module.
 
 **Tech Stack:** Next.js 16, React 19, Tailwind v4 (CSS custom properties), Prisma (PostgreSQL), Vitest + React Testing Library, Clerk auth.
 
-**Design reference:** `docs/mockups/home-daily-drive.html` — open in any browser, no server needed.
+**Design reference:** `docs/mockups/home/home-daily-drive.html` — open in any browser, no server needed.
 
 **Current test baseline:** 160 passing, 7 skipped. Every task must maintain or increase this count.
 
@@ -1474,7 +1474,7 @@ git commit -m "refactor: extract gradients, sourceIcons, timeAgo, getTitleFallba
 
 ## Task 7: HomeScreen — Complete rewrite
 
-**Why:** The current HomeScreen is a basic list with "Your Queue" heading, commute-time copy, and no visual distinction between cards. The redesign is a complete rewrite to match the mockup at `docs/mockups/home-daily-drive.html`.
+**Why:** The current HomeScreen is a basic list with "Your Queue" heading, commute-time copy, and no visual distinction between cards. The redesign is a complete rewrite to match the mockup at `docs/mockups/home/home-daily-drive.html`.
 
 **Files:**
 - Rewrite: `src/components/HomeScreen.tsx`

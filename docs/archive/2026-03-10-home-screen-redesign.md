@@ -104,7 +104,7 @@ The current `/api/library` endpoint does NOT return playback state. These change
 
 ### Mockup
 
-Visual mockup: `docs/mockups/home-daily-drive.html` — open in any browser, no server needed.
+Visual mockup: `docs/mockups/home/home-daily-drive.html` — open in any browser, no server needed.
 
 ### Out of Scope
 

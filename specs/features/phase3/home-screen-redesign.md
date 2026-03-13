@@ -1,5 +1,5 @@
 > **Design reference:** `docs/plans/2026-03-10-home-screen-redesign.md`
-> **Mockup:** `docs/mockups/home-daily-drive.html`
+> **Mockup:** `docs/mockups/home/home-daily-drive.html`
 
 # Home Screen Redesign — Dev-Machine Spec
 
@@ -164,7 +164,7 @@ git commit -m "feat(player): add queue support — playQueue, skipToNext, skipTo
 **Feature ID:** `home-screen-rewrite`
 **depends_on:** `["home-screen-api", "home-screen-playercontext-queue", "home-screen-content-display-utils", "home-screen-nav-restructure"]`
 
-**Why:** Replace bare queue list with the Daily Drive design: time-based greeting, total duration + episode count, Play All button, Now Playing card (when audio active), Up Next list (unlistened only, progress bars on partial episodes). Design source: `docs/mockups/home-daily-drive.html`.
+**Why:** Replace bare queue list with the Daily Drive design: time-based greeting, total duration + episode count, Play All button, Now Playing card (when audio active), Up Next list (unlistened only, progress bars on partial episodes). Design source: `docs/mockups/home/home-daily-drive.html`.
 
 **Files:** `src/components/HomeScreen.tsx`, `src/components/HomeScreen.test.tsx`
 

@@ -7,8 +7,8 @@
 A single generic "No episodes yet" empty state serves none of three distinct situations: a brand new user who needs hand-holding, a power user who's finished their queue and deserves a celebration, and a lapsed user whose newest content is a week old. Each state has a different emotional context and a different next action. Getting this right converts confusion into engagement.
 
 **Mockup references:**
-- New user: `docs/mockups/empty-state-new-user.html`
-- All caught up: `docs/mockups/empty-state-caught-up.html`
+- New user: `docs/mockups/empty-states/empty-state-new-user.html`
+- All caught up: `docs/mockups/empty-states/empty-state-caught-up.html`
 - Stale nudge: inline amber card above the episode list
 
 **No upstream dependencies** — this spec is self-contained. Apply after `episode-card-redesign` and `homepage-redesign` so the screens that reference these components are already in their new form.
@@ -83,7 +83,7 @@ export function getTopSourceDomain(items: LibraryItem[]): string | null {
 
 ### 2. New component: `native/components/empty-states/NewUserEmptyState.tsx`
 
-Animated waveform hero, 3-step horizontal flow, full-width CTA, suggestion pills. Follows the `docs/mockups/empty-state-new-user.html` design.
+Animated waveform hero, 3-step horizontal flow, full-width CTA, suggestion pills. Follows the `docs/mockups/empty-states/empty-state-new-user.html` design.
 
 ```tsx
 // native/components/empty-states/NewUserEmptyState.tsx — new file
@@ -293,7 +293,7 @@ export default function NewUserEmptyState({ onCreateEpisode }: NewUserEmptyState
 
 ### 3. New component: `native/components/empty-states/AllCaughtUpEmptyState.tsx`
 
-Animated green check circle with rising confetti particles, inline stats bar (episodes + hours listened), color-coded suggestion cards, CTA button. Follows `docs/mockups/empty-state-caught-up.html`.
+Animated green check circle with rising confetti particles, inline stats bar (episodes + hours listened), color-coded suggestion cards, CTA button. Follows `docs/mockups/empty-states/empty-state-caught-up.html`.
 
 ```tsx
 // native/components/empty-states/AllCaughtUpEmptyState.tsx — new file

@@ -1,4 +1,4 @@
-> **Design reference:** `docs/mockups/library-view.html`
+> **Design reference:** `docs/mockups/archive/library-view.html`
 > **Depends on:** home-screen-api ✓, home-screen-nav-restructure ✓, home-screen-content-display-utils ✓ (all completed session 10)
 
 # Library Screen Redesign — Dev-Machine Spec
