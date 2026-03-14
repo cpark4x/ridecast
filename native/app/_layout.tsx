@@ -1,6 +1,7 @@
 import "../global.css";
 import { useEffect } from "react";
 import { AppState, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
@@ -81,6 +82,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
       <ClerkLoaded>
         <StatusBar style="dark" />
@@ -116,5 +118,6 @@ export default function RootLayout() {
         </AuthGate>
       </ClerkLoaded>
     </ClerkProvider>
+    </GestureHandlerRootView>
   );
 }

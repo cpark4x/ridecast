@@ -1,5 +1,12 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as db from "./db";
+import { API_URL } from "./constants";
+
+/** Prepend API_URL to relative audio paths (local dev returns relative, prod returns full blob URLs) */
+function toAbsoluteUrl(url: string): string {
+  if (url.startsWith("http")) return url;
+  return `${API_URL}/${url}`;
+}
 
 const DOWNLOADS_DIR = `${FileSystem.documentDirectory}episodes/`;
 
@@ -23,7 +30,7 @@ export async function downloadEpisodeAudio(
   await ensureDir();
   const localPath = `${DOWNLOADS_DIR}${audioId}.mp3`;
 
-  const result = await FileSystem.downloadAsync(remoteUrl, localPath);
+  const result = await FileSystem.downloadAsync(toAbsoluteUrl(remoteUrl), localPath);
   if (result.status !== 200) {
     throw new Error(`Download failed with status ${result.status}`);
   }
@@ -44,7 +51,7 @@ export async function resolveAudioUrl(
     const info = await FileSystem.getInfoAsync(localPath);
     if (info.exists) return localPath;
   }
-  return remoteUrl;
+  return toAbsoluteUrl(remoteUrl);
 }
 
 export async function deleteDownload(audioId: string): Promise<void> {

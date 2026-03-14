@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/library", // catalog browsing — free, unauthenticated
   "/api/audio/(.*)", // audio streaming — free, unauthenticated
+  "/audio/(.*)",     // static audio files from public/ — free, unauthenticated
   "/api/webhook", // Stripe webhooks — verified by signature, not Clerk session
   "/pocket", // marketing landing page — no auth required
   "/save", // bookmarklet popup landing — no auth required
