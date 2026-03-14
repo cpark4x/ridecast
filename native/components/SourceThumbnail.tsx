@@ -33,7 +33,10 @@ export function clearbitHostname(
 ): string | null {
   if ((sourceType ?? "").toLowerCase() !== "url" || !sourceUrl) return null;
   try {
-    return new URL(sourceUrl).hostname.replace(/^www\./, "");
+    const hostname = new URL(sourceUrl).hostname.replace(/^www\./, "");
+    // Use registered domain (last 2 parts) — Google favicons 404 on subdomains
+    const parts = hostname.split(".");
+    return parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
   } catch {
     return null;
   }
@@ -121,7 +124,7 @@ export default function SourceThumbnail({
       {/* Clearbit logo tile */}
       {showLogo && (
         <Image
-          source={{ uri: `https://logo.clearbit.com/${hostname}` }}
+          source={{ uri: `https://www.google.com/s2/favicons?domain=${hostname}&sz=128` }}
           style={{
             width:           logoSize,
             height:          logoSize,
@@ -149,7 +152,7 @@ export default function SourceThumbnail({
           }}
         >
           <Image
-            source={{ uri: `https://logo.clearbit.com/${hostname}` }}
+            source={{ uri: `https://www.google.com/s2/favicons?domain=${hostname}&sz=128` }}
             style={{ width: 12, height: 12 }}
           />
         </View>

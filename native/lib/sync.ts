@@ -20,7 +20,7 @@ export async function syncLibrary(): Promise<LibraryItem[]> {
     let thumbnailUrl: string | null = null;
     if (item.sourceUrl) {
       try {
-        thumbnailUrl = `https://logo.clearbit.com/${new URL(item.sourceUrl).hostname}`;
+        thumbnailUrl = `https://www.google.com/s2/favicons?domain=${new URL(item.sourceUrl).hostname}&sz=128`;
       } catch {
         // malformed URL — leave as null
       }
