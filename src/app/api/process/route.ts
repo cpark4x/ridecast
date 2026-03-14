@@ -31,12 +31,24 @@ export async function POST(request: Request) {
     // Look up content
     let content = await prisma.content.findUnique({
       where: { id: contentId },
+      include: { scripts: true },
     });
 
     if (!content) {
       return NextResponse.json(
         { error: 'Content not found' },
         { status: 404 },
+      );
+    }
+
+    // Reject duplicate duration — no point generating the same length twice
+    const existingDuration = content.scripts.find(
+      (s) => s.targetDuration === targetMinutes,
+    );
+    if (existingDuration) {
+      return NextResponse.json(
+        { error: `You already have a ${targetMinutes}-minute version of this episode.` },
+        { status: 409 },
       );
     }
 
