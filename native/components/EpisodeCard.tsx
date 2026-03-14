@@ -90,6 +90,29 @@ function VersionsBadge({ count }: { count: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// contentTypeForSource — override AI label for known domains / source types
+// ---------------------------------------------------------------------------
+
+function contentTypeForSource(
+  sourceType: string | null | undefined,
+  sourceUrl:  string | null | undefined,
+  aiContentType: string | null | undefined,
+): string {
+  // PDF uploads always show "Document" regardless of AI inference
+  if ((sourceType ?? "").toLowerCase() === "pdf") return "Document";
+
+  if (sourceUrl) {
+    const host = sourceUrl.toLowerCase();
+    if (host.includes("substack"))   return "Newsletter";
+    if (host.includes("github.com")) return "Repository";
+    if (host.includes("arxiv"))      return "Paper";
+    if (host.includes("medium.com")) return "Blog Post";
+  }
+  // Fall back to humanized AI content type
+  return humanizeContentType(aiContentType);
+}
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -121,8 +144,13 @@ export default function EpisodeCard({
   const swipeableRef = useRef<Swipeable>(null);
   const { versions } = item;
 
-  // smart-titles: clean display title
-  const displayTitle = smartTitle(item.title, item.sourceType, item.sourceDomain);
+  // Detect anonymous / untitled items before running smartTitle
+  const isAnonymous = !item.title?.trim() || item.title.trim() === "(anonymous)";
+
+  // smart-titles: clean display title — anonymous items get a fixed fallback
+  const displayTitle = isAnonymous
+    ? "Untitled Upload"
+    : smartTitle(item.title, item.sourceType, item.sourceDomain);
 
   // Primary version: first ready version, or first overall
   const primaryVersion = versions.find((v) => v.status === "ready") ?? versions[0];
@@ -132,17 +160,20 @@ export default function EpisodeCard({
 
   // ---------------------------------------------------------------------------
   // Meta line: registered domain (or fallback) · contentType
+  // Anonymous items skip the domain — just show the content type.
   // ---------------------------------------------------------------------------
 
-  const metaDomain =
-    item.sourceType === "url" && item.sourceUrl
+  const metaDomain = isAnonymous
+    ? null
+    : item.sourceType === "url" && item.sourceUrl
       ? (registeredDomain(item.sourceUrl) ?? sourceName(item.sourceType, item.sourceUrl, item.author))
       : sourceName(item.sourceType, item.sourceUrl, item.author);
 
-  const metaLine = [
-    metaDomain,
-    primaryVersion?.contentType ? humanizeContentType(primaryVersion.contentType) : null,
-  ]
+  const contentTypeLabel = primaryVersion
+    ? contentTypeForSource(item.sourceType, item.sourceUrl, primaryVersion.contentType)
+    : null;
+
+  const metaLine = [metaDomain, contentTypeLabel || null]
     .filter(Boolean)
     .join(" · ");
 
@@ -150,9 +181,11 @@ export default function EpisodeCard({
   // Duration label for the footer pill
   // ---------------------------------------------------------------------------
 
-  const durationLabel = primaryVersion
-    ? `${primaryVersion.targetDuration} min`
-    : null;
+  // Only show the pill when a positive targetDuration exists
+  const durationLabel =
+    primaryVersion?.targetDuration != null && primaryVersion.targetDuration > 0
+      ? `${primaryVersion.targetDuration} min`
+      : null;
 
   // ---------------------------------------------------------------------------
   // Tappable version pills (kept for onVersionPress functionality)
@@ -309,12 +342,13 @@ export default function EpisodeCard({
           {/* ── CENTER: title, meta, footer ── */}
           <View style={{ flex: 1, minWidth: 0 }}>
 
-            {/* Title */}
+            {/* Title — italic + muted when anonymous/untitled */}
             <Text
               style={{
                 fontSize:      14,
                 fontWeight:    "600",
-                color:         "#000",
+                color:         isAnonymous ? "#6d6d72" : "#000",
+                fontStyle:     isAnonymous ? "italic" : "normal",
                 lineHeight:    19,
                 letterSpacing: -0.1,
                 marginBottom:  4,
