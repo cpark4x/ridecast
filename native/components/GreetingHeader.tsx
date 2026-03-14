@@ -1,9 +1,7 @@
-// native/components/GreetingHeader.tsx — new file
+// native/components/GreetingHeader.tsx
 
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Text, View } from "react-native";
 import { formatDurationMinutes } from "../lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +26,7 @@ export interface GreetingHeaderProps {
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Component — no settings gear (settings gear belongs on Library screen only)
 // ---------------------------------------------------------------------------
 
 export default function GreetingHeader({
@@ -36,33 +34,44 @@ export default function GreetingHeader({
   episodeCount,
   totalDurationSecs,
 }: GreetingHeaderProps) {
-  const router = useRouter();
-
   return (
-    <View className="px-4 pt-3 pb-4 flex-row items-start justify-between">
-      <View className="flex-1">
-        <Text className="text-2xl font-bold text-gray-900">
-          {getGreeting()}{firstName ? `, ${firstName}` : ""}
-        </Text>
-
-        {episodeCount > 0 ? (
-          <Text className="text-sm text-gray-500 mt-0.5">
-            {episodeCount} episode{episodeCount === 1 ? "" : "s"}{" "}
-            · {formatDurationMinutes(totalDurationSecs)}
-          </Text>
-        ) : (
-          <Text className="text-sm text-gray-500 mt-0.5">Your queue is clear</Text>
-        )}
-      </View>
-
-      <TouchableOpacity
-        onPress={() => router.push("/settings")}
-        className="p-2 -mr-1 mt-0.5"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityLabel="Settings"
+    <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+      <Text
+        style={{
+          fontSize:      26,
+          fontWeight:    "700",
+          color:         "#000",
+          letterSpacing: -0.5,
+          lineHeight:    31,
+        }}
       >
-        <Ionicons name="settings-outline" size={22} color="#374151" />
-      </TouchableOpacity>
+        {getGreeting()}{firstName ? `, ${firstName}` : ""}
+      </Text>
+
+      {episodeCount > 0 ? (
+        <Text
+          style={{
+            fontSize:   13,
+            color:      "#8e8e93",
+            marginTop:  3,
+            fontWeight: "400",
+          }}
+        >
+          {episodeCount} episode{episodeCount === 1 ? "" : "s"}{" "}
+          · {formatDurationMinutes(totalDurationSecs)}
+        </Text>
+      ) : (
+        <Text
+          style={{
+            fontSize:   13,
+            color:      "#8e8e93",
+            marginTop:  3,
+            fontWeight: "400",
+          }}
+        >
+          Your queue is clear
+        </Text>
+      )}
     </View>
   );
 }

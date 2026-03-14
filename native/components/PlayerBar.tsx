@@ -4,19 +4,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
 import { smartTitle } from "../lib/libraryHelpers";
 import { Haptics } from "../lib/haptics";
-import SourceIcon from "./SourceIcon";
-import { nextSpeed, sourceName, timeRemaining } from "../lib/utils";
-
-// Speed cycle used in both PlayerBar and ExpandedPlayer
-const MINI_SPEEDS = [1.0, 1.25, 1.5, 1.75, 2.0];
+import { timeRemaining } from "../lib/utils";
+import SourceThumbnail from "./SourceThumbnail";
 
 export default function PlayerBar() {
   const {
     currentItem,
     isPlaying,
-    speed,
     togglePlay,
-    setSpeed,
+    skipBack,
+    skipForward,
     position,
     duration,
     setExpandedPlayerVisible,
@@ -27,87 +24,163 @@ export default function PlayerBar() {
   const progressPercent =
     duration > 0 ? Math.min((position / duration) * 100, 100) : 0;
 
-  // smart-titles: clean the display title
-  const displayTitle = smartTitle(currentItem.title, currentItem.sourceType ?? "url", currentItem.sourceDomain);
+  // Clean display title
+  const displayTitle = smartTitle(
+    currentItem.title,
+    currentItem.sourceType ?? "url",
+    currentItem.sourceDomain,
+  );
 
-  // Show "Loading…" until audio duration is known (avoids "0 sec left" flash)
-  const subtitle =
-    duration > 0
-      ? `${sourceName(currentItem.sourceType ?? "", currentItem.sourceUrl, currentItem.author)} · ${timeRemaining(position, duration)}`
-      : "Loading…";
+  // Time remaining — show "Loading…" until duration is known
+  const timeLabel =
+    duration > 0 ? timeRemaining(position, duration) : "Loading…";
 
   return (
-    <View className="bg-white border-t border-gray-200">
-      {/* Thin progress bar at the very top */}
-      <View className="h-0.5 w-full bg-gray-100">
-        <View
-          className="h-0.5 bg-brand"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </View>
-
-      {/* Bar body */}
+    /*
+     * Floating card: 8px margin on sides, 8px bottom gap before tab bar,
+     * dark near-black background, 16px corner radius, subtle shadow.
+     */
+    <View
+      style={{
+        marginHorizontal: 8,
+        marginBottom:     8,
+        borderRadius:     16,
+        backgroundColor:  "#1c1c1e",
+        overflow:         "hidden",
+        shadowColor:      "#000",
+        shadowOffset:     { width: 0, height: 4 },
+        shadowOpacity:    0.25,
+        shadowRadius:     12,
+        elevation:        8,
+        position:         "relative",
+      }}
+    >
+      {/* Tappable body — opens expanded player */}
       <TouchableOpacity
         onPress={() => setExpandedPlayerVisible(true)}
-        activeOpacity={0.8}
-        className="flex-row items-center px-4 py-3 gap-3"
-        style={{ height: 64 }}
+        activeOpacity={0.85}
+        style={{
+          flexDirection: "row",
+          alignItems:    "center",
+          paddingHorizontal: 14,
+          paddingVertical:   10,
+          gap:           10,
+        }}
       >
-        {/* Left: source icon */}
-        <SourceIcon
+        {/* ── Thumbnail: 36×36 rounded rectangle ── */}
+        <SourceThumbnail
+          sourceType={currentItem.sourceType}
+          sourceUrl={currentItem.sourceUrl}
           sourceName={currentItem.sourceName}
-          sourceDomain={currentItem.sourceDomain}
-          sourceBrandColor={currentItem.sourceBrandColor}
-          size={24}
+          size={36}
         />
 
-        {/* Center: title + subtitle */}
-        <View className="flex-1">
+        {/* ── Title + time ── */}
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text
-            className="text-sm font-semibold text-gray-900"
+            style={{
+              fontSize:      13,
+              fontWeight:    "600",
+              color:         "#fff",
+              letterSpacing: -0.1,
+            }}
             numberOfLines={1}
           >
             {displayTitle}
           </Text>
           <Text
-            className="text-xs text-gray-400 mt-0.5"
+            style={{
+              fontSize:  11,
+              color:     "rgba(255,255,255,0.5)",
+              marginTop: 1,
+            }}
             numberOfLines={1}
           >
-            {subtitle}
+            {timeLabel}
           </Text>
         </View>
 
-        {/* Speed chip — cycles through MINI_SPEEDS without opening full player */}
-        <TouchableOpacity
-          onPress={() => {
-            const next = nextSpeed(speed, MINI_SPEEDS);
-            void Haptics.light();
-            setSpeed(next).catch((err: unknown) =>
-              console.warn("[PlayerBar] setSpeed error:", err),
-            );
-          }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="bg-gray-100 px-2 py-1 rounded-lg"
-          accessibilityLabel={`Playback speed ${speed}x. Tap to change.`}
-        >
-          <Text className="text-xs font-bold text-gray-600">
-            {speed % 1 === 0 ? `${speed}.0×` : `${speed}×`}
-          </Text>
-        </TouchableOpacity>
+        {/* ── Controls: rewind-15 · play/pause · skip-30 ── */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          {/* Rewind 15s */}
+          <TouchableOpacity
+            onPress={() => {
+              void Haptics.light();
+              skipBack(15).catch((err: unknown) =>
+                console.warn("[PlayerBar] skipBack error:", err),
+              );
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              width:           32,
+              height:          32,
+              alignItems:      "center",
+              justifyContent:  "center",
+              borderRadius:    16,
+            }}
+            accessibilityLabel="Rewind 15 seconds"
+          >
+            <Ionicons name="play-back" size={20} color="white" />
+          </TouchableOpacity>
 
-        {/* Right: play / pause — separate handler so it doesn't bubble */}
-        <TouchableOpacity
-          onPress={() => { void Haptics.light(); void togglePlay(); }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="p-1"
-        >
-          <Ionicons
-            name={isPlaying ? "pause" : "play"}
-            size={26}
-            color="#EA580C"
-          />
-        </TouchableOpacity>
+          {/* Play / Pause */}
+          <TouchableOpacity
+            onPress={() => { void Haptics.light(); void togglePlay(); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              width:           32,
+              height:          32,
+              alignItems:      "center",
+              justifyContent:  "center",
+              borderRadius:    16,
+            }}
+            accessibilityLabel={isPlaying ? "Pause" : "Play"}
+          >
+            <Ionicons
+              name={isPlaying ? "pause" : "play"}
+              size={22}
+              color="white"
+            />
+          </TouchableOpacity>
+
+          {/* Skip 30s */}
+          <TouchableOpacity
+            onPress={() => {
+              void Haptics.light();
+              skipForward(30).catch((err: unknown) =>
+                console.warn("[PlayerBar] skipForward error:", err),
+              );
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              width:           32,
+              height:          32,
+              alignItems:      "center",
+              justifyContent:  "center",
+              borderRadius:    16,
+            }}
+            accessibilityLabel="Skip 30 seconds"
+          >
+            <Ionicons name="play-forward" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
+
+      {/* ── Progress bar: 2px at very bottom, inside border-radius ── */}
+      <View
+        style={{
+          height:          2,
+          backgroundColor: "rgba(255,255,255,0.12)",
+        }}
+      >
+        <View
+          style={{
+            height:          2,
+            backgroundColor: "#EA580C",
+            width:           `${progressPercent}%`,
+          }}
+        />
+      </View>
     </View>
   );
 }

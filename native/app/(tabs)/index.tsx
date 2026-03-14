@@ -27,7 +27,6 @@ import type { AudioVersion, LibraryItem, PlayableItem } from "../../lib/types";
 import { Haptics } from "../../lib/haptics";
 
 import GreetingHeader from "../../components/GreetingHeader";
-import HeroPlayerCard from "../../components/HeroPlayerCard";
 import EpisodeCard from "../../components/EpisodeCard";
 import { SkeletonList } from "../../components/SkeletonLoader";
 import UploadModal from "../../components/UploadModal";
@@ -55,7 +54,7 @@ function HomeScreen() {
 
   const firstName = user?.firstName ?? null;
 
-  // —— Data loading ─────────────────────────────────────────────────────────
+  // —— Data loading ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     loadLocal();
@@ -175,7 +174,7 @@ function HomeScreen() {
   // —— Render ────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-[#f2f2f7]">
       <ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
@@ -204,41 +203,102 @@ function HomeScreen() {
               />
             )}
 
-            {/* —— Greeting header —— */}
-            <GreetingHeader
-              firstName={firstName}
-              episodeCount={episodeCount}
-              totalDurationSecs={totalDurationSecs}
-            />
+            {/* White header block: greeting + Play All */}
+            <View style={{ backgroundColor: "#fff", paddingBottom: 8 }}>
+              {/* —— Greeting header —— */}
+              <GreetingHeader
+                firstName={firstName}
+                episodeCount={episodeCount}
+                totalDurationSecs={totalDurationSecs}
+              />
 
-            {/* —— Now Playing hero card (conditional) —— */}
-            <HeroPlayerCard
-              onExpand={() => player.setExpandedPlayerVisible(true)}
-            />
+              {/* —— Play All CTA —— */}
+              {episodeCount > 0 && (
+                <TouchableOpacity
+                  onPress={handlePlayAll}
+                  activeOpacity={0.85}
+                  style={{
+                    marginHorizontal: 20,
+                    marginBottom:     16,
+                    backgroundColor:  "#EA580C",
+                    borderRadius:     14,
+                    paddingVertical:  14,
+                    paddingHorizontal: 20,
+                    flexDirection:    "row",
+                    alignItems:       "center",
+                    gap:              8,
+                  }}
+                  accessibilityLabel={`Play all — ${episodeCount} episodes`}
+                >
+                  {/* Play icon circle */}
+                  <View
+                    style={{
+                      width:           28,
+                      height:          28,
+                      borderRadius:    14,
+                      backgroundColor: "rgba(255,255,255,0.25)",
+                      alignItems:      "center",
+                      justifyContent:  "center",
+                    }}
+                  >
+                    <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
+                  </View>
 
-            {/* —— Play All CTA —— */}
-            {episodeCount > 0 && (
-              <TouchableOpacity
-                onPress={handlePlayAll}
-                activeOpacity={0.85}
-                className="mx-4 mb-4 bg-brand py-4 rounded-2xl items-center"
-                accessibilityLabel={`Play all — ${episodeCount} episodes`}
-              >
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="play" size={18} color="white" />
-                  <Text className="text-base font-bold text-white">
-                    Play All · {episodeCount} episodes
+                  {/* Label */}
+                  <Text
+                    style={{
+                      color:         "white",
+                      fontSize:      15,
+                      fontWeight:    "600",
+                      letterSpacing: -0.2,
+                    }}
+                  >
+                    Play All
                   </Text>
-                </View>
-              </TouchableOpacity>
-            )}
+
+                  {/* Episode count — right-aligned */}
+                  <Text
+                    style={{
+                      color:      "rgba(255,255,255,0.7)",
+                      fontSize:   13,
+                      marginLeft: "auto",
+                      fontWeight: "400",
+                    }}
+                  >
+                    {episodeCount} episode{episodeCount === 1 ? "" : "s"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             {/* —— Up Next list —— */}
             {upNextPairs.length > 0 && (
               <>
-                <Text className="px-4 text-lg font-bold text-gray-900 mb-3">
-                  Up Next
-                </Text>
+                <View
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingTop:        20,
+                    paddingBottom:     10,
+                    flexDirection:     "row",
+                    alignItems:        "baseline",
+                    gap:               8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize:      19,
+                      fontWeight:    "700",
+                      color:         "#000",
+                      letterSpacing: -0.3,
+                    }}
+                  >
+                    Up Next
+                  </Text>
+                  <Text style={{ fontSize: 13, color: "#8e8e93", fontWeight: "500" }}>
+                    {upNextPairs.length}
+                  </Text>
+                </View>
+
                 {upNextPairs.map(({ item }) => (
                   <EpisodeCard
                     key={item.id}
@@ -267,16 +327,6 @@ function HomeScreen() {
           </>
         )}
       </ScrollView>
-
-      {/* —— FAB —— */}
-      <TouchableOpacity
-        onPress={() => { void Haptics.medium(); setUploadModalVisible(true); }}
-        className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
-        style={{ elevation: 6 }}
-        accessibilityLabel="Add content"
-      >
-        <Ionicons name="add" size={28} color="white" />
-      </TouchableOpacity>
 
       {/* —— Upload modal —— */}
       <UploadModal

@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ActionSheetIOS,
   Alert,
   Animated,
-  Image,
   Platform,
   Text,
   TouchableOpacity,
@@ -15,57 +14,7 @@ import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 import { smartTitle } from "../lib/libraryHelpers";
 import { humanizeContentType, sourceName } from "../lib/utils";
 import { Haptics } from "../lib/haptics";
-import { hashColor } from "../lib/sourceUtils";
-
-// ---------------------------------------------------------------------------
-// ThumbnailImage — 52×52 source logo with colored-letter fallback
-// ---------------------------------------------------------------------------
-
-function ThumbnailImage({
-  thumbnailUrl,
-  sourceName: sName,
-  sourceDomain,
-}: {
-  thumbnailUrl: string | null | undefined;
-  sourceName: string | null | undefined;
-  sourceDomain: string | null | undefined;
-}) {
-  const [hasError, setHasError] = useState(false);
-
-  const letter  = sName ? sName.charAt(0).toUpperCase() : "?";
-  const bgColor = sourceDomain
-    ? hashColor(sourceDomain)
-    : sName
-      ? hashColor(sName)
-      : "#9CA3AF";
-
-  if (thumbnailUrl && !hasError) {
-    return (
-      <Image
-        source={{ uri: thumbnailUrl }}
-        style={{ width: 52, height: 52, borderRadius: 10 }}
-        onError={() => setHasError(true)}
-      />
-    );
-  }
-
-  return (
-    <View
-      style={{
-        width:           52,
-        height:          52,
-        borderRadius:    10,
-        backgroundColor: bgColor,
-        alignItems:      "center",
-        justifyContent:  "center",
-      }}
-    >
-      <Text style={{ color: "white", fontSize: 22, fontWeight: "700" }}>
-        {letter}
-      </Text>
-    </View>
-  );
-}
+import SourceThumbnail, { registeredDomain } from "./SourceThumbnail";
 
 // ---------------------------------------------------------------------------
 // ShimmerPill — animated placeholder shown when isGenerating
@@ -89,7 +38,54 @@ function ShimmerPill() {
   });
 
   return (
-    <Animated.View style={{ width: 48, height: 22, borderRadius: 6, backgroundColor }} />
+    <Animated.View style={{ width: 64, height: 22, borderRadius: 20, backgroundColor }} />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DurationPill — #f2f2f7 bg, #3c3c43 text, clock icon
+// ---------------------------------------------------------------------------
+
+function DurationPill({ label }: { label: string }) {
+  return (
+    <View
+      style={{
+        flexDirection:   "row",
+        alignItems:      "center",
+        gap:             4,
+        backgroundColor: "#f2f2f7",
+        borderRadius:    20,
+        paddingVertical: 3,
+        paddingHorizontal: 9,
+      }}
+    >
+      {/* Clock icon */}
+      <Ionicons name="time-outline" size={10} color="#3c3c43" style={{ opacity: 0.6 }} />
+      <Text style={{ fontSize: 11, fontWeight: "600", color: "#3c3c43", letterSpacing: 0.1 }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// VersionsBadge — orange-tinted pill shown when multiple versions exist
+// ---------------------------------------------------------------------------
+
+function VersionsBadge({ count }: { count: number }) {
+  return (
+    <View
+      style={{
+        backgroundColor: "rgba(234,88,12,0.1)",
+        borderRadius:    20,
+        paddingVertical: 3,
+        paddingHorizontal: 8,
+      }}
+    >
+      <Text style={{ fontSize: 11, fontWeight: "600", color: "#EA580C" }}>
+        {count} versions
+      </Text>
+    </View>
   );
 }
 
@@ -131,7 +127,7 @@ export default function EpisodeCard({
   // Primary version: first ready version, or first overall
   const primaryVersion = versions.find((v) => v.status === "ready") ?? versions[0];
 
-  // State flags — mutually exclusive for the dominant indicator
+  // State flags
   const isGenerating = versions.some((v) => v.status === "generating");
   const allCompleted = versions.length > 0 && versions.every((v) => v.completed);
   const isNew        = !allCompleted
@@ -149,7 +145,60 @@ export default function EpisodeCard({
       : 0;
 
   // ---------------------------------------------------------------------------
-  // delete-episodes: confirm + execute
+  // Meta line: registered domain (or fallback) · contentType
+  // ---------------------------------------------------------------------------
+
+  const metaDomain =
+    item.sourceType === "url" && item.sourceUrl
+      ? (registeredDomain(item.sourceUrl) ?? sourceName(item.sourceType, item.sourceUrl, item.author))
+      : sourceName(item.sourceType, item.sourceUrl, item.author);
+
+  const metaLine = [
+    metaDomain,
+    primaryVersion?.contentType ? humanizeContentType(primaryVersion.contentType) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // ---------------------------------------------------------------------------
+  // Duration label for the footer pill
+  // ---------------------------------------------------------------------------
+
+  const durationLabel = primaryVersion
+    ? `${primaryVersion.targetDuration} min`
+    : null;
+
+  // ---------------------------------------------------------------------------
+  // Tappable version pills (kept for onVersionPress functionality)
+  // ---------------------------------------------------------------------------
+
+  // We still propagate version taps; UI simplified to one duration pill + badge
+  function handleVersionTap(v: AudioVersion) {
+    if (v.status !== "ready" || !v.audioId || !onVersionPress) return;
+    void Haptics.light();
+    const playable: PlayableItem = {
+      id:              v.audioId,
+      title:           item.title,
+      duration:        v.durationSecs ?? v.targetDuration * 60,
+      format:          v.format,
+      audioUrl:        v.audioUrl ?? "",
+      author:          item.author,
+      sourceType:      item.sourceType,
+      sourceUrl:       item.sourceUrl,
+      sourceDomain:    item.sourceDomain,
+      sourceName:      item.sourceName,
+      sourceBrandColor: item.sourceBrandColor,
+      contentType:     v.contentType,
+      themes:          v.themes,
+      summary:         v.summary,
+      targetDuration:  v.targetDuration,
+      createdAt:       item.createdAt,
+    };
+    onVersionPress(item, v, playable);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Delete helpers
   // ---------------------------------------------------------------------------
 
   function confirmDelete() {
@@ -174,7 +223,6 @@ export default function EpisodeCard({
     );
   }
 
-  // Right-side swipe action
   function renderRightActions() {
     return (
       <TouchableOpacity
@@ -216,7 +264,7 @@ export default function EpisodeCard({
   }
 
   // ---------------------------------------------------------------------------
-  // Render — three-column layout
+  // Render
   // ---------------------------------------------------------------------------
 
   return (
@@ -232,123 +280,129 @@ export default function EpisodeCard({
         onLongPress={handleLongPress}
         delayLongPress={400}
         activeOpacity={0.75}
-        className="bg-white rounded-2xl shadow-sm mx-4 mb-3 overflow-hidden"
-        // No opacity dimming — completed state shown via green checkmark
+        style={{
+          backgroundColor: "#fff",
+          borderRadius:    16,
+          marginHorizontal: 16,
+          marginBottom:    8,
+          overflow:        "hidden",
+          shadowColor:     "#000",
+          shadowOffset:    { width: 0, height: 1 },
+          shadowOpacity:   0.06,
+          shadowRadius:    3,
+          elevation:       2,
+        }}
       >
-        {/* — Progress bar: absolute at card bottom, only when in-progress — */}
+        {/* Progress bar — absolute at card bottom, only when in-progress */}
         {hasProgress && (
-          <View className="absolute bottom-0 left-0 right-0 h-1 bg-gray-100">
-            <View className="h-1 bg-brand" style={{ width: `${progressPercent}%` }} />
+          <View
+            style={{
+              position:        "absolute",
+              bottom:          0,
+              left:            0,
+              right:           0,
+              height:          2,
+              backgroundColor: "#F3F4F6",
+            }}
+          >
+            <View
+              style={{
+                height:          2,
+                backgroundColor: "#EA580C",
+                width:           `${progressPercent}%`,
+              }}
+            />
           </View>
         )}
 
-        <View className="p-4 flex-row gap-3 items-start">
-
-          {/* — LEFT column: thumbnail + state indicator — */}
-          <View className="items-center gap-1.5 pt-0.5">
-            <ThumbnailImage
-              thumbnailUrl={item.thumbnailUrl}
-              sourceName={item.sourceName}
-              sourceDomain={item.sourceDomain}
-            />
+        <View
+          style={{
+            padding:        14,
+            flexDirection:  "row",
+            alignItems:     "flex-start",
+            gap:            12,
+          }}
+        >
+          {/* ── LEFT: thumbnail + state dot/check ── */}
+          <View style={{ alignItems: "center", gap: 6, paddingTop: 2 }}>
+            <TouchableOpacity
+              activeOpacity={versions.length > 1 && !!onVersionPress ? 0.7 : 1}
+              onPress={() => {
+                // Tap thumbnail → play primary version if available
+                if (primaryVersion && primaryVersion.status === "ready") {
+                  handleVersionTap(primaryVersion);
+                }
+              }}
+            >
+              <SourceThumbnail
+                sourceType={item.sourceType}
+                sourceUrl={item.sourceUrl}
+                sourceName={item.sourceName}
+                size={56}
+              />
+            </TouchableOpacity>
             {isNew && (
-              <View className="w-2 h-2 rounded-full bg-orange-500" />
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#EA580C" }} />
             )}
             {allCompleted && (
               <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
             )}
           </View>
 
-          {/* — CENTER column: title, source subtitle, summary, version pills — */}
-          <View className="flex-1 min-w-0">
+          {/* ── CENTER: title, meta, footer ── */}
+          <View style={{ flex: 1, minWidth: 0 }}>
 
             {/* Title */}
-            <Text className="text-sm font-bold text-gray-900" numberOfLines={2}>
+            <Text
+              style={{
+                fontSize:      14,
+                fontWeight:    "600",
+                color:         "#000",
+                lineHeight:    19,
+                letterSpacing: -0.1,
+                marginBottom:  4,
+              }}
+              numberOfLines={2}
+            >
               {displayTitle}
             </Text>
 
-            {/* Source · contentType subtitle */}
-            <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>
-              {sourceName(item.sourceType, item.sourceUrl, item.author)}
-              {primaryVersion?.contentType
-                ? ` · ${humanizeContentType(primaryVersion.contentType)}`
-                : ""}
-            </Text>
-
-            {/* Summary — only rendered when present, max 2 lines */}
-            {primaryVersion?.summary ? (
-              <Text className="text-xs text-gray-500 mt-1.5 leading-4" numberOfLines={2}>
-                {primaryVersion.summary}
+            {/* Meta: domain · contentType */}
+            {metaLine ? (
+              <Text
+                style={{
+                  fontSize:  12,
+                  color:     "#8e8e93",
+                  marginBottom: 7,
+                }}
+                numberOfLines={1}
+              >
+                {metaLine}
               </Text>
             ) : null}
 
-            {/* Version pills + "+" pill */}
-            <View className="flex-row items-center mt-2 gap-1.5 flex-wrap">
-              {versions.map((v) => {
-                const isActive = !!currentAudioId && currentAudioId === v.audioId;
-                const label    = `${v.targetDuration} min`;
-
-                if (v.status === "ready" && v.audioId && onVersionPress) {
-                  const playable: PlayableItem = {
-                    id:              v.audioId,
-                    title:           item.title,
-                    duration:        v.durationSecs ?? v.targetDuration * 60,
-                    format:          v.format,
-                    audioUrl:        v.audioUrl ?? "",
-                    author:          item.author,
-                    sourceType:      item.sourceType,
-                    sourceUrl:       item.sourceUrl,
-                    sourceDomain:    item.sourceDomain,
-                    sourceName:      item.sourceName,
-                    sourceBrandColor: item.sourceBrandColor,
-                    contentType:     v.contentType,
-                    themes:          v.themes,
-                    summary:         v.summary,
-                    targetDuration:  v.targetDuration,
-                    createdAt:       item.createdAt,
-                  };
-                  return (
+            {/* Footer: duration pill + versions badge (or shimmer) */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {isGenerating ? (
+                <ShimmerPill />
+              ) : (
+                <>
+                  {durationLabel && (
                     <TouchableOpacity
-                      key={v.scriptId}
-                      onPress={() => { void Haptics.light(); onVersionPress(item, v, playable); }}
-                      className={`px-2 py-0.5 rounded-full ${isActive ? "bg-brand" : "bg-gray-100"}`}
+                      activeOpacity={primaryVersion?.status === "ready" ? 0.7 : 1}
+                      onPress={() => primaryVersion && handleVersionTap(primaryVersion)}
                       hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     >
-                      <Text className={`text-xs font-medium ${isActive ? "text-white" : "text-gray-600"}`}>
-                        {label}
-                      </Text>
+                      <DurationPill label={durationLabel} />
                     </TouchableOpacity>
-                  );
-                }
-
-                // Non-tappable (generating / processing)
-                return (
-                  <View
-                    key={v.scriptId}
-                    className={`px-2 py-0.5 rounded-full ${isActive ? "bg-brand" : "bg-gray-100"}`}
-                  >
-                    <Text className={`text-xs font-medium ${isActive ? "text-white" : "text-gray-600"}`}>
-                      {label}
-                    </Text>
-                  </View>
-                );
-              })}
-
-
+                  )}
+                  {versions.length > 1 && (
+                    <VersionsBadge count={versions.length} />
+                  )}
+                </>
+              )}
             </View>
           </View>
-
-          {/* — RIGHT column: shimmer while generating; duration summary only for multi-version cards — */}
-          {isGenerating ? (
-            <ShimmerPill />
-          ) : versions.length > 1 ? (
-            <View className="bg-gray-100 px-2 py-1 rounded-lg self-start">
-              <Text className="text-xs font-semibold text-gray-600">
-                {primaryVersion ? `${primaryVersion.targetDuration} min` : "—"}
-              </Text>
-            </View>
-          ) : null}
-
         </View>
       </TouchableOpacity>
     </Swipeable>
