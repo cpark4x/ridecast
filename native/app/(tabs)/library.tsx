@@ -386,11 +386,18 @@ function LibraryScreen() {
           {/* Sort icon */}
           <TouchableOpacity
             onPress={handleSortPress}
-            className="p-2"
+            style={{
+              backgroundColor: "#f2f2f7",
+              borderRadius:    10,
+              width:           36,
+              height:          36,
+              alignItems:      "center",
+              justifyContent:  "center",
+            }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Sort episodes"
           >
-            <Ionicons name="funnel-outline" size={20} color="#374151" />
+            <Ionicons name="reorder-three-outline" size={22} color="#3c3c43" />
           </TouchableOpacity>
           {/* Settings gear */}
           <TouchableOpacity
@@ -418,51 +425,74 @@ function LibraryScreen() {
       </View>
 
       {/* ── Filter chips row ─────────────────────────────────────────────── */}
+      {/* Status filter chips — Unheard / All / In Progress / Completed */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="mb-3"
-        contentContainerClassName="px-4 gap-2"
+        style={{ marginBottom: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 2 }}
       >
-        {/* Toggle chips */}
         {TOGGLE_FILTERS.map(({ key, label }) => (
           <TouchableOpacity
             key={key}
             onPress={() => { void Haptics.light(); setFilter(key); }}
-            className={`px-4 py-1.5 rounded-full ${
-              filter === key ? "bg-brand" : "bg-gray-100"
-            }`}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical:   6,
+              borderRadius:      20,
+              backgroundColor:   filter === key ? "#EA580C" : "rgba(116,116,128,0.12)",
+            }}
           >
             <Text
-              className={`text-sm font-medium ${
-                filter === key ? "text-white" : "text-gray-700"
-              }`}
+              style={{
+                fontSize:   13,
+                fontWeight: "500",
+                color:      filter === key ? "#fff" : "#3c3c43",
+              }}
             >
               {label}
             </Text>
           </TouchableOpacity>
         ))}
+      </ScrollView>
 
-        {/* Divider */}
-        <View className="w-px bg-gray-200 mx-1 self-stretch" />
-
+      {/* Secondary filter row — Sources + Topics (separate row, smaller chips) */}
+      <View
+        style={{
+          flexDirection:     "row",
+          gap:               8,
+          paddingHorizontal: 16,
+          paddingTop:        8,
+          paddingBottom:     14,
+        }}
+      >
         {/* Sources dropdown chip */}
         <TouchableOpacity
           onPress={handleSourceFilterPress}
-          className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
-            sourceFilter ? "bg-brand" : "bg-gray-100"
-          }`}
+          style={{
+            flexDirection:     "row",
+            alignItems:        "center",
+            gap:               4,
+            paddingHorizontal: 12,
+            paddingVertical:   5,
+            borderRadius:      20,
+            backgroundColor:   sourceFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
+            borderWidth:       1,
+            borderColor:       sourceFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
+          }}
         >
           <Text
-            className={`text-sm font-medium ${
-              sourceFilter ? "text-white" : "text-gray-700"
-            }`}
+            style={{
+              fontSize:   12,
+              fontWeight: "500",
+              color:      sourceFilter ? "#fff" : "#3c3c43",
+            }}
           >
             {sourceFilter ?? "Sources"}
           </Text>
           <Ionicons
             name={sourceFilter ? "close-circle" : "chevron-down"}
-            size={13}
+            size={12}
             color={sourceFilter ? "white" : "#9CA3AF"}
           />
         </TouchableOpacity>
@@ -470,24 +500,34 @@ function LibraryScreen() {
         {/* Topics dropdown chip */}
         <TouchableOpacity
           onPress={handleTopicFilterPress}
-          className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
-            topicFilter ? "bg-brand" : "bg-gray-100"
-          }`}
+          style={{
+            flexDirection:     "row",
+            alignItems:        "center",
+            gap:               4,
+            paddingHorizontal: 12,
+            paddingVertical:   5,
+            borderRadius:      20,
+            backgroundColor:   topicFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
+            borderWidth:       1,
+            borderColor:       topicFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
+          }}
         >
           <Text
-            className={`text-sm font-medium ${
-              topicFilter ? "text-white" : "text-gray-700"
-            }`}
+            style={{
+              fontSize:   12,
+              fontWeight: "500",
+              color:      topicFilter ? "#fff" : "#3c3c43",
+            }}
           >
             {topicFilter ?? "Topics"}
           </Text>
           <Ionicons
             name={topicFilter ? "close-circle" : "chevron-down"}
-            size={13}
+            size={12}
             color={topicFilter ? "white" : "#9CA3AF"}
           />
         </TouchableOpacity>
-      </ScrollView>
+      </View>
 
       {/* ── Stale nudge ──────────────────────────────────────────────────── */}
       {/* Active sort indicator — shown when not using the default sort order */}
@@ -563,10 +603,45 @@ function LibraryScreen() {
           )}
           renderSectionHeader={({ section: { title, data } }) =>
             title ? (
-              <View className="px-4 pt-5 pb-1">
-                <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  {title} · {data.length}
+              <View
+                style={{
+                  paddingHorizontal: 16,
+                  paddingTop:        20,
+                  paddingBottom:     4,
+                  flexDirection:     "row",
+                  alignItems:        "center",
+                  gap:               8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize:      13,
+                    fontWeight:    "600",
+                    color:         "#8e8e93",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.6,
+                  }}
+                >
+                  {title}
                 </Text>
+                <View
+                  style={{
+                    backgroundColor:  "rgba(116,116,128,0.12)",
+                    borderRadius:     10,
+                    paddingHorizontal: 7,
+                    paddingVertical:  1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize:   11,
+                      fontWeight: "600",
+                      color:      "#8e8e93",
+                    }}
+                  >
+                    {data.length}
+                  </Text>
+                </View>
               </View>
             ) : null
           }

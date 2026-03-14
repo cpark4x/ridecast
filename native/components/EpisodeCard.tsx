@@ -129,20 +129,6 @@ export default function EpisodeCard({
 
   // State flags
   const isGenerating = versions.some((v) => v.status === "generating");
-  const allCompleted = versions.length > 0 && versions.every((v) => v.completed);
-  const isNew        = !allCompleted
-    && !isGenerating
-    && !!primaryVersion
-    && primaryVersion.position === 0
-    && !primaryVersion.completed;
-  const hasProgress  = !!primaryVersion
-    && primaryVersion.position > 0
-    && !primaryVersion.completed;
-
-  const progressPercent =
-    hasProgress && primaryVersion.durationSecs && primaryVersion.durationSecs > 0
-      ? Math.min((primaryVersion.position / primaryVersion.durationSecs) * 100, 100)
-      : 0;
 
   // ---------------------------------------------------------------------------
   // Meta line: registered domain (or fallback) · contentType
@@ -290,31 +276,9 @@ export default function EpisodeCard({
           shadowOffset:    { width: 0, height: 1 },
           shadowOpacity:   0.06,
           shadowRadius:    3,
-          elevation:       2,
+          elevation:       1,
         }}
       >
-        {/* Progress bar — absolute at card bottom, only when in-progress */}
-        {hasProgress && (
-          <View
-            style={{
-              position:        "absolute",
-              bottom:          0,
-              left:            0,
-              right:           0,
-              height:          2,
-              backgroundColor: "#F3F4F6",
-            }}
-          >
-            <View
-              style={{
-                height:          2,
-                backgroundColor: "#EA580C",
-                width:           `${progressPercent}%`,
-              }}
-            />
-          </View>
-        )}
-
         <View
           style={{
             padding:        14,
@@ -323,31 +287,24 @@ export default function EpisodeCard({
             gap:            12,
           }}
         >
-          {/* ── LEFT: thumbnail + state dot/check ── */}
-          <View style={{ alignItems: "center", gap: 6, paddingTop: 2 }}>
-            <TouchableOpacity
-              activeOpacity={versions.length > 1 && !!onVersionPress ? 0.7 : 1}
-              onPress={() => {
-                // Tap thumbnail → play primary version if available
-                if (primaryVersion && primaryVersion.status === "ready") {
-                  handleVersionTap(primaryVersion);
-                }
-              }}
-            >
-              <SourceThumbnail
-                sourceType={item.sourceType}
-                sourceUrl={item.sourceUrl}
-                sourceName={item.sourceName}
-                size={56}
-              />
-            </TouchableOpacity>
-            {isNew && (
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#EA580C" }} />
-            )}
-            {allCompleted && (
-              <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
-            )}
-          </View>
+          {/* ── LEFT: thumbnail ── */}
+          <TouchableOpacity
+            activeOpacity={versions.length > 1 && !!onVersionPress ? 0.7 : 1}
+            onPress={() => {
+              // Tap thumbnail → play primary version if available
+              if (primaryVersion && primaryVersion.status === "ready") {
+                handleVersionTap(primaryVersion);
+              }
+            }}
+            style={{ paddingTop: 2 }}
+          >
+            <SourceThumbnail
+              sourceType={item.sourceType}
+              sourceUrl={item.sourceUrl}
+              sourceName={item.sourceName}
+              size={56}
+            />
+          </TouchableOpacity>
 
           {/* ── CENTER: title, meta, footer ── */}
           <View style={{ flex: 1, minWidth: 0 }}>
