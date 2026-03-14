@@ -44,12 +44,19 @@ import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TOGGLE_FILTERS: { key: LibraryFilter; label: string }[] = [
-  { key: "active",      label: "Active"      },
+  { key: "active",      label: "Unheard"     },
   { key: "all",         label: "All"         },
   { key: "in_progress", label: "In Progress" },
   { key: "completed",   label: "Completed"   },
-  { key: "generating",  label: "Generating"  },
 ];
+
+const SORT_LABELS: Record<SortOrder, string> = {
+  date_desc:    "Newest First",
+  date_asc:     "Oldest First",
+  title_asc:    "A → Z",
+  duration_asc: "Shortest First",
+  source_asc:   "By Source",
+};
 
 const SORT_OPTIONS: { label: string; value: SortOrder }[] = [
   { label: "Newest First",   value: "date_desc"    },
@@ -483,6 +490,23 @@ function LibraryScreen() {
       </ScrollView>
 
       {/* ── Stale nudge ──────────────────────────────────────────────────── */}
+      {/* Active sort indicator — shown when not using the default sort order */}
+      {sortOrder !== "date_desc" && (
+        <View className="px-4 mb-2">
+          <TouchableOpacity
+            onPress={() => setSortOrder("date_desc")}
+            className="self-start flex-row items-center gap-1 bg-orange-100 px-3 py-1 rounded-full"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityLabel="Clear sort order"
+          >
+            <Text className="text-xs font-medium text-orange-700">
+              {SORT_LABELS[sortOrder]}
+            </Text>
+            <Ionicons name="close" size={12} color="#C2410C" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {context === "stale" && !staleDismissed && !isLoading && (
         <StaleLibraryNudge
           daysSinceNewest={daysSinceNewest}
@@ -537,11 +561,11 @@ function LibraryScreen() {
               onDelete={handleDelete}
             />
           )}
-          renderSectionHeader={({ section: { title } }) =>
+          renderSectionHeader={({ section: { title, data } }) =>
             title ? (
               <View className="px-4 pt-5 pb-1">
                 <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  {title}
+                  {title} · {data.length}
                 </Text>
               </View>
             ) : null

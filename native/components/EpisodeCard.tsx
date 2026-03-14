@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
   Animated,
+  Image,
   Platform,
   Text,
   TouchableOpacity,
@@ -12,9 +13,59 @@ import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Ionicons } from "@expo/vector-icons";
 import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 import { smartTitle } from "../lib/libraryHelpers";
-import { sourceName } from "../lib/utils";
+import { humanizeContentType, sourceName } from "../lib/utils";
 import { Haptics } from "../lib/haptics";
-import SourceIcon from "./SourceIcon";
+import { hashColor } from "../lib/sourceUtils";
+
+// ---------------------------------------------------------------------------
+// ThumbnailImage — 52×52 source logo with colored-letter fallback
+// ---------------------------------------------------------------------------
+
+function ThumbnailImage({
+  thumbnailUrl,
+  sourceName: sName,
+  sourceDomain,
+}: {
+  thumbnailUrl: string | null | undefined;
+  sourceName: string | null | undefined;
+  sourceDomain: string | null | undefined;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const letter  = sName ? sName.charAt(0).toUpperCase() : "?";
+  const bgColor = sourceDomain
+    ? hashColor(sourceDomain)
+    : sName
+      ? hashColor(sName)
+      : "#9CA3AF";
+
+  if (thumbnailUrl && !hasError) {
+    return (
+      <Image
+        source={{ uri: thumbnailUrl }}
+        style={{ width: 52, height: 52, borderRadius: 10 }}
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <View
+      style={{
+        width:           52,
+        height:          52,
+        borderRadius:    10,
+        backgroundColor: bgColor,
+        alignItems:      "center",
+        justifyContent:  "center",
+      }}
+    >
+      <Text style={{ color: "white", fontSize: 22, fontWeight: "700" }}>
+        {letter}
+      </Text>
+    </View>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // ShimmerPill — animated placeholder shown when isGenerating
@@ -193,13 +244,12 @@ export default function EpisodeCard({
 
         <View className="p-4 flex-row gap-3 items-start">
 
-          {/* — LEFT column: SourceIcon + state indicator — */}
+          {/* — LEFT column: thumbnail + state indicator — */}
           <View className="items-center gap-1.5 pt-0.5">
-            <SourceIcon
+            <ThumbnailImage
+              thumbnailUrl={item.thumbnailUrl}
               sourceName={item.sourceName}
               sourceDomain={item.sourceDomain}
-              sourceBrandColor={item.sourceBrandColor}
-              size={36}
             />
             {isNew && (
               <View className="w-2 h-2 rounded-full bg-orange-500" />
@@ -220,7 +270,9 @@ export default function EpisodeCard({
             {/* Source · contentType subtitle */}
             <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>
               {sourceName(item.sourceType, item.sourceUrl, item.author)}
-              {primaryVersion?.contentType ? ` · ${primaryVersion.contentType}` : ""}
+              {primaryVersion?.contentType
+                ? ` · ${humanizeContentType(primaryVersion.contentType)}`
+                : ""}
             </Text>
 
             {/* Summary — only rendered when present, max 2 lines */}
@@ -282,34 +334,20 @@ export default function EpisodeCard({
                 );
               })}
 
-              {/* "+ Version" pill — labeled button, more discoverable than bare "+" */}
-              {onNewVersion ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    void Haptics.light();
-                    onNewVersion(item);
-                  }}
-                  className="flex-row items-center gap-0.5 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200"
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  accessibilityLabel="Create a new version"
-                >
-                  <Ionicons name="add" size={11} color="#6B7280" />
-                  <Text className="text-xs font-medium text-gray-500">Version</Text>
-                </TouchableOpacity>
-              ) : null}
+
             </View>
           </View>
 
-          {/* — RIGHT column: duration pill or shimmer — */}
+          {/* — RIGHT column: shimmer while generating; duration summary only for multi-version cards — */}
           {isGenerating ? (
             <ShimmerPill />
-          ) : (
+          ) : versions.length > 1 ? (
             <View className="bg-gray-100 px-2 py-1 rounded-lg self-start">
               <Text className="text-xs font-semibold text-gray-600">
                 {primaryVersion ? `${primaryVersion.targetDuration} min` : "—"}
               </Text>
             </View>
-          )}
+          ) : null}
 
         </View>
       </TouchableOpacity>

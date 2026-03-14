@@ -76,6 +76,7 @@ export interface LibraryItem {
   sourceName?: string | null;
   sourceDomain?: string | null;
   sourceBrandColor?: string | null;
+  thumbnailUrl?: string | null;
   description?: string | null;
 }
 

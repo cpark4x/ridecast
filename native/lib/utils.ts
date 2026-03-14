@@ -142,3 +142,30 @@ export function timeRemaining(positionSecs: number, durationSecs: number): strin
   }
   return `${Math.ceil(remaining)} sec left`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content-type display helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  business_book:    "Business Book",
+  news_article:     "News Article",
+  research_paper:   "Research",
+  blog_post:        "Blog Post",
+  technical_paper:  "Technical",
+  article:          "Article",
+  podcast:          "Podcast",
+};
+
+/**
+ * Convert a raw contentType string (e.g. "business_book") into a human-readable
+ * label (e.g. "Business Book"). Falls back to capitalising each word when the
+ * value is not in the known-labels map.
+ */
+export function humanizeContentType(raw: string | null | undefined): string {
+  if (!raw) return "";
+  return (
+    CONTENT_TYPE_LABELS[raw] ??
+    raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}

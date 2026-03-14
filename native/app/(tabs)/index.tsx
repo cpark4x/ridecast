@@ -22,13 +22,12 @@ import {
   getLibraryContext,
   getTopSourceDomain,
 } from "../../lib/libraryHelpers";
-import { formatDurationMinutes } from "../../lib/utils";
+
 import type { AudioVersion, LibraryItem, PlayableItem } from "../../lib/types";
 import { Haptics } from "../../lib/haptics";
 
 import GreetingHeader from "../../components/GreetingHeader";
 import HeroPlayerCard from "../../components/HeroPlayerCard";
-import EpisodeCarousel from "../../components/EpisodeCarousel";
 import EpisodeCard from "../../components/EpisodeCard";
 import { SkeletonList } from "../../components/SkeletonLoader";
 import UploadModal from "../../components/UploadModal";
@@ -148,15 +147,6 @@ function HomeScreen() {
     );
   }
 
-  /** Tapping a carousel card — plays via the item's first ready version */
-  function handleCarouselPlay(item: LibraryItem) {
-    const playable = libraryItemToPlayable(item);
-    if (!playable) return;
-    player.play(playable).catch((err) =>
-      console.warn("[home] carousel play error:", err),
-    );
-  }
-
   /** Tapping the body of an Up Next card — plays its primary version */
   function handleCardPress(item: LibraryItem) {
     const playable = libraryItemToPlayable(item);
@@ -190,7 +180,7 @@ function HomeScreen() {
         ref={scrollRef}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 180 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -232,23 +222,16 @@ function HomeScreen() {
                 onPress={handlePlayAll}
                 activeOpacity={0.85}
                 className="mx-4 mb-4 bg-brand py-4 rounded-2xl items-center"
-                accessibilityLabel={`Play all — ${formatDurationMinutes(totalDurationSecs)}`}
+                accessibilityLabel={`Play all — ${episodeCount} episodes`}
               >
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="play" size={18} color="white" />
                   <Text className="text-base font-bold text-white">
-                    Play All · {formatDurationMinutes(totalDurationSecs)}
+                    Play All · {episodeCount} episodes
                   </Text>
                 </View>
               </TouchableOpacity>
             )}
-
-            {/* —— Horizontal carousel (all episodes, newest first) —— */}
-            <EpisodeCarousel
-              episodes={episodes}
-              onPlay={handleCarouselPlay}
-              currentAudioId={player.currentItem?.id ?? null}
-            />
 
             {/* —— Up Next list —— */}
             {upNextPairs.length > 0 && (

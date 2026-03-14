@@ -1,4 +1,5 @@
 import type { LibraryItem, LibraryFilter, PlayableItem } from "./types";
+import { sourceName } from "./utils";
 
 export type SortOrder =
   | "date_desc"
@@ -268,8 +269,18 @@ export function smartTitle(
   sourceDomain?: string | null,
   maxLength = 80,
 ): string {
-  let title = rawTitle.trim();
-  if (!title) return rawTitle;
+  const trimmed = rawTitle.trim();
+
+  // Preserve original behavior for genuinely empty strings
+  if (!trimmed) return rawTitle;
+
+  // Fall back for anonymous/placeholder titles — use domain or source label
+  if (trimmed === "(anonymous)") {
+    if (sourceDomain) return sourceDomain;
+    return sourceName(sourceType, null, null);
+  }
+
+  let title = trimmed;
 
   // Rule 1: PDF / file-based sources — clean up filename-style titles
   if (sourceType === "pdf" || sourceType === "txt" || sourceType === "epub") {

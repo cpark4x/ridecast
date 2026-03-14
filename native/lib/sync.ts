@@ -16,8 +16,19 @@ export async function syncLibrary(): Promise<LibraryItem[]> {
   // Server-provided fields (non-null) always win; we only fill gaps.
   const enriched: LibraryItem[] = serverItems.map((item) => {
     const derived = deriveSourceIdentity(item);
+
+    let thumbnailUrl: string | null = null;
+    if (item.sourceUrl) {
+      try {
+        thumbnailUrl = `https://logo.clearbit.com/${new URL(item.sourceUrl).hostname}`;
+      } catch {
+        // malformed URL — leave as null
+      }
+    }
+
     return {
       ...item,
+      thumbnailUrl:     item.thumbnailUrl     ?? thumbnailUrl,
       sourceIcon:       item.sourceIcon       ?? derived.sourceIcon,
       sourceName:       item.sourceName       ?? derived.sourceName,
       sourceDomain:     item.sourceDomain     ?? derived.sourceDomain,
