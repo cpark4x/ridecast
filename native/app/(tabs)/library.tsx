@@ -429,24 +429,24 @@ function LibraryScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginBottom: 0, flexShrink: 0, flexGrow: 0 }}
-        contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, gap: 8, paddingVertical: 6 }}
+        style={{ height: 44, flexShrink: 0, flexGrow: 0 }}
+        contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, gap: 8, alignItems: "center" }}
       >
         {TOGGLE_FILTERS.map(({ key, label }) => (
           <TouchableOpacity
             key={key}
             onPress={() => { void Haptics.light(); setFilter(key); }}
             style={{
-              paddingHorizontal: 14,
-              paddingVertical:   6,
+              paddingHorizontal: 16,
+              paddingVertical:   8,
               borderRadius:      20,
               backgroundColor:   filter === key ? "#EA580C" : "rgba(116,116,128,0.12)",
             }}
           >
             <Text
               style={{
-                fontSize:   13,
-                fontWeight: "500",
+                fontSize:   15,
+                fontWeight: "600",
                 color:      filter === key ? "#fff" : "#3c3c43",
               }}
             >
