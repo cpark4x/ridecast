@@ -429,8 +429,8 @@ function LibraryScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginBottom: 0 }}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 2 }}
+        style={{ marginBottom: 0, flexShrink: 0, flexGrow: 0 }}
+        contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, gap: 8, paddingVertical: 6 }}
       >
         {TOGGLE_FILTERS.map(({ key, label }) => (
           <TouchableOpacity
@@ -454,6 +454,8 @@ function LibraryScreen() {
             </Text>
           </TouchableOpacity>
         ))}
+        {/* Spacer — RN horizontal ScrollView ignores trailing padding; must match paddingLeft (16) */}
+        <View style={{ width: 16 }} />
       </ScrollView>
 
       {/* Secondary filter row — Sources + Topics (separate row, smaller chips) */}
