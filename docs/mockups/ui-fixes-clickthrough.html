@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ridecast — UI Fixes Clickthrough Mockup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .page-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+
+  /* ─── iPhone Frame ────────────────────────────────────── */
+  .iphone {
+    position: relative;
+    width: 393px;
+    background: #0a0a0a;
+    border-radius: 54px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px #333,
+      0 0 0 2px #222,
+      0 50px 100px rgba(0,0,0,0.6),
+      0 20px 40px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* Side buttons */
+  .iphone::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 120px;
+    width: 3px;
+    height: 34px;
+    background: #2a2a2a;
+    border-radius: 3px 0 0 3px;
+    box-shadow: 0 44px 0 #2a2a2a, 0 88px 0 #2a2a2a;
+  }
+  .iphone::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 160px;
+    width: 3px;
+    height: 70px;
+    background: #2a2a2a;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 828px;
+    background: #f2f2f7;
+    border-radius: 44px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── Dynamic Island ───────────────────────────────────── */
+  .dynamic-island {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 34px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .island-camera {
+    width: 10px; height: 10px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    border: 1.5px solid #2a2a2a;
+    position: relative;
+  }
+  .island-camera::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px; height: 4px;
+    background: #0d0d0d;
+    border-radius: 50%;
+  }
+
+  /* ─── Status Bar ─────────────────────────────────────────── */
+  .status-bar {
+    height: 54px;
+    padding: 16px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: transparent;
+    position: relative;
+    z-index: 10;
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #000;
+    letter-spacing: -0.3px;
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-icons svg {
+    fill: #000;
+  }
+
+  /* ─── App Views ──────────────────────────────────────────── */
+  .app-view {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+  .app-view.active {
+    display: flex;
+  }
+
+  /* ─── Scrollable Content ─────────────────────────────────── */
+  .scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .scroll-content::-webkit-scrollbar { display: none; }
+
+  /* ─── HOME SCREEN ────────────────────────────────────────── */
+
+  .home-header {
+    padding: 20px 20px 16px;
+    background: #fff;
+  }
+  .home-greeting {
+    font-size: 26px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .home-subtitle {
+    font-size: 13px;
+    color: #8e8e93;
+    margin-top: 3px;
+    font-weight: 400;
+  }
+
+  .play-all-btn {
+    margin: 0 20px 16px;
+    background: #EA580C;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    width: calc(100% - 40px);
+    transition: opacity 0.15s;
+  }
+  .play-all-btn:active { opacity: 0.85; }
+  .play-all-icon {
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .play-all-icon svg { fill: white; margin-left: 2px; }
+  .play-all-text {
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  .play-all-meta {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    margin-left: auto;
+    font-weight: 400;
+  }
+
+  .section-header {
+    padding: 20px 20px 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .section-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: -0.3px;
+  }
+  .section-count {
+    font-size: 13px;
+    color: #8e8e93;
+    font-weight: 500;
+  }
+
+  /* ─── Episode Card ─────────────────────────────────────── */
+  .episode-list {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .episode-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .episode-card:active { background: #f5f5f5; }
+
+  /* ─── Thumbnail redesign: 56×56, rounded-lg ─────────────── */
+  .ep-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Gradient backgrounds (unchanged colors) */
+  .thumb-substack { background: linear-gradient(135deg, #EA580C, #f97316); }
+  .thumb-pdf      { background: linear-gradient(135deg, #DC2626, #ef4444); }
+  .thumb-github   { background: linear-gradient(135deg, #24292e, #3d4451); }
+  .thumb-book     { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+  .thumb-default  { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+
+  /* Letter shown as fallback behind the logo image */
+  .thumb-letter {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: -0.5px;
+    z-index: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Logo tile: white-bg rounded square, floats over the gradient */
+  .logo-tile {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.22), 0 0 0 0.5px rgba(0,0,0,0.06);
+    position: relative;
+    z-index: 2;
+    display: block;
+  }
+
+  /* Inline SVG icon (PDF, fallback doc) centered by flex */
+  .thumb-icon {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Source-domain badge: bottom-right corner of the thumbnail */
+  .source-badge {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(0,0,0,0.08);
+    z-index: 3;
+  }
+  .source-badge img {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
+    display: block;
+  }
+  /* Dark badge variant for light-logo sources (GitHub octocat) */
+  .source-badge-dark {
+    background: #1a1a1a;
+  }
+
+  .ep-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .ep-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #000;
+    line-height: 1.35;
+    letter-spacing: -0.1px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .ep-title.fallback {
+    color: #6d6d72;
+    font-style: italic;
+  }
+  .ep-meta {
+    font-size: 12px;
+    color: #8e8e93;
+    font-weight: 400;
+    margin-bottom: 7px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ep-meta strong {
+    color: #6d6d72;
+    font-weight: 500;
+  }
+  .ep-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .duration-pill {
+    background: #f2f2f7;
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3c3c43;
+    letter-spacing: 0.1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .duration-pill svg { opacity: 0.5; }
+  .versions-badge {
+    background: rgba(234, 88, 12, 0.1);
+    color: #EA580C;
+    border-radius: 20px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* ─── Mini Player ───────────────────────────────────────── */
+  .mini-player {
+    background: #1c1c1e;
+    margin: 8px 12px;
+    border-radius: 16px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  }
+  .mini-thumb {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #EA580C, #f97316);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  /* Mini thumb logo: slightly smaller tile to fit in 36px */
+  .mini-thumb .mini-logo {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 2;
+    display: block;
+  }
+  .mini-thumb .mini-letter {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    z-index: 1;
+    pointer-events: none;
+  }
+  .mini-body { flex: 1; min-width: 0; }
+  .mini-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.1px;
+  }
+  .mini-time {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 1px;
+  }
+  .mini-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .mini-btn {
+    width: 32px; height: 32px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.1s;
+  }
+  .mini-btn:active { background: rgba(255,255,255,0.1); }
+  .mini-btn svg { fill: white; }
+  .mini-progress {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+  }
+  .mini-progress-fill {
+    height: 100%;
+    width: 35%;
+    background: #EA580C;
+    border-radius: 2px;
+  }
+
+  /* ─── Tab Bar ──────────────────────────────────────────── */
+  .tab-bar {
+    background: rgba(249,249,249,0.94);
+    border-top: 0.5px solid rgba(0,0,0,0.12);
+    height: 83px;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 8px;
+    flex-shrink: 0;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 4px 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.1s;
+  }
+  .tab-item:active { opacity: 0.6; }
+  .tab-icon {
+    width: 24px; height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tab-icon svg { fill: #8e8e93; transition: fill 0.15s; }
+  .tab-item.active .tab-icon svg { fill: #EA580C; }
+  .tab-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: #8e8e93;
+    letter-spacing: 0.1px;
+    transition: color 0.15s;
+  }
+  .tab-item.active .tab-label { color: #EA580C; }
+
+  /* ─── LIBRARY SCREEN ──────────────────────────────────── */
+
+  .lib-header {
+    background: #fff;
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .lib-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: -0.5px;
+    flex: 1;
+  }
+  .header-btn {
+    width: 36px; height: 36px;
+    background: #f2f2f7;
+    border: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.1s;
+  }
+  .header-btn:active { background: #e5e5ea; }
+  .header-btn svg { fill: #3c3c43; }
+
+  .search-bar {
+    margin: 12px 20px 10px;
+    background: rgba(116,116,128,0.12);
+    border-radius: 12px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .search-bar svg { fill: #8e8e93; flex-shrink: 0; }
+  .search-placeholder {
+    font-size: 15px;
+    color: #8e8e93;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+  }
+
+  .filter-row {
+    padding: 0 20px 0;
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .secondary-filter-row {
+    padding: 8px 20px 14px;
+    display: flex;
+    gap: 7px;
+  }
+
+  .chip {
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: -0.1px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Status filter chips */
+  .chip.status {
+    background: rgba(116,116,128,0.12);
+    color: #3c3c43;
+  }
+  .chip.status.selected {
+    background: #EA580C;
+    color: white;
+  }
+  .chip.status:active { opacity: 0.7; }
+
+  /* Secondary filter chips */
+  .chip.secondary {
+    background: rgba(116,116,128,0.1);
+    color: #3c3c43;
+    font-size: 12px;
+    padding: 5px 12px;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .chip.secondary:active { background: rgba(116,116,128,0.2); }
+  .chevron {
+    font-size: 10px;
+    opacity: 0.5;
+  }
+
+  /* Sort active chip */
+  .sort-active-row {
+    padding: 0 20px 12px;
+    display: flex;
+    gap: 7px;
+  }
+  .sort-chip {
+    background: rgba(234, 88, 12, 0.1);
+    color: #EA580C;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border: 1px solid rgba(234, 88, 12, 0.2);
+    transition: all 0.15s;
+  }
+  .sort-chip:active { background: rgba(234, 88, 12, 0.2); }
+  .sort-chip .dismiss {
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.7;
+    font-weight: 500;
+  }
+  .sort-active-row.hidden { display: none; }
+
+  .lib-section {
+    padding: 0 20px;
+  }
+  .lib-section-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8e8e93;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 8px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lib-section-header .count-badge {
+    background: rgba(116,116,128,0.12);
+    color: #8e8e93;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  /* FAB */
+  .fab {
+    position: absolute;
+    bottom: 96px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    background: #EA580C;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 50;
+  }
+  .fab:active {
+    transform: scale(0.92);
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  }
+  .fab svg { fill: white; }
+
+  /* ─── Home content bg ───────────────────────────────── */
+  #home-view .scroll-content {
+    background: #f2f2f7;
+  }
+  .home-top {
+    background: #fff;
+    padding-bottom: 8px;
+    margin-bottom: 0;
+  }
+
+  /* Spacing filler at bottom of scroll to avoid clip under mini player */
+  .scroll-bottom-pad {
+    height: 16px;
+  }
+
+  /* ─── Legend / annotations ────────────────────────── */
+  .annotations {
+    margin-top: 28px;
+    max-width: 393px;
+    width: 100%;
+  }
+  .annotations h3 {
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .annotation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .ann-num {
+    background: rgba(234,88,12,0.8);
+    color: white;
+    border-radius: 50%;
+    width: 18px; height: 18px;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .ann-text {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.5;
+  }
+  .ann-text strong { color: rgba(255,255,255,0.8); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page-label">Ridecast — UI Fixes Mockup · Tap tabs to switch screens</div>
+
+<!-- ═══════════════════════════ iPhone Frame ═══════════════════════════ -->
+<div class="iphone">
+  <div class="screen">
+
+    <!-- Dynamic Island -->
+    <div class="dynamic-island">
+      <div class="island-camera"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <!-- Signal bars -->
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <rect x="0" y="8" width="3" height="4" rx="0.8" opacity="1"/>
+          <rect x="4.5" y="5.5" width="3" height="6.5" rx="0.8" opacity="1"/>
+          <rect x="9" y="3" width="3" height="9" rx="0.8" opacity="1"/>
+          <rect x="13.5" y="0" width="3" height="12" rx="0.8" opacity="1"/>
+        </svg>
+        <!-- WiFi -->
+        <svg width="16" height="12" viewBox="0 0 16 12">
+          <path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+          <path d="M4.5 7C5.8 5.7 6.8 5 8 5s2.2.7 3.5 2l1.2-1.3C11.1 4 9.7 3 8 3S4.9 4 3.3 5.7L4.5 7z" opacity="0.9"/>
+          <path d="M1.5 4C3.3 2.1 5.5 1 8 1s4.7 1.1 6.5 3L16 2.6C13.8.9 11 0 8 0S2.2.9 0 2.6L1.5 4z" opacity="0.7"/>
+        </svg>
+        <!-- Battery -->
+        <svg width="25" height="12" viewBox="0 0 25 12">
+          <rect x="0" y="1" width="22" height="10" rx="3" stroke="#000" stroke-width="1.2" fill="none"/>
+          <rect x="22.5" y="3.8" width="2" height="4.4" rx="1" fill="#000" opacity="0.4"/>
+          <rect x="1.5" y="2.5" width="17" height="7" rx="2" fill="#000"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ══════════ HOME VIEW ══════════ -->
+    <div id="home-view" class="app-view active">
+      <div class="scroll-content">
+
+        <!-- Header -->
+        <div class="home-top">
+          <div class="home-header">
+            <div class="home-greeting">Good morning, Chris</div>
+            <div class="home-subtitle">8 episodes · 1 hr 24 min</div>
+          </div>
+
+          <!-- Play All -->
+          <button class="play-all-btn">
+            <div class="play-all-icon">
+              <svg width="12" height="13" viewBox="0 0 12 13"><path d="M2 1.5l9 5-9 5V1.5z"/></svg>
+            </div>
+            <span class="play-all-text">Play All</span>
+            <span class="play-all-meta">8 episodes</span>
+          </button>
+        </div>
+
+        <!-- Up Next Section -->
+        <div class="section-header">
+          <span class="section-title">Up Next</span>
+        </div>
+
+        <div class="episode-list">
+
+          <!-- Card 1: Substack — 2 versions -->
+          <div class="episode-card">
+            <!--
+              Substack thumbnail: orange gradient bg + clearbit logo tile
+              Badge: clearbit logo for substack.com (bottom-right)
+            -->
+            <div class="ep-thumb thumb-substack">
+              <span class="thumb-letter">S</span>
+              <img
+                class="logo-tile"
+                src="https://logo.clearbit.com/substack.com"
+                alt="Substack"
+                onerror="this.style.display='none'"
+              >
+              <div class="source-badge">
+                <img
+                  src="https://logo.clearbit.com/substack.com"
+                  alt=""
+                  onerror="this.parentElement.style.display='none'"
+                >
+              </div>
+            </div>
+            <div class="ep-body">
+              <div class="ep-title">Dangerous fools and Daisy Wheels</div>
+              <div class="ep-meta"><strong>substack.com</strong> · Newsletter</div>
+              <div class="ep-footer">
+                <span class="duration-pill">
+                  <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                  2 min
+                </span>
+                <span class="versions-badge">2 versions</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: PDF — stylized document icon on red gradient -->
+          <div class="episode-card">
+            <!--
+              PDF thumbnail: red gradient bg + inline SVG document icon
+              No external image needed; no badge (local file, no domain)
+            -->
+            <div class="ep-thumb thumb-pdf">
+              <div class="thumb-icon">
+                <svg width="30" height="34" viewBox="0 0 30 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Document body -->
+                  <rect x="1" y="1" width="22" height="28" rx="3" fill="white" fill-opacity="0.92"/>
+                  <!-- Dog-ear fold top-right -->
+                  <path d="M17 1 L23 7 L17 7 Z" fill="rgba(220,38,38,0.25)"/>
+                  <line x1="17" y1="1" x2="23" y2="7" stroke="rgba(220,38,38,0.3)" stroke-width="0.5"/>
+                  <!-- Red PDF label bar -->
+                  <rect x="1" y="20" width="22" height="9" rx="0" fill="#DC2626" fill-opacity="0.88"/>
+                  <rect x="1" y="26" width="22" height="3" rx="0 0 3 3" fill="#b91c1c" fill-opacity="0.5"/>
+                  <text x="12" y="26.5" text-anchor="middle" font-size="6.5" font-weight="800" fill="white" font-family="-apple-system, 'SF Pro Display', sans-serif" letter-spacing="0.5">PDF</text>
+                  <!-- Content lines -->
+                  <line x1="5" y1="9"  x2="19" y2="9"  stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="5" y1="13" x2="19" y2="13" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="5" y1="17" x2="13" y2="17" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+            <div class="ep-body">
+              <div class="ep-title">The Dynamics of Cheap Capability</div>
+              <div class="ep-meta"><strong>PDF</strong> · Document</div>
+              <div class="ep-footer">
+                <span class="duration-pill">
+                  <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                  5 min
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: GitHub — dark bg + GitHub logo tile + dark badge -->
+          <div class="episode-card">
+            <!--
+              GitHub thumbnail: dark gradient bg + clearbit logo tile (white bg rounds nicely)
+              Fallback: GitHub assets CDN octocat. Badge uses dark background.
+            -->
+            <div class="ep-thumb thumb-github">
+              <span class="thumb-letter">G</span>
+              <img
+                class="logo-tile"
+                src="https://logo.clearbit.com/github.com"
+                alt="GitHub"
+                onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'; this.onerror=null;"
+              >
+              <div class="source-badge source-badge-dark">
+                <img
+                  src="https://logo.clearbit.com/github.com"
+                  alt=""
+                  onerror="this.parentElement.style.display='none'"
+                >
+              </div>
+            </div>
+            <div class="ep-body">
+              <div class="ep-title">GitHub — ramparte/amplifier-bundle-dev-machine</div>
+              <div class="ep-meta"><strong>github.com</strong> · Repository</div>
+              <div class="ep-footer">
+                <span class="duration-pill">
+                  <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                  5 min
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Anonymous upload — blue gradient + generic upload-doc icon -->
+          <div class="episode-card">
+            <!--
+              Untitled Upload thumbnail: blue gradient bg + upload document SVG icon
+              No domain logo (uploaded file, no URL source). Title shows as italic fallback.
+            -->
+            <div class="ep-thumb thumb-book">
+              <div class="thumb-icon">
+                <svg width="28" height="32" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Document outline -->
+                  <rect x="2" y="2" width="20" height="26" rx="3" fill="white" fill-opacity="0.22" stroke="white" stroke-opacity="0.5" stroke-width="1.5"/>
+                  <!-- Upload arrow pointing up -->
+                  <path d="M14 11 L14 21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M10 15 L14 11 L18 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- Bottom line (landing zone) -->
+                  <line x1="9" y1="24" x2="19" y2="24" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.55"/>
+                </svg>
+              </div>
+            </div>
+            <div class="ep-body">
+              <!-- Fallback title: no metadata, show humanized type in italic -->
+              <div class="ep-title fallback">Untitled Upload</div>
+              <div class="ep-meta">· Business Book</div>
+              <div class="ep-footer">
+                <span class="duration-pill">
+                  <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                  5 min
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /episode-list -->
+
+        <div class="scroll-bottom-pad"></div>
+      </div><!-- /scroll-content -->
+
+      <!-- Mini Player -->
+      <div class="mini-player" style="position:relative;">
+        <!--
+          Mini thumb: same Substack branding — orange gradient + clearbit logo tile
+        -->
+        <div class="mini-thumb">
+          <span class="mini-letter">S</span>
+          <img
+            class="mini-logo"
+            src="https://logo.clearbit.com/substack.com"
+            alt="Substack"
+            onerror="this.style.display='none'"
+          >
+        </div>
+        <div class="mini-body">
+          <div class="mini-title">Dangerous fools and Daisy Wheels</div>
+          <div class="mini-time">3 min left</div>
+        </div>
+        <div class="mini-controls">
+          <button class="mini-btn" title="Rewind 15s">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="8.5" y="16" font-size="6" fill="white" font-weight="700">15</text></svg>
+          </button>
+          <button class="mini-btn" title="Play/Pause">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+          </button>
+          <button class="mini-btn" title="Skip 30s">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z"/></svg>
+          </button>
+        </div>
+        <div class="mini-progress"><div class="mini-progress-fill"></div></div>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <div class="tab-item active" onclick="switchTab('home')">
+          <div class="tab-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          </div>
+          <span class="tab-label">Home</span>
+        </div>
+        <div class="tab-item" onclick="switchTab('library')">
+          <div class="tab-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+          </div>
+          <span class="tab-label">Library</span>
+        </div>
+      </div>
+
+    </div><!-- /home-view -->
+
+    <!-- ══════════ LIBRARY VIEW ══════════ -->
+    <div id="library-view" class="app-view">
+      <div style="background:#fff; flex-shrink:0;">
+
+        <!-- Library Header -->
+        <div class="lib-header">
+          <span class="lib-title">Library</span>
+          <button class="header-btn" id="sort-btn" onclick="toggleSort()" title="Sort">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+          </button>
+          <button class="header-btn" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <span class="search-placeholder">Search episodes…</span>
+        </div>
+
+        <!-- Status Filter Chips -->
+        <div class="filter-row" id="filter-row">
+          <button class="chip status selected" onclick="toggleChip(this)">Unheard</button>
+          <button class="chip status" onclick="toggleChip(this)">All</button>
+          <button class="chip status" onclick="toggleChip(this)">In Progress</button>
+          <button class="chip status" onclick="toggleChip(this)">Completed</button>
+        </div>
+
+        <!-- Secondary Controls: Sources + Topics -->
+        <div class="secondary-filter-row">
+          <button class="chip secondary">
+            Sources <span class="chevron">▾</span>
+          </button>
+          <button class="chip secondary">
+            Topics <span class="chevron">▾</span>
+          </button>
+        </div>
+
+        <!-- Sort Active Chip -->
+        <div class="sort-active-row hidden" id="sort-active-row">
+          <div class="sort-chip" onclick="dismissSort()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="#EA580C"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+            Shortest First
+            <span class="dismiss">×</span>
+          </div>
+        </div>
+
+      </div><!-- /header bg -->
+
+      <!-- Scrollable list -->
+      <div class="scroll-content" style="background:#f2f2f7;">
+        <div class="lib-section">
+          <div class="lib-section-header">
+            This Week <span class="count-badge">4</span>
+          </div>
+
+          <div class="episode-list" style="padding:0;">
+
+            <!-- Card 1: Substack -->
+            <div class="episode-card">
+              <div class="ep-thumb thumb-substack">
+                <span class="thumb-letter">S</span>
+                <img
+                  class="logo-tile"
+                  src="https://logo.clearbit.com/substack.com"
+                  alt="Substack"
+                  onerror="this.style.display='none'"
+                >
+                <div class="source-badge">
+                  <img
+                    src="https://logo.clearbit.com/substack.com"
+                    alt=""
+                    onerror="this.parentElement.style.display='none'"
+                  >
+                </div>
+              </div>
+              <div class="ep-body">
+                <div class="ep-title">Dangerous fools and Daisy Wheels</div>
+                <div class="ep-meta"><strong>substack.com</strong> · Newsletter</div>
+                <div class="ep-footer">
+                  <span class="duration-pill">
+                    <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                    2 min
+                  </span>
+                  <span class="versions-badge">2 versions</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: PDF -->
+            <div class="episode-card">
+              <div class="ep-thumb thumb-pdf">
+                <div class="thumb-icon">
+                  <svg width="30" height="34" viewBox="0 0 30 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="22" height="28" rx="3" fill="white" fill-opacity="0.92"/>
+                    <path d="M17 1 L23 7 L17 7 Z" fill="rgba(220,38,38,0.25)"/>
+                    <line x1="17" y1="1" x2="23" y2="7" stroke="rgba(220,38,38,0.3)" stroke-width="0.5"/>
+                    <rect x="1" y="20" width="22" height="9" rx="0" fill="#DC2626" fill-opacity="0.88"/>
+                    <rect x="1" y="26" width="22" height="3" rx="0 0 3 3" fill="#b91c1c" fill-opacity="0.5"/>
+                    <text x="12" y="26.5" text-anchor="middle" font-size="6.5" font-weight="800" fill="white" font-family="-apple-system, 'SF Pro Display', sans-serif" letter-spacing="0.5">PDF</text>
+                    <line x1="5" y1="9"  x2="19" y2="9"  stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="5" y1="13" x2="19" y2="13" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="5" y1="17" x2="13" y2="17" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="ep-body">
+                <div class="ep-title">The Dynamics of Cheap Capability</div>
+                <div class="ep-meta"><strong>PDF</strong> · Document</div>
+                <div class="ep-footer">
+                  <span class="duration-pill">
+                    <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                    5 min
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: GitHub -->
+            <div class="episode-card">
+              <div class="ep-thumb thumb-github">
+                <span class="thumb-letter">G</span>
+                <img
+                  class="logo-tile"
+                  src="https://logo.clearbit.com/github.com"
+                  alt="GitHub"
+                  onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'; this.onerror=null;"
+                >
+                <div class="source-badge source-badge-dark">
+                  <img
+                    src="https://logo.clearbit.com/github.com"
+                    alt=""
+                    onerror="this.parentElement.style.display='none'"
+                  >
+                </div>
+              </div>
+              <div class="ep-body">
+                <div class="ep-title">GitHub — ramparte/amplifier-bundle-dev-machine</div>
+                <div class="ep-meta"><strong>github.com</strong> · Repository</div>
+                <div class="ep-footer">
+                  <span class="duration-pill">
+                    <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                    5 min
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Anonymous upload -->
+            <div class="episode-card">
+              <div class="ep-thumb thumb-book">
+                <div class="thumb-icon">
+                  <svg width="28" height="32" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="20" height="26" rx="3" fill="white" fill-opacity="0.22" stroke="white" stroke-opacity="0.5" stroke-width="1.5"/>
+                    <path d="M14 11 L14 21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M10 15 L14 11 L18 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="9" y1="24" x2="19" y2="24" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.55"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="ep-body">
+                <div class="ep-title fallback">Untitled Upload</div>
+                <div class="ep-meta">· Business Book</div>
+                <div class="ep-footer">
+                  <span class="duration-pill">
+                    <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0a5 5 0 100 10A5 5 0 005 0zm.5 5.7H3.3V4.3h.9V2h1.3v3.7z"/></svg>
+                    5 min
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /episode-list -->
+        </div><!-- /lib-section -->
+
+        <div class="scroll-bottom-pad" style="height:32px;"></div>
+      </div><!-- /scroll-content -->
+
+      <!-- FAB -->
+      <button class="fab" title="Add source">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      </button>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <div class="tab-item" onclick="switchTab('home')">
+          <div class="tab-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          </div>
+          <span class="tab-label">Home</span>
+        </div>
+        <div class="tab-item active" onclick="switchTab('library')">
+          <div class="tab-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+          </div>
+          <span class="tab-label">Library</span>
+        </div>
+      </div>
+
+    </div><!-- /library-view -->
+
+  </div><!-- /screen -->
+</div><!-- /iphone -->
+
+<!-- ─── Annotation legend ──────────────────────────────── -->
+<div class="annotations">
+  <h3>Design changes validated</h3>
+  <div class="annotation-item">
+    <div class="ann-num">1</div>
+    <div class="ann-text"><strong>No carousel</strong> — removed entirely, Up Next starts right after Play All</div>
+  </div>
+  <div class="annotation-item">
+    <div class="ann-num">2</div>
+    <div class="ann-text"><strong>Play All</strong> — no duration (it's in the header subtitle)</div>
+  </div>
+  <div class="annotation-item">
+    <div class="ann-num">3</div>
+    <div class="ann-text"><strong>Real thumbnails</strong> — Clearbit logo API for URL sources · inline SVG doc icons for PDFs/uploads · fallback letter if image fails · 18px source badge pinned bottom-right</div>
+  </div>
+  <div class="annotation-item">
+    <div class="ann-num">4</div>
+    <div class="ann-text"><strong>Fallback title</strong> — anonymous ep shows "Untitled Upload" in italic with upload-arrow icon</div>
+  </div>
+  <div class="annotation-item">
+    <div class="ann-num">5</div>
+    <div class="ann-text"><strong>Filter chips</strong> — Unheard/All/In Progress/Completed · no Generating/Active</div>
+  </div>
+  <div class="annotation-item">
+    <div class="ann-num">6</div>
+    <div class="ann-text"><strong>Sort chip</strong> — tap sort icon (Library header) to show dismissible "Shortest First ×"</div>
+  </div>
+</div>
+
+<script>
+  // ─── Tab switching ─────────────────────────────────────
+  function switchTab(tab) {
+    const homeView    = document.getElementById('home-view');
+    const libraryView = document.getElementById('library-view');
+
+    if (tab === 'home') {
+      homeView.classList.add('active');
+      libraryView.classList.remove('active');
+    } else {
+      libraryView.classList.add('active');
+      homeView.classList.remove('active');
+    }
+  }
+
+  // ─── Status filter chip toggle ────────────────────────
+  // Only one chip selected at a time (radio behaviour)
+  function toggleChip(chip) {
+    const row = document.getElementById('filter-row');
+    row.querySelectorAll('.chip.status').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+  }
+
+  // ─── Sort chip show/dismiss ───────────────────────────
+  let sortActive = false;
+  function toggleSort() {
+    sortActive = !sortActive;
+    const row = document.getElementById('sort-active-row');
+    const btn = document.getElementById('sort-btn');
+    if (sortActive) {
+      row.classList.remove('hidden');
+      btn.style.background = 'rgba(234,88,12,0.12)';
+      btn.querySelector('svg').style.fill = '#EA580C';
+    } else {
+      row.classList.add('hidden');
+      btn.style.background = '';
+      btn.querySelector('svg').style.fill = '';
+    }
+  }
+
+  function dismissSort() {
+    sortActive = false;
+    document.getElementById('sort-active-row').classList.add('hidden');
+    const btn = document.getElementById('sort-btn');
+    btn.style.background = '';
+    btn.querySelector('svg').style.fill = '';
+  }
+
+  // ─── Play/Pause mini player toggle ───────────────────
+  const pauseIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>`;
+  const playIcon  = `<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+  let playing = true;
+
+  document.querySelectorAll('.mini-btn').forEach(btn => {
+    if (btn.title === 'Play/Pause') {
+      btn.addEventListener('click', () => {
+        playing = !playing;
+        btn.innerHTML = playing ? pauseIcon : playIcon;
+      });
+    }
+  });
+</script>
+
+</body>
+</html>

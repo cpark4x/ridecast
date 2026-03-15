@@ -1,6 +1,6 @@
 # API Inventory
 
-> Auto-generated 2026-03-13 16:45 UTC — overwritten each session. Do not edit.
+> Auto-generated 2026-03-13 17:47 UTC — overwritten each session. Do not edit.
 
 ## TypeScript / JavaScript public exports
 
