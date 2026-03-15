@@ -424,13 +424,12 @@ function LibraryScreen() {
         />
       </View>
 
-      {/* ── Filter chips row ─────────────────────────────────────────────── */}
-      {/* Status filter chips — Unheard / All / In Progress / Completed */}
+      {/* ── Filter chips — single scrollable row ────────────────────── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ height: 44, flexShrink: 0, flexGrow: 0 }}
-        contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, gap: 8, alignItems: "center" }}
+        style={{ minHeight: 52, maxHeight: 52, flexShrink: 0, flexGrow: 0, marginBottom: 8 }}
+        contentContainerStyle={{ paddingLeft: 16, paddingRight: 32, gap: 8, alignItems: "center" }}
       >
         {TOGGLE_FILTERS.map(({ key, label }) => (
           <TouchableOpacity
@@ -454,82 +453,43 @@ function LibraryScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-        {/* Spacer — RN horizontal ScrollView ignores trailing padding; must match paddingLeft (16) */}
-        <View style={{ width: 16 }} />
-      </ScrollView>
 
-      {/* Secondary filter row — Sources + Topics (separate row, smaller chips) */}
-      <View
-        style={{
-          flexDirection:     "row",
-          gap:               8,
-          paddingHorizontal: 16,
-          paddingTop:        8,
-          paddingBottom:     14,
-        }}
-      >
-        {/* Sources dropdown chip */}
+        {/* Thin separator */}
+        <View style={{ width: 1, height: 24, backgroundColor: "rgba(0,0,0,0.1)" }} />
+
+        {/* Sources dropdown */}
         <TouchableOpacity
           onPress={handleSourceFilterPress}
           style={{
-            flexDirection:     "row",
-            alignItems:        "center",
-            gap:               4,
-            paddingHorizontal: 12,
-            paddingVertical:   5,
-            borderRadius:      20,
-            backgroundColor:   sourceFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
-            borderWidth:       1,
-            borderColor:       sourceFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
+            flexDirection: "row", alignItems: "center", gap: 4,
+            paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+            backgroundColor: sourceFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
+            borderWidth: 1, borderColor: sourceFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
           }}
         >
-          <Text
-            style={{
-              fontSize:   12,
-              fontWeight: "500",
-              color:      sourceFilter ? "#fff" : "#3c3c43",
-            }}
-          >
+          <Text style={{ fontSize: 14, fontWeight: "500", color: sourceFilter ? "#fff" : "#3c3c43" }}>
             {sourceFilter ?? "Sources"}
           </Text>
-          <Ionicons
-            name={sourceFilter ? "close-circle" : "chevron-down"}
-            size={12}
-            color={sourceFilter ? "white" : "#9CA3AF"}
-          />
+          <Ionicons name={sourceFilter ? "close-circle" : "chevron-down"} size={13} color={sourceFilter ? "white" : "#9CA3AF"} />
         </TouchableOpacity>
 
-        {/* Topics dropdown chip */}
+        {/* Topics dropdown */}
         <TouchableOpacity
           onPress={handleTopicFilterPress}
           style={{
-            flexDirection:     "row",
-            alignItems:        "center",
-            gap:               4,
-            paddingHorizontal: 12,
-            paddingVertical:   5,
-            borderRadius:      20,
-            backgroundColor:   topicFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
-            borderWidth:       1,
-            borderColor:       topicFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
+            flexDirection: "row", alignItems: "center", gap: 4,
+            paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+            backgroundColor: topicFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
+            borderWidth: 1, borderColor: topicFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
           }}
         >
-          <Text
-            style={{
-              fontSize:   12,
-              fontWeight: "500",
-              color:      topicFilter ? "#fff" : "#3c3c43",
-            }}
-          >
+          <Text style={{ fontSize: 14, fontWeight: "500", color: topicFilter ? "#fff" : "#3c3c43" }}>
             {topicFilter ?? "Topics"}
           </Text>
-          <Ionicons
-            name={topicFilter ? "close-circle" : "chevron-down"}
-            size={12}
-            color={topicFilter ? "white" : "#9CA3AF"}
-          />
+          <Ionicons name={topicFilter ? "close-circle" : "chevron-down"} size={13} color={topicFilter ? "white" : "#9CA3AF"} />
         </TouchableOpacity>
-      </View>
+      </ScrollView>
+
 
       {/* ── Stale nudge ──────────────────────────────────────────────────── */}
       {/* Active sort indicator — shown when not using the default sort order */}
