@@ -136,11 +136,11 @@ export function sourceName(
  * Clamps to 0 — never returns negative values.
  */
 export function timeRemaining(positionSecs: number, durationSecs: number): string {
-  const remaining = Math.max(0, durationSecs - positionSecs);
+  const remaining = Math.max(0, Math.ceil(durationSecs - positionSecs));
   if (remaining >= 60) {
     return `${Math.ceil(remaining / 60)} min left`;
   }
-  return `${Math.ceil(remaining)} sec left`;
+  return `${remaining} sec left`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

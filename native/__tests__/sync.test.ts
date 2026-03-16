@@ -21,7 +21,10 @@ const mockApi = api as jest.Mocked<typeof api>;
 const mockDb = db as jest.Mocked<typeof db>;
 const mockDownloads = downloads as jest.Mocked<typeof downloads>;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockDb.getAllEpisodes.mockResolvedValue([]);
+});
 
 describe("syncLibrary", () => {
   it("fetches from server, enriches with identity fields, caches in SQLite, returns items", async () => {
