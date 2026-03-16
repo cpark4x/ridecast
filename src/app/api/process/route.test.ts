@@ -66,6 +66,7 @@ describe('POST /api/process', () => {
       id: 'content-1',
       rawText: 'A long essay about technology and innovation...',
       wordCount: 10000,
+      scripts: [],
     };
 
     mockFindUnique.mockResolvedValue(contentRecord);
@@ -152,6 +153,7 @@ describe('POST /api/process', () => {
       id: 'content-1',
       rawText: 'Some text.',
       wordCount: 5000,
+      scripts: [],
     };
 
     mockFindUnique.mockResolvedValue(contentRecord);
@@ -192,7 +194,7 @@ describe('POST /api/process', () => {
   });
 
   it('does not include durationAdvisory when word count is within ±15%', async () => {
-    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000 };
+    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000, scripts: [] };
 
     mockFindUnique.mockResolvedValue(contentRecord);
     mockAnalyze.mockResolvedValue({
@@ -232,7 +234,7 @@ describe('POST /api/process', () => {
   });
 
   it('saves summary from AI analysis to the script record', async () => {
-    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000 };
+    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000, scripts: [] };
     mockFindUnique.mockResolvedValue(contentRecord);
     mockAnalyze.mockResolvedValue({
       contentType: 'essay',
@@ -258,7 +260,7 @@ describe('POST /api/process', () => {
   });
 
   it('saves null when analysis returns empty summary', async () => {
-    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000 };
+    const contentRecord = { id: 'content-1', rawText: 'Some text.', wordCount: 5000, scripts: [] };
     mockFindUnique.mockResolvedValue(contentRecord);
     mockAnalyze.mockResolvedValue({
       contentType: 'essay',
@@ -290,6 +292,7 @@ describe('POST /api/process', () => {
       id: 'content-1',
       rawText: 'Some text',
       wordCount: 500,
+      scripts: [],
     });
 
     const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 10 });
