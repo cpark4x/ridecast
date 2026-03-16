@@ -3,6 +3,7 @@ export interface ContentAnalysis {
   format: 'narrator' | 'conversation';
   themes: string[];
   summary: string;
+  suggestedTitle: string;
 }
 
 export interface ScriptConfig {

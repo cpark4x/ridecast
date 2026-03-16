@@ -150,6 +150,19 @@ export async function savePlaybackState(state: {
   });
 }
 
+// --- Update Content ---
+
+export async function updateContentTitle(
+  contentId: string,
+  title: string,
+): Promise<void> {
+  await fetchJSON<Record<string, unknown>>(`/api/content/${contentId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+}
+
 // --- Delete ---
 
 export async function deleteEpisode(contentId: string): Promise<void> {

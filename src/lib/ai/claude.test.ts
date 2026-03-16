@@ -28,6 +28,7 @@ describe('ClaudeProvider', () => {
               format: 'conversation',
               themes: ['productivity', 'management', 'leadership'],
               summary: 'A book about effective business practices and productivity.',
+              suggestedTitle: 'The Art of Productive Business Leadership',
             }),
           },
         ],

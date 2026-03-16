@@ -127,6 +127,8 @@ export interface EpisodeCardProps {
   onNewVersion?: (item: LibraryItem) => void;
   /** Called after user confirms deletion via swipe or long-press */
   onDelete?: (item: LibraryItem) => void;
+  /** Called when "Rename" is chosen from long-press menu */
+  onRename?: (item: LibraryItem) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +142,7 @@ export default function EpisodeCard({
   currentAudioId,
   onNewVersion,
   onDelete,
+  onRename,
 }: EpisodeCardProps) {
   const swipeableRef = useRef<Swipeable>(null);
   const { versions } = item;
@@ -263,18 +266,20 @@ export default function EpisodeCard({
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options:              ["Cancel", "New Version", "Delete"],
+          options:              ["Cancel", "Rename", "New Version", "Delete"],
           cancelButtonIndex:    0,
-          destructiveButtonIndex: 2,
+          destructiveButtonIndex: 3,
           title:                displayTitle,
         },
         (idx) => {
-          if (idx === 1) onNewVersion?.(item);
-          if (idx === 2) confirmDelete();
+          if (idx === 1) onRename?.(item);
+          if (idx === 2) onNewVersion?.(item);
+          if (idx === 3) confirmDelete();
         },
       );
     } else {
       Alert.alert(displayTitle, "What would you like to do?", [
+        { text: "Rename", onPress: () => onRename?.(item) },
         { text: "New Version", onPress: () => onNewVersion?.(item) },
         { text: "Delete", style: "destructive", onPress: () => confirmDelete() },
         { text: "Cancel", style: "cancel" },

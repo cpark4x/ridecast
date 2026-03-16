@@ -87,6 +87,19 @@ export async function POST(request: Request) {
     const ai = new ClaudeProvider();
     const analysis = await ai.analyze(content.rawText);
 
+    // Auto-apply smart title when the current title looks like a filename
+    const currentTitle = content.title ?? '';
+    const looksLikeFilename =
+      /\.\w{2,5}$/.test(currentTitle) ||           // has file extension
+      /^[\w-]+$/.test(currentTitle) ||              // only word chars and dashes (e.g. "my-report")
+      currentTitle.length <= 3;                     // very short / generic
+    if (looksLikeFilename && analysis.suggestedTitle) {
+      await prisma.content.update({
+        where: { id: contentId },
+        data: { title: analysis.suggestedTitle },
+      });
+    }
+
     // Step 2: Generate script using analysis results
     const generated = await ai.generateScript(content.rawText, {
       format: analysis.format,

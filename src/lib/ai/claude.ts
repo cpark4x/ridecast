@@ -27,7 +27,8 @@ function isContentAnalysis(value: unknown): value is ContentAnalysis {
     typeof obj.contentType === 'string' &&
     (obj.format === 'narrator' || obj.format === 'conversation') &&
     Array.isArray(obj.themes) &&
-    typeof obj.summary === 'string'
+    typeof obj.summary === 'string' &&
+    typeof obj.suggestedTitle === 'string'
   );
 }
 
@@ -52,6 +53,7 @@ export class ClaudeProvider implements AIProvider {
 - format: either "narrator" or "conversation" (choose based on what would work best for an audio podcast)
 - themes: an array of 3-5 key themes
 - summary: a brief summary of the content
+- suggestedTitle: a short, engaging episode title (max 60 chars) based on the content
 
 Return ONLY the JSON object, no other text.
 

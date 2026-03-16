@@ -16,6 +16,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { usePlayer } from "../../lib/usePlayer";
 import { getAllEpisodes } from "../../lib/db";
 import { syncLibrary } from "../../lib/sync";
+import { updateContentTitle } from "../../lib/api";
 import {
   getUnlistenedItems,
   libraryItemToPlayable,
@@ -166,6 +167,31 @@ function HomeScreen() {
     );
   }
 
+  /** Long-press → Rename — shows prompt to edit title */
+  function handleRename(item: LibraryItem) {
+    Alert.prompt(
+      "Rename Episode",
+      undefined,
+      async (newTitle) => {
+        if (!newTitle?.trim()) return;
+        try {
+          await updateContentTitle(item.id, newTitle.trim());
+          void Haptics.success();
+          setEpisodes((prev) =>
+            prev.map((ep) =>
+              ep.id === item.id ? { ...ep, title: newTitle.trim() } : ep,
+            ),
+          );
+        } catch (err) {
+          console.warn("[home] rename error:", err);
+          Alert.alert("Error", "Could not rename episode. Try again.");
+        }
+      },
+      "plain-text",
+      item.title ?? "",
+    );
+  }
+
   /** Long-press → New Version — opens UploadModal */
   function handleNewVersion(_item: LibraryItem) {
     setUploadModalVisible(true);
@@ -307,6 +333,7 @@ function HomeScreen() {
                     onVersionPress={handleVersionPress}
                     currentAudioId={player.currentItem?.id ?? null}
                     onNewVersion={handleNewVersion}
+                    onRename={handleRename}
                   />
                 ))}
               </>

@@ -34,7 +34,7 @@ import {
 } from "../../lib/libraryHelpers";
 import type { SortOrder } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes, deleteEpisode as dbDeleteEpisode } from "../../lib/db";
-import { deleteEpisode as apiDeleteEpisode } from "../../lib/api";
+import { deleteEpisode as apiDeleteEpisode, updateContentTitle } from "../../lib/api";
 import { syncLibrary } from "../../lib/sync";
 import { showGeneratingToast } from "../../lib/toast";
 import { usePlayer } from "../../lib/usePlayer";
@@ -307,6 +307,31 @@ function LibraryScreen() {
     );
   }
 
+  // rename: prompt for new title, save to server, optimistic state update
+  function handleRename(item: LibraryItem) {
+    Alert.prompt(
+      "Rename Episode",
+      undefined,
+      async (newTitle) => {
+        if (!newTitle?.trim()) return;
+        try {
+          await updateContentTitle(item.id, newTitle.trim());
+          void Haptics.success();
+          setEpisodes((prev) =>
+            prev.map((ep) =>
+              ep.id === item.id ? { ...ep, title: newTitle.trim() } : ep,
+            ),
+          );
+        } catch (err) {
+          console.warn("[library] rename error:", err);
+          Alert.alert("Error", "Could not rename episode. Try again.");
+        }
+      },
+      "plain-text",
+      item.title ?? "",
+    );
+  }
+
   // delete-episodes: server first, then local, then optimistic state update
   async function handleDelete(item: LibraryItem) {
     try {
@@ -534,6 +559,7 @@ function LibraryScreen() {
               currentAudioId={player.currentItem?.id ?? null}
               onNewVersion={setNewVersionEpisode}
               onDelete={handleDelete}
+              onRename={handleRename}
             />
           )}
           renderSectionHeader={() => null}
@@ -561,6 +587,7 @@ function LibraryScreen() {
               currentAudioId={player.currentItem?.id ?? null}
               onNewVersion={setNewVersionEpisode}
               onDelete={handleDelete}
+              onRename={handleRename}
             />
           )}
           renderSectionHeader={({ section: { title, data } }) =>

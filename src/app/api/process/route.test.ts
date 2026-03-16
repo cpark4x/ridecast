@@ -15,6 +15,7 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     content: {
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     script: {
       create: vi.fn(),
@@ -76,6 +77,7 @@ describe('POST /api/process', () => {
       format: 'narrator',
       themes: ['technology', 'innovation', 'future'],
       summary: 'An essay exploring technology and its impact on society.',
+      suggestedTitle: 'Technology and the Future of Innovation',
     });
 
     const scriptText = 'Welcome to this episode. ' + 'word '.repeat(1499);
@@ -162,6 +164,7 @@ describe('POST /api/process', () => {
       format: 'narrator',
       themes: ['tech'],
       summary: 'A tech essay.',
+      suggestedTitle: 'Exploring Modern Technology',
     });
 
     const shortText = Array(600).fill('word').join(' ');
@@ -202,6 +205,7 @@ describe('POST /api/process', () => {
       format: 'narrator',
       themes: ['tech'],
       summary: 'A tech essay.',
+      suggestedTitle: 'Exploring Modern Technology',
     });
 
     // 720 words for 5-min target (750 words): 720/750 = 96% — within ±15%
@@ -241,6 +245,7 @@ describe('POST /api/process', () => {
       format: 'narrator',
       themes: ['tech'],
       summary: 'A fascinating exploration of technology.',
+      suggestedTitle: 'A Fascinating Look at Technology',
     });
     mockGenerateScript.mockResolvedValue({
       text: 'word '.repeat(720),
@@ -267,6 +272,7 @@ describe('POST /api/process', () => {
       format: 'narrator',
       themes: ['tech'],
       summary: '',
+      suggestedTitle: 'Tech Insights',
     });
     mockGenerateScript.mockResolvedValue({
       text: 'word '.repeat(720),
