@@ -67,7 +67,7 @@ export async function POST(request: Request) {
           },
         });
         // Reload with updated data
-        content = await prisma.content.findUnique({ where: { id: contentId } }) ?? content;
+        content = await prisma.content.findUnique({ where: { id: contentId }, include: { scripts: true } }) ?? content;
       } catch (fetchError) {
         console.error('Failed to fetch Pocket article:', { contentId, url: content.sourceUrl, fetchError });
         return NextResponse.json(

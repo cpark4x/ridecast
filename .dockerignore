@@ -5,3 +5,13 @@ node_modules
 .env.*.local
 npm-debug.log*
 prisma/dev.db
+.worktrees
+.dev-machine
+.git
+.amplifier
+native
+ios
+android
+__tests__
+coverage
+*.tgz
