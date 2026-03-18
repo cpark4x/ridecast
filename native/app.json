@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ridecast.app",
+      "bundleIdentifier": "com.cpark4x.ridecast",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
