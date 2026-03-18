@@ -98,9 +98,10 @@ function StageRow({ stage, currentStage }: StageRowProps) {
 export default function ProcessingScreen() {
   const router = useRouter();
   const player = usePlayer();
-  const { contentId, targetMinutes } = useLocalSearchParams<{
+  const { contentId, targetMinutes, title: routeTitle } = useLocalSearchParams<{
     contentId: string;
     targetMinutes: string;
+    title?: string;
   }>();
 
   const [stage, setStage] = useState<ProcessingStage>("analyzing");
@@ -140,8 +141,6 @@ export default function ProcessingScreen() {
 
     // ── Stage 1: Analyzing (cosmetic 3s delay) ────────────────────────────
     setStage("analyzing");
-    await delay(3000);
-    if (abortRef.current) return;
 
     // ── Stage 2: Scripting — call processContent ──────────────────────────
     setStage("scripting");
@@ -186,13 +185,12 @@ export default function ProcessingScreen() {
       // Build PlayableItem and start playback
       const playable = {
         id: genResult.id,
-        title: "New Episode",
+        title: routeTitle ?? "New Episode",
         duration: genResult.durationSecs,
         format: "narrator",
         audioUrl: genResult.filePath,
       };
 
-      await delay(1500);
       if (abortRef.current) return;
 
       router.replace("/(tabs)");

@@ -2,7 +2,9 @@ import React, { useCallback, useState } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import {
   Alert,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -180,6 +182,10 @@ function SettingsScreen() {
         <Text className="text-xl font-bold text-gray-900">Settings</Text>
       </View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 48 }}
@@ -325,6 +331,7 @@ function SettingsScreen() {
           />
         </SettingsSection>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

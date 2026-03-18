@@ -579,6 +579,7 @@ function LibraryScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
+          keyboardDismissMode="on-drag"
           renderItem={({ item }) => (
             <EpisodeCard
               item={item}

@@ -89,7 +89,9 @@ export async function uploadFile(
   });
   const data = await res.json();
   if (!res.ok && res.status !== 409) {
-    throw new Error(data.error ?? "Upload failed");
+    const err = new Error(data.error ?? "Upload failed");
+    (err as Error & { statusCode: number }).statusCode = res.status;
+    throw err;
   }
   return data as UploadResponse;
 }

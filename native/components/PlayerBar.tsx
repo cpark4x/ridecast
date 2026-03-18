@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
 import { smartTitle } from "../lib/libraryHelpers";
@@ -8,6 +9,7 @@ import { timeRemaining } from "../lib/utils";
 import SourceThumbnail from "./SourceThumbnail";
 
 export default function PlayerBar() {
+  const insets = useSafeAreaInsets();
   const {
     currentItem,
     isPlaying,
@@ -43,7 +45,7 @@ export default function PlayerBar() {
     <View
       style={{
         marginHorizontal: 8,
-        marginBottom:     8,
+        marginBottom:     Math.max(insets.bottom, 8),
         borderRadius:     16,
         backgroundColor:  "#1c1c1e",
         overflow:         "hidden",

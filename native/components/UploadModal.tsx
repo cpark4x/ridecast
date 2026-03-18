@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
-  PanResponder,
   Platform,
   ScrollView,
   Text,
@@ -30,7 +27,6 @@ import DurationPicker from "./DurationPicker";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 15_000;
-const SHEET_HEIGHT = 600; // approx px; large enough for keyboard avoidance
 
 // ─────────────────────────────────────────────────────────────────────────────
 // URL validator (synchronous — no network call)
@@ -120,51 +116,6 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   );
 
   const urlInputRef = useRef<TextInput>(null);
-
-  // ── Spring animation ───────────────────────────────────────────────────────
-  const sheetY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.spring(sheetY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 12,
-      }).start();
-    } else {
-      Animated.timing(sheetY, {
-        toValue: SHEET_HEIGHT,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [visible, sheetY]);
-
-  // ── Drag-to-dismiss ────────────────────────────────────────────────────────
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        gestureState.dy > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          sheetY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100) {
-          handleDismiss();
-        } else {
-          Animated.spring(sheetY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 12,
-          }).start();
-        }
-      },
-    }),
-  ).current;
 
   // ── Reset when modal opens / closes ────────────────────────────────────────
   function handleDismiss() {
@@ -266,6 +217,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
       params: {
         contentId: uploadResult.id,
         targetMinutes: String(targetMinutes),
+        title: uploadResult.title,
       },
     });
   }
@@ -277,43 +229,24 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   return (
     <Modal
       visible={visible}
-      animationType="none" // Spring animation handled by Animated.View below
-      transparent
+      presentationStyle="pageSheet"
+      animationType="slide"
       onRequestClose={handleDismiss}
+      onDismiss={handleDismiss}
     >
-      {/* Dimmed backdrop */}
-      <TouchableOpacity
-        className="flex-1 bg-black/40"
-        activeOpacity={1}
-        onPress={() => { Keyboard.dismiss(); handleDismiss(); }}
-      />
-
-      {/* Animated sheet */}
-      <Animated.View
-        style={{
-          transform: [{ translateY: sheetY }],
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          backgroundColor: "white",
-          overflow: "hidden",
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1, backgroundColor: "white" }}
       >
-        {/* Drag handle */}
-        <View
-          className="items-center pt-3 pb-1"
-          {...panResponder.panHandlers}
-        >
-          <View className="w-10 h-1 rounded-full bg-gray-300" />
+        {/* Drag handle — iOS pageSheet supports native swipe-to-dismiss */}
+        <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB" }} />
         </View>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         >
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-          >
             <Text className="text-xl font-bold text-gray-900 mt-3 mb-5">
               Add Content
             </Text>
@@ -478,9 +411,8 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
                 </TouchableOpacity>
               </>
             )}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
