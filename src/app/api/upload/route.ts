@@ -138,6 +138,11 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Upload error:', error);
 
+    // Auth failure should be 401, not 500
+    if (error instanceof Error && error.message === 'Unauthenticated') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     let message = 'Something went wrong processing your upload.';
     if (error instanceof Error) {
       if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
