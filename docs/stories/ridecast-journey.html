@@ -519,75 +519,55 @@
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════
-     SLIDE 4 · THE BUILD TIMELINE
-═══════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 4 · HOW IT WAS BUILT
+═══════════════════════════════════════════════════ -->
 <div class="slide" id="s4">
     <div style="max-width: 860px;">
         <div class="section-label">How It Was Built</div>
         <h2 class="medium-headline">
-            23 days. Seven phases.
+            One person, moving at team speed.
         </h2>
 
-        <div class="timeline">
-            <div class="timeline-item">
-                <div class="timeline-date">Feb 25</div>
-                <div class="timeline-content">
-                    <strong>Day 1: Design doc + full pipeline.</strong>
-                    Architecture spec, scaffold, all 3 layers working end-to-end.
-                    <span class="timeline-commits">44 commits</span>
+        <p style="font-size: var(--font-body); color: var(--text-secondary); line-height: 1.6; margin-bottom: clamp(20px, 3vw, 28px);">
+            Every session started the same way: describe what I want, let the AI architect it,
+            review the plan, then execute. I never wrote a line of code without a design first.
+            The AI handled implementation. I handled taste.
+        </p>
+
+        <div class="thirds">
+            <div class="card">
+                <div class="card-icon">&#x1F4AC;</div>
+                <div class="card-title">Conversational Development</div>
+                <div class="card-text">
+                    No IDE. No terminal. Just conversation.
+                    Describe the feature, review the design, approve the plan, watch it build.
+                    Course-correct in real time.
                 </div>
             </div>
-            <div class="timeline-item">
-                <div class="timeline-date">Feb 26&ndash;27</div>
-                <div class="timeline-content">
-                    <strong>UI arrives.</strong>
-                    All screens, audio player, library view, processing experience.
-                    <span class="timeline-commits">10 commits</span>
+            <div class="card">
+                <div class="card-icon">&#x1F9E9;</div>
+                <div class="card-title">Full-Stack in Every Session</div>
+                <div class="card-text">
+                    Database schema, API route, React component, native screen, deployment &mdash;
+                    all in the same conversation. No context-switching between tools or repos.
                 </div>
             </div>
-            <div class="timeline-item">
-                <div class="timeline-date">Mar 2&ndash;7</div>
-                <div class="timeline-content">
-                    <strong>Pipeline hardening &rarr; Cloud sprint.</strong>
-                    Clerk auth, Azure Blob storage, Stripe billing, multi-user support.
-                    Mar 6 alone: 49 commits.
-                    <span class="timeline-commits">83 commits</span>
+            <div class="card">
+                <div class="card-icon">&#x1F680;</div>
+                <div class="card-title">Ship Every Night</div>
+                <div class="card-text">
+                    Most sessions ended with a working feature deployed.
+                    The entire iOS app &mdash; every screen, player, sync engine &mdash;
+                    was built and running in a single day.
                 </div>
             </div>
-            <div class="timeline-item">
-                <div class="timeline-date">Mar 9</div>
-                <div class="timeline-content">
-                    <strong>Complete design pivot.</strong>
-                    Dark purple &rarr; amber-orange + light mode. Full identity overhaul.
-                    <span class="timeline-commits">30 commits</span>
-                </div>
-            </div>
-            <div class="timeline-item timeline-highlight">
-                <div class="timeline-date">Mar 10&ndash;11</div>
-                <div class="timeline-content">
-                    <strong>THE iOS days.</strong>
-                    Entire native app &mdash; every screen, audio player, sync engine, CarPlay, offline mode.
-                    March 11 alone: 55 commits, the single busiest day.
-                    <span class="timeline-commits">76 commits</span>
-                </div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-date">Mar 12&ndash;14</div>
-                <div class="timeline-content">
-                    <strong>Feature blitz.</strong>
-                    Cards, search, empty states, settings, versioning, smart titles.
-                    <span class="timeline-commits">49 commits</span>
-                </div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-date">Mar 15&ndash;19</div>
-                <div class="timeline-content">
-                    <strong>Production hardening.</strong>
-                    Cloud deployment, 18 bug fixes in one session, cascade delete, SAS URL streaming.
-                    <span class="timeline-commits">16 commits</span>
-                </div>
-            </div>
+        </div>
+
+        <div class="highlight-box" style="margin-top: clamp(20px, 3vw, 28px);">
+            <strong>The unlock:</strong> When capability is free, the bottleneck becomes judgment.
+            What to build, what to cut, what &ldquo;good&rdquo; sounds like.
+            The AI writes the code. The builder makes the choices.
         </div>
     </div>
 </div>
