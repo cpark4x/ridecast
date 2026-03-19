@@ -35,6 +35,7 @@ import {
 import type { SortOrder } from "../../lib/libraryHelpers";
 import { getAllEpisodes, searchEpisodes, deleteEpisode as dbDeleteEpisode } from "../../lib/db";
 import { deleteEpisode as apiDeleteEpisode, updateContentTitle } from "../../lib/api";
+import { deleteDownload } from "../../lib/downloads";
 import { syncLibrary } from "../../lib/sync";
 import { showGeneratingToast } from "../../lib/toast";
 import { usePlayer } from "../../lib/usePlayer";
@@ -343,6 +344,11 @@ function LibraryScreen() {
     const audioIds = item.versions
       .filter((v) => v.audioId)
       .map((v) => v.audioId as string);
+
+    // Clean up local .mp3 files before removing DB records
+    for (const audioId of audioIds) {
+      await deleteDownload(audioId).catch(() => {});
+    }
 
     try {
       await dbDeleteEpisode(item.id, audioIds);
