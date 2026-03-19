@@ -2,8 +2,15 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as db from "./db";
 import { API_URL } from "./constants";
 
-/** Prepend API_URL to relative audio paths (local dev returns relative, prod returns full blob URLs) */
-function toAbsoluteUrl(url: string): string {
+/**
+ * Resolve an audio URL for streaming/download.
+ * Routes through the API's /api/audio endpoint which generates time-limited
+ * SAS URLs, bypassing Azure Blob Storage public access restrictions.
+ */
+function toAbsoluteUrl(url: string, audioId?: string): string {
+  // If we have an audioId, use the API endpoint (generates SAS URLs)
+  if (audioId) return `${API_URL}/api/audio/${audioId}`;
+  // Fallback: relative paths get API_URL prefix, absolute URLs pass through
   if (url.startsWith("http")) return url;
   return `${API_URL}/${url}`;
 }
@@ -30,7 +37,7 @@ export async function downloadEpisodeAudio(
   await ensureDir();
   const localPath = `${DOWNLOADS_DIR}${audioId}.mp3`;
 
-  const result = await FileSystem.downloadAsync(toAbsoluteUrl(remoteUrl), localPath);
+  const result = await FileSystem.downloadAsync(toAbsoluteUrl(remoteUrl, audioId), localPath);
   if (result.status !== 200) {
     throw new Error(`Download failed with status ${result.status}`);
   }
@@ -51,7 +58,7 @@ export async function resolveAudioUrl(
     const info = await FileSystem.getInfoAsync(localPath);
     if (info.exists) return localPath;
   }
-  return toAbsoluteUrl(remoteUrl);
+  return toAbsoluteUrl(remoteUrl, audioId);
 }
 
 export async function deleteDownload(audioId: string): Promise<void> {
