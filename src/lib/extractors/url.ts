@@ -10,57 +10,46 @@ const BROWSER_HEADERS = {
 };
 
 /**
- * Substack blocks requests from cloud IPs (Azure, AWS, etc.) even with
- * browser-like User-Agent headers. Their public API serves the same content
- * without bot protection, so we use it as a fallback.
+ * Jina Reader (r.jina.ai) extracts article content from any URL, bypassing
+ * bot protection that blocks cloud IPs. Free, no auth needed. Used as a
+ * fallback when direct fetch returns 403.
  */
-function getSubstackApiUrl(url: string): string | null {
-  const match = url.match(
-    /^https?:\/\/([^/]+\.)?substack\.com\/p\/([^/?#]+)/,
-  );
-  if (!match) return null;
-  const parsed = new URL(url);
-  const slug = parsed.pathname.replace(/^\/p\//, "").replace(/\/$/, "");
-  return `${parsed.origin}/api/v1/posts/${slug}`;
-}
-
-async function extractViaSubstackApi(
-  url: string,
-  apiUrl: string,
-): Promise<ExtractionResult> {
-  const response = await fetch(apiUrl);
+async function extractViaJinaReader(url: string): Promise<ExtractionResult> {
+  const response = await fetch(`https://r.jina.ai/${url}`, {
+    headers: { Accept: "application/json" },
+  });
   if (!response.ok) {
-    throw new Error(`Substack API returned ${response.status}`);
+    throw new Error(`Jina Reader returned ${response.status}`);
   }
   const data = (await response.json()) as {
-    title?: string;
-    body_html?: string;
-    publishedBylines?: { name?: string }[];
+    data?: { title?: string; content?: string; author?: string };
   };
-
-  if (!data.body_html) {
-    throw new Error("Substack API returned no content");
+  const content = data.data?.content;
+  if (!content) {
+    throw new Error("Jina Reader returned no content");
   }
 
-  const dom = new JSDOM(data.body_html, { url });
-  const text = dom.window.document.body?.textContent?.trim() ?? "";
-  const wordCount = text === "" ? 0 : text.split(/\s+/).length;
-  const title = data.title || new URL(url).hostname;
-  const author = data.publishedBylines?.[0]?.name;
+  // Strip markdown image/link syntax for a cleaner word count
+  const plainText = content
+    .replace(/!\[.*?\]\(.*?\)/g, "")
+    .replace(/\[([^\]]+)\]\(.*?\)/g, "$1")
+    .trim();
+  const wordCount = plainText === "" ? 0 : plainText.split(/\s+/).length;
+  const title = data.data?.title || new URL(url).hostname;
+  const author = data.data?.author;
 
-  return { title, text, wordCount, ...(author ? { author } : {}) };
+  return { title, text: plainText, wordCount, ...(author ? { author } : {}) };
 }
 
 export async function extractUrl(url: string): Promise<ExtractionResult> {
-  const response = await fetch(url, { headers: BROWSER_HEADERS, redirect: "follow" });
+  const response = await fetch(url, {
+    headers: BROWSER_HEADERS,
+    redirect: "follow",
+  });
 
-  // If the site blocks us (common from cloud IPs), try platform-specific APIs
+  // If the site blocks us (common from cloud IPs), fall back to Jina Reader
   if (response.status === 403) {
-    const substackApi = getSubstackApiUrl(url);
-    if (substackApi) {
-      return extractViaSubstackApi(url, substackApi);
-    }
-    throw new Error(`Failed to fetch URL: ${response.status}`);
+    return extractViaJinaReader(url);
   }
 
   if (!response.ok) {
