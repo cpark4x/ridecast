@@ -145,7 +145,9 @@ export async function POST(request: Request) {
 
     let message = 'Something went wrong processing your upload.';
     if (error instanceof Error) {
-      if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+      if (error.message.includes('Failed to fetch URL: 403')) {
+        message = 'That site blocked our request. Try pasting the article text directly or using a different URL.';
+      } else if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
         message = 'Could not reach that URL. Please check the address and try again.';
       } else if (error.message.includes('Invalid URL') || error.message.includes('ERR_INVALID_URL')) {
         message = 'That doesn\u2019t look like a valid URL.';
