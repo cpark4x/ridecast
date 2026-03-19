@@ -61,11 +61,10 @@ async function addColumnIfMissing(
   column: string,
   definition: string,
 ) {
-  const info = await db.getAllAsync<{ name: string }>(
-    `PRAGMA table_info(${table})`,
-  );
-  if (!info.some((col) => col.name === column)) {
+  try {
     await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  } catch {
+    // Column already exists — safe to ignore
   }
 }
 

@@ -1,4 +1,10 @@
-import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
+import {
+  BlobServiceClient,
+  ContainerClient,
+  generateBlobSASQueryParameters,
+  BlobSASPermissions,
+  StorageSharedKeyCredential,
+} from "@azure/storage-blob";
 import { v4 as uuidv4 } from "uuid";
 
 let containerClient: ContainerClient | null = null;
@@ -36,6 +42,47 @@ export async function uploadAudio(
   });
 
   return blockBlob.url;
+}
+
+/**
+ * Generate a time-limited SAS URL for a blob.
+ * Bypasses public access settings — works even when the container is private.
+ */
+export function generateSasUrl(blobUrl: string): string {
+  const connString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  if (!connString) throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured");
+
+  // Parse connection string for account name and key
+  const parts = Object.fromEntries(
+    connString.split(";").map((s) => {
+      const idx = s.indexOf("=");
+      return [s.slice(0, idx), s.slice(idx + 1)];
+    }),
+  );
+  const accountName = parts["AccountName"];
+  const accountKey = parts["AccountKey"];
+  if (!accountName || !accountKey) throw new Error("Invalid connection string");
+
+  // Extract container and blob name from the URL
+  const url = new URL(blobUrl);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const containerName = pathParts[0];
+  const blobName = pathParts.slice(1).join("/");
+
+  const credential = new StorageSharedKeyCredential(accountName, accountKey);
+  const expiresOn = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  const sas = generateBlobSASQueryParameters(
+    {
+      containerName,
+      blobName,
+      permissions: BlobSASPermissions.parse("r"),
+      expiresOn,
+    },
+    credential,
+  ).toString();
+
+  return `${blobUrl}?${sas}`;
 }
 
 /**

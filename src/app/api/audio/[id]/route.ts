@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/db';
+import { generateSasUrl, isBlobStorageConfigured } from '@/lib/storage/blob';
 
 export async function GET(
   _request: Request,
@@ -21,7 +22,11 @@ export async function GET(
       );
     }
 
-    // If filePath is a full URL (blob storage), redirect to it
+    // If filePath is a full URL (blob storage), generate a SAS URL and redirect
+    if (audio.filePath.startsWith('https://') && isBlobStorageConfigured()) {
+      const sasUrl = generateSasUrl(audio.filePath);
+      return Response.redirect(sasUrl, 302);
+    }
     if (audio.filePath.startsWith('https://')) {
       return Response.redirect(audio.filePath, 302);
     }
