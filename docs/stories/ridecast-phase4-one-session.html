@@ -361,43 +361,7 @@
         }
         .more-stories:hover { color: var(--text-tertiary); }
 
-        .timeline {
-            position: relative;
-            margin-top: clamp(24px, 4vw, 40px);
-            padding-left: clamp(24px, 4vw, 40px);
-            border-left: 2px solid var(--surface-2);
-        }
 
-        .timeline-item {
-            position: relative;
-            padding-bottom: clamp(16px, 3vw, 24px);
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: calc(-1 * clamp(24px, 4vw, 40px) - 5px);
-            top: 6px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--color-accent);
-            border: 2px solid #000;
-        }
-
-        .timeline-time {
-            font-size: var(--font-small);
-            color: var(--color-accent);
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        .timeline-text {
-            font-size: clamp(15px, 2.5vw, 18px);
-            color: var(--text-secondary);
-            margin-top: 4px;
-            line-height: 1.4;
-        }
 
         @media (max-width: 600px) {
             .diagram-arrow { display: none; }
@@ -481,25 +445,20 @@
     <!-- Slide 4: The Day -->
     <div class="slide">
         <div class="section-label">March 11, 2026</div>
-        <h2 class="medium-headline">How the day unfolded</h2>
-        <div class="timeline">
-            <div class="timeline-item">
-                <div class="timeline-time">12:48 AM</div>
-                <div class="timeline-text">First commit. Web app polish&mdash;queue support, sleep timer, expanded player metadata, library filters. Wrapping up loose ends before the big build.</div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-time">Afternoon</div>
-                <div class="timeline-text">Design doc and 20-task implementation plan written. Then: <code>expo init</code>. The native build starts.</div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-time">Commit by commit</div>
-                <div class="timeline-text">Clerk auth &rarr; API client &rarr; SQLite layer &rarr; sync engine &rarr; download manager &rarr; Library screen &rarr; audio player &rarr; Home screen &rarr; Expanded Player &rarr; Upload modal &rarr; Processing screen &rarr; Car Mode &rarr; Settings &rarr; CarPlay &rarr; empty states &rarr; episode versioning &rarr; offline support.</div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-time">9:44 PM</div>
-                <div class="timeline-text">Last commit. TypeScript errors resolved. 20 native features shipped.</div>
-            </div>
+        <h2 class="medium-headline">20 features. One conversation at a time.</h2>
+        <p class="subhead" style="margin-bottom: clamp(16px, 3vw, 24px);">
+            Design doc first. Then 20-task implementation plan. Then: <code>expo init</code>. The native build starts.
+        </p>
+        <div class="highlight-box">
+            <strong>The sequence:</strong>
+            Clerk auth &rarr; API client &rarr; SQLite layer &rarr; sync engine &rarr; download manager &rarr;
+            Library screen &rarr; audio player &rarr; Home screen &rarr; Expanded Player &rarr; Upload modal &rarr;
+            Processing screen &rarr; Car Mode &rarr; Settings &rarr; CarPlay &rarr; empty states &rarr;
+            episode versioning &rarr; offline support.
         </div>
+        <p style="font-size: var(--font-body); color: var(--text-secondary); line-height: 1.6; margin-top: clamp(16px, 2vw, 20px);">
+            First commit at 12:48 AM. Last commit at 9:44 PM. 20 native features shipped.
+        </p>
     </div>
 
     <!-- Slide 5: The layers you don't see -->

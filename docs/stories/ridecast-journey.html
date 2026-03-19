@@ -248,50 +248,6 @@
             line-height: 1.55;
         }
 
-        /* Timeline */
-        .timeline { margin-top: clamp(20px, 3vw, 32px); }
-        .timeline-item {
-            display: flex;
-            gap: clamp(16px, 3vw, 24px);
-            padding: clamp(12px, 2vw, 16px) 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            align-items: baseline;
-        }
-        .timeline-item:last-child { border-bottom: none; }
-        .timeline-date {
-            font-size: var(--font-small);
-            font-weight: 600;
-            color: var(--accent);
-            min-width: clamp(80px, 12vw, 110px);
-            flex-shrink: 0;
-            font-variant-numeric: tabular-nums;
-        }
-        .timeline-content {
-            font-size: var(--font-body);
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-        .timeline-content strong { color: var(--text-primary); }
-        .timeline-commits {
-            display: inline-block;
-            font-size: var(--font-small);
-            font-weight: 600;
-            color: var(--green);
-            background: var(--green-dim);
-            border: 1px solid var(--green-border);
-            border-radius: 100px;
-            padding: 2px 10px;
-            margin-left: 8px;
-            white-space: nowrap;
-        }
-        .timeline-highlight {
-            background: var(--accent-dim);
-            border-radius: var(--radius-card);
-            padding-left: clamp(16px, 3vw, 24px);
-            padding-right: clamp(16px, 3vw, 24px);
-            border: 1px solid var(--accent-border);
-        }
-
         /* Lesson list */
         .lessons { margin-top: clamp(20px, 3vw, 32px); max-width: 860px; }
         .lesson {
