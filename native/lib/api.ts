@@ -36,6 +36,12 @@ async function fetchJSON<T>(
     headers,
   });
 
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    const text = await res.text();
+    throw new Error(`Non-JSON response (${res.status}): ${text.slice(0, 200)}`);
+  }
+
   const data = await res.json();
   if (!res.ok && res.status !== 409) {
     throw new Error(data.error ?? `Request failed: ${res.status}`);

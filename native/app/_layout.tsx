@@ -10,6 +10,7 @@ import { setTokenProvider } from "../lib/api";
 import { setupPlayer } from "../lib/player";
 import { PlaybackService } from "../lib/player";
 import { PlayerProvider, usePlayer } from "../lib/usePlayer";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import PlayerBar from "../components/PlayerBar";
 import ExpandedPlayer from "../components/ExpandedPlayer";
 import OfflineBanner from "../components/OfflineBanner";
@@ -17,7 +18,12 @@ import TrackPlayer from "react-native-track-player";
 import { initializeCarPlay } from "../lib/carplay";
 import { syncLibrary, syncPlayback } from "../lib/sync";
 
-const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+if (!CLERK_KEY) {
+  throw new Error(
+    "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Check your .env or EAS environment config.",
+  );
+}
 
 // MUST be called at module scope — not inside a component
 TrackPlayer.registerPlaybackService(() => PlaybackService);
@@ -82,6 +88,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
+    <ErrorBoundary fallbackTitle="Something went wrong">
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
       <ClerkLoaded>
@@ -119,5 +126,6 @@ export default function RootLayout() {
       </ClerkLoaded>
     </ClerkProvider>
     </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
