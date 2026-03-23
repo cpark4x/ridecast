@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ridecast — Empty State: All Caught Up</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0c;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-label {
+    color: #EA580C;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .page-title {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .page-subtitle {
+    color: rgba(255,255,255,0.35);
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 44px;
+    text-align: center;
+  }
+
+  /* ─── Phone Shell ─── */
+  .phone-wrap {
+    position: relative;
+    width: 393px;
+    background: #1c1c1e;
+    border-radius: 56px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 0 0 1px rgba(0,0,0,0.8) inset,
+      0 60px 120px rgba(0,0,0,0.7),
+      0 0 100px rgba(52,199,89,0.06);
+  }
+
+  .phone-screen {
+    background: #111827;
+    border-radius: 46px;
+    overflow: hidden;
+    position: relative;
+    height: 812px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 118px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 50;
+  }
+
+  /* ─── Status Bar ─── */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+  }
+
+  .signal-bar {
+    width: 3px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 1px;
+  }
+
+  .battery-body {
+    width: 25px;
+    height: 12px;
+    border: 1.5px solid rgba(255,255,255,0.8);
+    border-radius: 3px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 1.5px;
+  }
+
+  .battery-body::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 5px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 0 1px 1px 0;
+  }
+
+  .battery-fill {
+    background: #34C759;
+    height: 100%;
+    width: 68%;
+    border-radius: 1.5px;
+  }
+
+  /* ─── Content Area ─── */
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 90px;
+    scrollbar-width: none;
+  }
+
+  .content-area::-webkit-scrollbar { display: none; }
+
+  /* ─── Greeting Header ─── */
+  .greeting-section {
+    padding: 4px 24px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .greeting-block {}
+
+  .greeting-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+
+  .greeting-name {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  .settings-btn {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* ─── Celebratory Hero ─── */
+  .hero-celebration {
+    margin: 0 24px 20px;
+    background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f1624 100%);
+    border-radius: 28px;
+    padding: 28px 24px 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle ambient glow — green tint for "success" */
+  .hero-celebration::before {
+    content: '';
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 120px;
+    background: radial-gradient(ellipse, rgba(52,199,89,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Top accent line — green for success state */
+  .hero-celebration::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(52,199,89,0.7), transparent);
+    border-radius: 2px;
+  }
+
+  /* ─── Check Circle + Confetti ─── */
+  .check-scene {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  /* Outer ring pulse */
+  .check-ring {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 2px solid rgba(52,199,89,0.2);
+    animation: ringPulse 2.5s ease-in-out infinite;
+  }
+
+  .check-ring-2 {
+    position: absolute;
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    border: 1px solid rgba(52,199,89,0.1);
+    animation: ringPulse 2.5s ease-in-out infinite 0.4s;
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { transform: scale(1);    opacity: 0.6; }
+    50%       { transform: scale(1.05); opacity: 1;   }
+  }
+
+  .check-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #22c55e 0%, #16a34a 40%, #15803d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 0 6px rgba(34,197,94,0.12),
+      0 12px 32px rgba(34,197,94,0.35),
+      0 4px 12px rgba(0,0,0,0.3);
+    position: relative;
+    z-index: 2;
+    animation: checkPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes checkPop {
+    0%   { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  /* Confetti particles — CSS only */
+  .confetti-dot {
+    position: absolute;
+    border-radius: 2px;
+    animation: confettiRise 3s ease-in-out infinite;
+    z-index: 1;
+  }
+
+  @keyframes confettiRise {
+    0%   { transform: translateY(0)    rotate(0deg);   opacity: 0.9; }
+    60%  { opacity: 0.7; }
+    100% { transform: translateY(-50px) rotate(270deg); opacity: 0;   }
+  }
+
+  /* Each particle: size, color, position, delay */
+  .c1  { width:6px; height:6px;  background:#EA580C; top:20px; left:14px;  animation-delay:0s;    }
+  .c2  { width:4px; height:8px;  background:#FBBF24; top:10px; left:42px;  animation-delay:0.3s;  }
+  .c3  { width:5px; height:5px;  background:#60A5FA; top:18px; right:16px; animation-delay:0.6s;  border-radius:50%; }
+  .c4  { width:8px; height:4px;  background:#34C759; top:12px; right:36px; animation-delay:0.9s;  }
+  .c5  { width:4px; height:6px;  background:#A78BFA; top:28px; left:6px;   animation-delay:1.2s;  }
+  .c6  { width:5px; height:5px;  background:#F472B6; top:8px;  right:8px;  animation-delay:1.5s;  border-radius:50%; }
+  .c7  { width:3px; height:7px;  background:#FBBF24; top:30px; right:22px; animation-delay:0.4s;  }
+  .c8  { width:6px; height:3px;  background:#EA580C; top:16px; left:28px;  animation-delay:1.8s;  border-radius:50%; }
+  .c9  { width:4px; height:4px;  background:#60A5FA; top:35px; left:18px;  animation-delay:0.7s;  border-radius:50%; }
+  .c10 { width:5px; height:5px;  background:#34C759; top:22px; right:48px; animation-delay:2.1s;  }
+
+  .hero-headline {
+    font-size: 23px;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    letter-spacing: -0.4px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-subline {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    line-height: 1.55;
+    font-weight: 400;
+    position: relative;
+    z-index: 1;
+    max-width: 240px;
+  }
+
+  /* ─── Stats Bar ─── */
+  .stats-bar {
+    margin: 0 24px 22px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .stat-block {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.8);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 500;
+  }
+
+  .stat-dot {
+    width: 3px;
+    height: 3px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+  }
+
+  /* ─── Section Label ─── */
+  .section-label {
+    padding: 0 24px 12px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  /* ─── Suggestion Cards ─── */
+  .suggestions-list {
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .suggestion-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  /* Left accent stripe */
+  .suggestion-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .suggestion-card.card-newsletter::before { background: #F97316; }
+  .suggestion-card.card-pdf::before         { background: #34C759; }
+  .suggestion-card.card-article::before     { background: #60A5FA; }
+
+  .card-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-icon-wrap.icon-newsletter { background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.2); }
+  .card-icon-wrap.icon-pdf         { background: rgba(52,199,89,0.12);  border: 1px solid rgba(52,199,89,0.2);  }
+  .card-icon-wrap.icon-article     { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.2); }
+
+  .card-text { flex: 1; min-width: 0; }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 3px;
+    letter-spacing: -0.1px;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-chevron {
+    flex-shrink: 0;
+    opacity: 0.3;
+  }
+
+  /* ─── CTA Button ─── */
+  .cta-section {
+    padding: 20px 24px 0;
+  }
+
+  .cta-btn {
+    width: 100%;
+    height: 54px;
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow:
+      0 8px 24px rgba(234,88,12,0.45),
+      0 2px 8px rgba(0,0,0,0.3),
+      0 0 0 1px rgba(255,255,255,0.08) inset;
+    cursor: pointer;
+  }
+
+  .cta-btn-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.2px;
+  }
+
+  .cta-btn-icon {
+    width: 22px;
+    height: 22px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ─── Tab Bar ─── */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 82px;
+    background: rgba(12,13,20,0.97);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 12px;
+    z-index: 30;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 64px;
+  }
+
+  .tab-icon-wrap {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+  }
+
+  .tab-item.active .tab-label   { color: #EA580C; }
+  .tab-item.inactive .tab-label { color: rgba(255,255,255,0.3); }
+
+  .tab-active-dot {
+    width: 4px;
+    height: 4px;
+    background: #EA580C;
+    border-radius: 50%;
+    margin-top: -2px;
+  }
+
+  /* ─── Design Note ─── */
+  .design-note {
+    margin-top: 36px;
+    max-width: 393px;
+    padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+  }
+
+  .note-title {
+    color: #EA580C;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .note-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: rgba(255,255,255,0.55);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .note-bullet { color: #34C759; flex-shrink: 0; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="page-label">Ridecast · Empty States</div>
+<div class="page-title">Empty State B — All Caught Up</div>
+<div class="page-subtitle">Return user · inbox zero · celebrate and suggest</div>
+
+<div class="phone-wrap">
+  <div class="phone-screen">
+
+    <!-- Dynamic Island -->
+    <div class="dynamic-island"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <div class="signal-bars">
+          <div class="signal-bar" style="height:4px"></div>
+          <div class="signal-bar" style="height:6px"></div>
+          <div class="signal-bar" style="height:9px"></div>
+          <div class="signal-bar" style="height:12px"></div>
+        </div>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" style="margin-top:1px">
+          <path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="rgba(255,255,255,0.9)"/>
+          <path d="M4.5 7.5C5.6 6.4 6.7 5.8 8 5.8s2.4.6 3.5 1.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M1.5 4.5C3.4 2.6 5.6 1.5 8 1.5s4.6 1.1 6.5 3" stroke="rgba(255,255,255,0.9)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div class="battery-body">
+          <div class="battery-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+
+      <!-- Greeting -->
+      <div class="greeting-section">
+        <div class="greeting-block">
+          <div class="greeting-sub">Good morning</div>
+          <div class="greeting-name">Chris</div>
+        </div>
+        <div class="settings-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Celebratory Hero -->
+      <div class="hero-celebration">
+        <div class="check-scene">
+          <div class="check-ring-2"></div>
+          <div class="check-ring"></div>
+          <!-- Confetti particles -->
+          <div class="confetti-dot c1"></div>
+          <div class="confetti-dot c2"></div>
+          <div class="confetti-dot c3"></div>
+          <div class="confetti-dot c4"></div>
+          <div class="confetti-dot c5"></div>
+          <div class="confetti-dot c6"></div>
+          <div class="confetti-dot c7"></div>
+          <div class="confetti-dot c8"></div>
+          <div class="confetti-dot c9"></div>
+          <div class="confetti-dot c10"></div>
+          <!-- Check circle -->
+          <div class="check-circle">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="hero-headline">You're all caught up</div>
+        <div class="hero-subline">You've listened to everything in your queue. Nice work — here's what to add next.</div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <!-- Headphones icon -->
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M3 18v-6a9 9 0 0118 0v6" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3v5zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3v5z" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+        </svg>
+        <div class="stat-block">
+          <span class="stat-value">12</span>
+          <span class="stat-label">episodes</span>
+        </div>
+        <div class="stat-dot"></div>
+        <div class="stat-block">
+          <span class="stat-value">4.2</span>
+          <span class="stat-label">hours listened</span>
+        </div>
+        <div class="stat-dot"></div>
+        <!-- Streak / flame-like icon -->
+        <div class="stat-block">
+          <span class="stat-value">6</span>
+          <span class="stat-label">day streak</span>
+        </div>
+      </div>
+
+      <!-- Suggestion Cards -->
+      <div class="section-label">Add something new</div>
+
+      <div class="suggestions-list">
+
+        <!-- Card 1: Newsletter -->
+        <div class="suggestion-card card-newsletter">
+          <div class="card-icon-wrap icon-newsletter">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="22,6 12,13 2,6" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title">A newsletter you love</div>
+            <div class="card-desc">Paste a Substack or email newsletter URL</div>
+          </div>
+          <div class="card-chevron">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 2: PDF -->
+        <div class="suggestion-card card-pdf">
+          <div class="card-icon-wrap icon-pdf">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="14,2 14,8 20,8" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="9" y1="13" x2="15" y2="13" stroke="#34C759" stroke-width="2" stroke-linecap="round"/>
+              <line x1="9" y1="17" x2="13" y2="17" stroke="#34C759" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title">That PDF you've been putting off</div>
+            <div class="card-desc">Upload a document and listen instead</div>
+          </div>
+          <div class="card-chevron">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 3: Article -->
+        <div class="suggestion-card card-article">
+          <div class="card-icon-wrap icon-article">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#60A5FA" stroke-width="2"/>
+              <line x1="2" y1="12" x2="22" y2="12" stroke="#60A5FA" stroke-width="2"/>
+              <path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke="#60A5FA" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title">An article you saved</div>
+            <div class="card-desc">Paste any URL — we'll extract and convert it</div>
+          </div>
+          <div class="card-chevron">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CTA Button -->
+      <div class="cta-section">
+        <div class="cta-btn">
+          <div class="cta-btn-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <line x1="12" y1="5" x2="12" y2="19" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="5" y1="12" x2="19" y2="12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="cta-btn-text">Add Something New</span>
+        </div>
+      </div>
+
+    </div><!-- end content-area -->
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#EA580C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="9,22 9,12 15,12 15,22" stroke="#EA580C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="tab-label" style="color:#EA580C">Home</div>
+        <div class="tab-active-dot"></div>
+      </div>
+      <div class="tab-item inactive">
+        <div class="tab-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="tab-label">Library</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Design Note -->
+<div class="design-note">
+  <div class="note-title">Design Decisions</div>
+  <div class="note-item"><span class="note-bullet">→</span> Green check circle (not orange) — intentional color shift signals "achievement" vs. brand action</div>
+  <div class="note-item"><span class="note-bullet">→</span> CSS confetti animation — celebratory but subtle; doesn't feel kitschy at full loop speed</div>
+  <div class="note-item"><span class="note-bullet">→</span> Stats bar ("12 episodes · 4.2 hours · 6 day streak") — reinforces the habit before asking for more</div>
+  <div class="note-item"><span class="note-bullet">→</span> Color-coded suggestion cards with left accent stripe — each content type has a visual identity</div>
+  <div class="note-item"><span class="note-bullet">→</span> Cards are tappable rows, not just text — each one is a direct CTA into the add flow for that type</div>
+  <div class="note-item"><span class="note-bullet">→</span> Primary CTA below — "Add Something New" is secondary to the celebration, not competing with it</div>
+</div>
+
+</body>
+</html>

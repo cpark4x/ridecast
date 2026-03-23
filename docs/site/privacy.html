@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Ridecast</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --fg: #1a1a1a;
+      --muted: #666;
+      --accent: #2563eb;
+      --border: #e5e5e5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --fg: #f5f5f5;
+        --muted: #999;
+        --accent: #60a5fa;
+        --border: #2a2a2a;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+    header { padding: 40px 0 20px; }
+    header a { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+    header a:hover { color: var(--fg); }
+    h1 { font-size: 2rem; font-weight: 700; margin: 20px 0 8px; letter-spacing: -0.02em; }
+    .effective { color: var(--muted); font-size: 0.9rem; margin-bottom: 40px; }
+    h2 { font-size: 1.2rem; font-weight: 600; margin: 32px 0 12px; }
+    p { margin-bottom: 16px; color: var(--fg); font-size: 0.95rem; }
+    ul { margin: 0 0 16px 24px; }
+    li { margin-bottom: 8px; font-size: 0.95rem; }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 60px;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="index.html">&larr; Back to Ridecast</a>
+    </header>
+
+    <h1>Privacy Policy</h1>
+    <p class="effective">Effective date: March 23, 2026</p>
+
+    <p>Ridecast ("we", "our", "the app") is operated by Christopher Park. This policy describes how we collect, use, and protect your information when you use the Ridecast mobile app and web service.</p>
+
+    <h2>Information We Collect</h2>
+
+    <p><strong>Account information.</strong> When you create an account, we collect your email address and name through our authentication provider (Clerk). This is used solely to manage your account and associate your content with your login.</p>
+
+    <p><strong>Content you provide.</strong> When you submit URLs, documents, PDFs, or text for processing, we transmit that content to our servers to generate audio episodes. The content is processed and stored to deliver the service.</p>
+
+    <p><strong>Generated audio.</strong> Audio episodes generated from your content are stored on our servers (Azure Blob Storage) and associated with your account so you can access them.</p>
+
+    <p><strong>Usage data.</strong> We may collect basic usage analytics such as app opens and feature usage to improve the service. We do not track your location or browsing activity outside the app.</p>
+
+    <h2>How We Use Your Information</h2>
+    <ul>
+      <li>To provide the core service: processing your content into audio episodes</li>
+      <li>To authenticate your account and manage your library</li>
+      <li>To improve the app and fix bugs</li>
+      <li>To send you service-related notifications (e.g., when an episode is ready)</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>We use the following third-party services to operate Ridecast:</p>
+    <ul>
+      <li><strong>Clerk</strong> - Authentication and account management</li>
+      <li><strong>Anthropic (Claude)</strong> - AI content analysis and script generation</li>
+      <li><strong>Google Cloud Text-to-Speech / OpenAI TTS</strong> - Audio narration</li>
+      <li><strong>Microsoft Azure</strong> - Server hosting and audio file storage</li>
+      <li><strong>Stripe</strong> - Payment processing (if applicable)</li>
+      <li><strong>Sentry</strong> - Crash reporting and error tracking</li>
+    </ul>
+    <p>Each of these services has its own privacy policy governing their handling of data. We only share the minimum data necessary for each service to function.</p>
+
+    <h2>Data Storage and Security</h2>
+    <p>Your data is stored on secure servers hosted by Microsoft Azure. We use encryption in transit (HTTPS/TLS) for all communications. Audio files are stored in Azure Blob Storage with access controls.</p>
+
+    <h2>Data Retention</h2>
+    <p>Your account data and generated episodes are retained as long as your account is active. You can delete individual episodes from your library at any time. If you wish to delete your account and all associated data, contact us at the email below.</p>
+
+    <h2>Your Rights</h2>
+    <p>You have the right to:</p>
+    <ul>
+      <li>Access the personal data we hold about you</li>
+      <li>Request deletion of your account and data</li>
+      <li>Export your data</li>
+      <li>Opt out of non-essential communications</li>
+    </ul>
+
+    <h2>Children's Privacy</h2>
+    <p>Ridecast is not directed at children under 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal data, please contact us and we will delete it.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>We may update this privacy policy from time to time. Changes will be posted on this page with an updated effective date. Continued use of the app after changes constitutes acceptance.</p>
+
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy or your data, contact us at:</p>
+    <p><strong>chris.park@gmail.com</strong></p>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="index.html">Ridecast</a> &middot; <a href="support.html">Support</a>
+      <p style="margin-top: 8px;">&copy; 2026 Christopher Park. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

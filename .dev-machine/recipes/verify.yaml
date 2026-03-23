@@ -1,0 +1,74 @@
+# =============================================================================
+# verify.yaml — Gating verification: lint, test, build, optional E2E
+# =============================================================================
+#
+# Context variables:
+#   project_dir  (default ".")      — repo root
+#   run_e2e      (default "false")  — set to "true" to include E2E step
+#
+# Lint, test, and build are mandatory gates (recipe fails on first failure).
+# E2E is conditional on run_e2e and uses on_error: continue so the summary
+# always runs regardless of E2E outcome.
+# =============================================================================
+
+name: "verify"
+description: "Run lint, unit tests, and build as gating checks with an optional E2E step"
+version: "1.0.0"
+tags: ["ci", "verification", "lint", "test", "build", "e2e"]
+
+context:
+  project_dir: "."
+  run_e2e: "false"
+  # Defaults consumed by the summary when E2E is skipped.
+  # Overwritten by the e2e step when it actually runs.
+  e2e_exit_code: "skipped"
+  e2e_output: "E2E tests were not run (run_e2e=false)"
+
+steps:
+  - id: "lint"
+    type: "bash"
+    command: "npm run lint"
+    cwd: "{{project_dir}}"
+    output: "lint_output"
+    timeout: 120
+
+  - id: "test"
+    type: "bash"
+    command: "npm test"
+    cwd: "{{project_dir}}"
+    output: "test_output"
+    timeout: 300
+
+  - id: "build"
+    type: "bash"
+    command: "npm run build"
+    cwd: "{{project_dir}}"
+    output: "build_output"
+    timeout: 300
+
+  - id: "e2e"
+    type: "bash"
+    condition: "{{run_e2e}} == 'true'"
+    command: "npm run test:e2e 2>&1"
+    cwd: "{{project_dir}}"
+    output: "e2e_output"
+    output_exit_code: "e2e_exit_code"
+    on_error: "continue"
+    timeout: 600
+
+  - id: "summary"
+    type: "bash"
+    command: |
+      echo "=== Verification Summary ==="
+      echo "Lint:  PASS"
+      echo "Test:  PASS"
+      echo "Build: PASS"
+      if [ "{{e2e_exit_code}}" = "skipped" ]; then
+        echo "E2E:   SKIPPED (run_e2e=false)"
+      elif [ "{{e2e_exit_code}}" = "0" ]; then
+        echo "E2E:   PASS"
+      else
+        echo "E2E:   FAIL (exit code {{e2e_exit_code}})"
+      fi
+      echo "==========================="
+    output: "final_output"

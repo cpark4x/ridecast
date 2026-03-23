@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Following — Ridecast</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 52px 48px 80px;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .page-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #EA580C;
+      margin-bottom: 10px;
+    }
+
+    .page-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.6px;
+      margin-bottom: 10px;
+    }
+
+    .page-subtitle {
+      font-size: 15px;
+      color: rgba(255,255,255,0.38);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .frames-row {
+      display: flex;
+      gap: 64px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .frame-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ─── PHONE SHELL ─── */
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #F2F2F7;
+      border-radius: 52px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 80px 160px rgba(0,0,0,0.75),
+        0 0 0 1px rgba(255,255,255,0.09),
+        inset 0 0 0 1.5px rgba(0,0,0,0.12);
+    }
+
+    /* ─── STATUS BAR ─── */
+    .status-bar {
+      height: 50px;
+      background: #F9F9F9;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 28px 8px;
+    }
+
+    .status-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1C1C1E;
+      letter-spacing: -0.2px;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    /* ─── NAV HEADER ─── */
+    .nav-header {
+      height: 52px;
+      background: #F9F9F9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #EA580C;
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    .nav-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1C1C1E;
+      letter-spacing: -0.2px;
+    }
+
+    .nav-edit {
+      font-size: 16px;
+      font-weight: 400;
+      color: #EA580C;
+    }
+
+    /* ─── SEARCH BAR ─── */
+    .search-bar {
+      padding: 10px 16px;
+      background: #F2F2F7;
+    }
+
+    .search-inner {
+      height: 36px;
+      background: rgba(118,118,128,0.12);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+    }
+
+    .search-placeholder {
+      font-size: 15px;
+      color: #8E8E93;
+      font-weight: 400;
+    }
+
+    /* ─── SEGMENT TABS ─── */
+    .seg-tabs {
+      padding: 0 16px 10px;
+      background: #F2F2F7;
+    }
+
+    .seg-track {
+      height: 36px;
+      background: rgba(118,118,128,0.12);
+      border-radius: 10px;
+      display: flex;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .seg-pill {
+      flex: 1;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: #8E8E93;
+    }
+
+    .seg-pill.active {
+      background: #fff;
+      color: #1C1C1E;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 0.5px 1px rgba(0,0,0,0.08);
+    }
+
+    /* ─── CONTENT AREA ─── */
+    .content-area {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .content-fade {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 56px;
+      background: linear-gradient(to bottom, transparent, #F2F2F7);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* ─── LIST CARD (grouped) ─── */
+    .list-card {
+      background: #fff;
+      border-radius: 12px;
+      margin: 0 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.04);
+    }
+
+    /* ─── SOURCE ROW ─── */
+    .src-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+    }
+
+    .src-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .src-info { flex: 1; min-width: 0; }
+
+    .src-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1C1C1E;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .src-meta {
+      font-size: 12px;
+      color: #8E8E93;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    /* Following badge */
+    .badge-following {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #DCFCE7;
+      color: #16A34A;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Row divider */
+    .row-div {
+      height: 0.5px;
+      background: #F2F2F7;
+      margin-left: 68px;
+    }
+
+    /* ─── SECTION HEADER ─── */
+    .sec-header {
+      padding: 16px 20px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #8E8E93;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    /* ─── AUTHOR ROW ─── */
+    .auth-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+    }
+
+    .auth-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .auth-info { flex: 1; min-width: 0; }
+
+    .auth-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1C1C1E;
+    }
+
+    .auth-meta {
+      font-size: 12px;
+      color: #8E8E93;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .auth-src-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .mini-src-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 3.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .auth-row-div {
+      height: 0.5px;
+      background: #F2F2F7;
+      margin-left: 66px;
+    }
+
+    /* ─── SUGGESTIONS SECTION ─── */
+    .suggest-block {
+      margin: 0 16px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.04);
+    }
+
+    .suggest-header {
+      padding: 11px 14px 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .suggest-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1C1C1E;
+    }
+
+    .suggest-sub {
+      font-size: 12px;
+      color: #8E8E93;
+    }
+
+    .suggest-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+    }
+
+    .suggest-info { flex: 1; min-width: 0; }
+
+    .suggest-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1C1C1E;
+    }
+
+    .suggest-reason {
+      font-size: 12px;
+      color: #8E8E93;
+      margin-top: 2px;
+    }
+
+    .follow-pill {
+      border: 1.5px solid #EA580C;
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #EA580C;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ─── TAB BAR ─── */
+    .tab-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 83px;
+      background: rgba(249,249,249,0.95);
+      backdrop-filter: blur(20px);
+      border-top: 0.5px solid rgba(0,0,0,0.1);
+      display: flex;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 10px;
+      gap: 4px;
+    }
+
+    .tab-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+    .tab-lbl { font-size: 10px; font-weight: 500; color: #8E8E93; }
+    .tab-item.on .tab-lbl { color: #EA580C; }
+
+    /* ─── SPACERS ─── */
+    .spacer-8  { height: 8px; }
+    .spacer-12 { height: 12px; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-eyebrow">Ridecast · Screen Design</div>
+    <div class="page-title">Following</div>
+    <div class="page-subtitle">Manage followed sources and authors · accessible from Library header</div>
+  </div>
+
+  <div class="frames-row">
+
+    <!-- ══════════════════════════════════════════════
+         PHONE 1 — SOURCES TAB ACTIVE
+    ══════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">Sources Tab</div>
+      <div class="phone">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span class="status-time">9:41</span>
+          <div class="status-icons">
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1C1C1E">
+              <rect x="0" y="5" width="3" height="7" rx="1" opacity="0.35"/>
+              <rect x="4.5" y="3.5" width="3" height="8.5" rx="1" opacity="0.55"/>
+              <rect x="9" y="1.5" width="3" height="10.5" rx="1" opacity="0.75"/>
+              <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+            </svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="#1C1C1E">
+              <circle cx="8" cy="10.5" r="1.4"/>
+              <path d="M4.8 7.5a4.5 4.5 0 016.4 0l-1.1 1.1a3 3 0 00-4.2 0L4.8 7.5z"/>
+              <path d="M2.3 5a7.5 7.5 0 0111.4 0l-1.1 1.1a6 6 0 00-9.2 0L2.3 5z" opacity="0.6"/>
+            </svg>
+            <svg width="25" height="12" viewBox="0 0 25 12">
+              <rect x="0.5" y="1" width="20" height="10" rx="2.5" stroke="#1C1C1E" stroke-width="1" fill="none"/>
+              <rect x="21" y="3.8" width="2.5" height="4.4" rx="1" fill="#1C1C1E" opacity="0.35"/>
+              <rect x="2" y="2.5" width="14" height="7" rx="1.5" fill="#1C1C1E"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Nav header -->
+        <div class="nav-header">
+          <div class="nav-back">
+            <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
+              <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="#EA580C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span style="font-size:16px;color:#EA580C;">Library</span>
+          </div>
+          <div class="nav-title">Following</div>
+          <div class="nav-edit">Edit</div>
+        </div>
+
+        <!-- Search bar -->
+        <div class="search-bar">
+          <div class="search-inner">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="6.5" cy="6.5" r="5" stroke="#8E8E93" stroke-width="1.5"/>
+              <line x1="10.2" y1="10.2" x2="13" y2="13" stroke="#8E8E93" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="search-placeholder">Search sources and authors…</span>
+          </div>
+        </div>
+
+        <!-- Segment tabs — Sources active -->
+        <div class="seg-tabs">
+          <div class="seg-track">
+            <div class="seg-pill active">Sources (5)</div>
+            <div class="seg-pill">Authors (8)</div>
+          </div>
+        </div>
+
+        <!-- Content: Sources list -->
+        <div class="content-area" style="height:571px;">
+
+          <div class="list-card">
+
+            <!-- ESPN -->
+            <div class="src-row">
+              <div class="src-icon" style="background:#D00000;">E</div>
+              <div class="src-info">
+                <div class="src-name">ESPN</div>
+                <div class="src-meta">4 episodes · 1.2 hrs listened</div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="row-div"></div>
+
+            <!-- Substack -->
+            <div class="src-row">
+              <div class="src-icon" style="background:#FF6719;">S</div>
+              <div class="src-info">
+                <div class="src-name">Substack</div>
+                <div class="src-meta">6 episodes · 3.5 hrs listened</div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="row-div"></div>
+
+            <!-- GitHub -->
+            <div class="src-row">
+              <div class="src-icon" style="background:#24292E;">G</div>
+              <div class="src-info">
+                <div class="src-name">GitHub</div>
+                <div class="src-meta">3 episodes · 1.8 hrs listened</div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="row-div"></div>
+
+            <!-- HBR -->
+            <div class="src-row">
+              <div class="src-icon" style="background:#8B1A1A; font-size:11px; font-weight:800; letter-spacing:-0.5px;">HBR</div>
+              <div class="src-info">
+                <div class="src-name">Harvard Business Review</div>
+                <div class="src-meta">5 episodes · 4.2 hrs listened</div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="row-div"></div>
+
+            <!-- The Verge -->
+            <div class="src-row">
+              <div class="src-icon" style="background:#6E3FA3;">V</div>
+              <div class="src-info">
+                <div class="src-name">The Verge</div>
+                <div class="src-meta">2 episodes · 0.8 hrs listened</div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+          </div><!-- /list-card -->
+
+          <!-- Suggestions section -->
+          <div class="sec-header">Suggestions · Based on your listening</div>
+
+          <div class="suggest-block">
+
+            <!-- arXiv -->
+            <div class="suggest-row">
+              <div class="src-icon" style="background:#2D7A7A; width:42px; height:42px; font-size:10px; font-weight:800; letter-spacing:-0.3px; border-radius:11px; flex-shrink:0;">arXiv</div>
+              <div class="suggest-info">
+                <div class="suggest-name">arXiv</div>
+                <div class="suggest-reason">You've listened to 3 arXiv papers</div>
+              </div>
+              <div class="follow-pill">Follow</div>
+            </div>
+
+            <div class="row-div" style="margin-left:66px;"></div>
+
+            <!-- Stratechery -->
+            <div class="suggest-row">
+              <div class="src-icon" style="background:#1A56DB; width:42px; height:42px; font-size:9px; font-weight:800; border-radius:11px; flex-shrink:0;">STRAT</div>
+              <div class="suggest-info">
+                <div class="suggest-name">Stratechery</div>
+                <div class="suggest-reason">Similar to sources you follow</div>
+              </div>
+              <div class="follow-pill">Follow</div>
+            </div>
+
+          </div><!-- /suggest-block -->
+
+          <div class="spacer-12"></div>
+
+          <!-- Content fade (no scroll needed for Sources, just clean bottom) -->
+        </div><!-- /content-area -->
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M2.5 10.5L11 2.5l8.5 8" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="5" y="10.5" width="12" height="9" rx="1.5" stroke="#8E8E93" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Home</span>
+          </div>
+          <div class="tab-item on">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <rect x="2.5" y="2.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="2.5" y="13.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="2.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="10.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl" style="color:#EA580C">Library</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="11" r="8" stroke="#8E8E93" stroke-width="1.7"/>
+                <circle cx="11" cy="11" r="2.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <line x1="11" y1="3" x2="11" y2="8.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="11" y1="13.5" x2="11" y2="19" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="3" y1="11" x2="8.5" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="13.5" y1="11" x2="19" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Discover</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="8" r="3.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <path d="M3.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Profile</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         PHONE 2 — AUTHORS TAB ACTIVE
+    ══════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">Authors Tab</div>
+      <div class="phone">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span class="status-time">9:41</span>
+          <div class="status-icons">
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1C1C1E">
+              <rect x="0" y="5" width="3" height="7" rx="1" opacity="0.35"/>
+              <rect x="4.5" y="3.5" width="3" height="8.5" rx="1" opacity="0.55"/>
+              <rect x="9" y="1.5" width="3" height="10.5" rx="1" opacity="0.75"/>
+              <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+            </svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="#1C1C1E">
+              <circle cx="8" cy="10.5" r="1.4"/>
+              <path d="M4.8 7.5a4.5 4.5 0 016.4 0l-1.1 1.1a3 3 0 00-4.2 0L4.8 7.5z"/>
+              <path d="M2.3 5a7.5 7.5 0 0111.4 0l-1.1 1.1a6 6 0 00-9.2 0L2.3 5z" opacity="0.6"/>
+            </svg>
+            <svg width="25" height="12" viewBox="0 0 25 12">
+              <rect x="0.5" y="1" width="20" height="10" rx="2.5" stroke="#1C1C1E" stroke-width="1" fill="none"/>
+              <rect x="21" y="3.8" width="2.5" height="4.4" rx="1" fill="#1C1C1E" opacity="0.35"/>
+              <rect x="2" y="2.5" width="14" height="7" rx="1.5" fill="#1C1C1E"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Nav header -->
+        <div class="nav-header">
+          <div class="nav-back">
+            <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
+              <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="#EA580C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span style="font-size:16px;color:#EA580C;">Library</span>
+          </div>
+          <div class="nav-title">Following</div>
+          <div class="nav-edit">Edit</div>
+        </div>
+
+        <!-- Search bar -->
+        <div class="search-bar">
+          <div class="search-inner">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="6.5" cy="6.5" r="5" stroke="#8E8E93" stroke-width="1.5"/>
+              <line x1="10.2" y1="10.2" x2="13" y2="13" stroke="#8E8E93" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="search-placeholder">Search sources and authors…</span>
+          </div>
+        </div>
+
+        <!-- Segment tabs — Authors active -->
+        <div class="seg-tabs">
+          <div class="seg-track">
+            <div class="seg-pill">Sources (5)</div>
+            <div class="seg-pill active">Authors (8)</div>
+          </div>
+        </div>
+
+        <!-- Content: Authors list -->
+        <div class="content-area" style="height:571px;">
+
+          <!-- Fade overlay to indicate scrollable content -->
+          <div class="content-fade"></div>
+
+          <div class="list-card">
+
+            <!-- 1. Buster Olney -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#1A3A5C;">BO</div>
+              <div class="auth-info">
+                <div class="auth-name">Buster Olney</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#D00000;">E</div>
+                    <span>ESPN</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>3 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 2. Gurwinder -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#D97706;">GU</div>
+              <div class="auth-info">
+                <div class="auth-name">Gurwinder</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#FF6719;">S</div>
+                    <span>Substack</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>4 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 3. Paul Graham -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#374151;">PG</div>
+              <div class="auth-info">
+                <div class="auth-name">Paul Graham</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#FF6719;">S</div>
+                    <span>Substack</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>2 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 4. Brian Krabach -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#166534;">BK</div>
+              <div class="auth-info">
+                <div class="auth-name">Brian Krabach</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#24292E;">G</div>
+                    <span>GitHub</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>2 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 5. Roger Martin -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#7C1D1D;">RM</div>
+              <div class="auth-info">
+                <div class="auth-name">Roger Martin</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#8B1A1A; font-size:6px; letter-spacing:-0.3px;">HBR</div>
+                    <span>HBR</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>3 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 6. Nilay Patel -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#4C1D95;">NP</div>
+              <div class="auth-info">
+                <div class="auth-name">Nilay Patel</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#6E3FA3;">V</div>
+                    <span>The Verge</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>2 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 7. shadcn -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#18181B;">SH</div>
+              <div class="auth-info">
+                <div class="auth-name">shadcn</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#24292E;">G</div>
+                    <span>GitHub</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>1 episode</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+            <div class="auth-row-div"></div>
+
+            <!-- 8. Clayton Christensen -->
+            <div class="auth-row">
+              <div class="auth-avatar" style="background:#1E3A5F;">CC</div>
+              <div class="auth-info">
+                <div class="auth-name">Clayton Christensen</div>
+                <div class="auth-meta">
+                  <div class="auth-src-chip">
+                    <div class="mini-src-icon" style="background:#8B1A1A; font-size:6px; letter-spacing:-0.3px;">HBR</div>
+                    <span>HBR</span>
+                  </div>
+                  <span style="color:#D1D1D6;">·</span>
+                  <span>2 episodes</span>
+                </div>
+              </div>
+              <div class="badge-following">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4l3 3 5-6" stroke="#16A34A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Following
+              </div>
+            </div>
+
+          </div><!-- /list-card -->
+
+          <!-- Suggestions — partially visible to imply scroll -->
+          <div class="sec-header">Suggestions · Based on your listening</div>
+
+          <div class="suggest-block">
+            <div class="suggest-row">
+              <div class="auth-avatar" style="background:#9D174D; width:42px; height:42px; border-radius:50%; flex-shrink:0; font-size:11px;">BT</div>
+              <div class="suggest-info">
+                <div class="suggest-name">Ben Thompson</div>
+                <div class="suggest-reason">Author at Stratechery</div>
+              </div>
+              <div class="follow-pill">Follow</div>
+            </div>
+          </div>
+
+        </div><!-- /content-area -->
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M2.5 10.5L11 2.5l8.5 8" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="5" y="10.5" width="12" height="9" rx="1.5" stroke="#8E8E93" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Home</span>
+          </div>
+          <div class="tab-item on">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <rect x="2.5" y="2.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="2.5" y="13.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="2.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="10.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl" style="color:#EA580C">Library</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="11" r="8" stroke="#8E8E93" stroke-width="1.7"/>
+                <circle cx="11" cy="11" r="2.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <line x1="11" y1="3" x2="11" y2="8.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="11" y1="13.5" x2="11" y2="19" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="3" y1="11" x2="8.5" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="13.5" y1="11" x2="19" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Discover</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="8" r="3.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <path d="M3.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Profile</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

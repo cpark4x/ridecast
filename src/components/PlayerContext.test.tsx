@@ -1,0 +1,649 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { PlayerProvider, usePlayer, SMART_RESUME_THRESHOLD_MS, SMART_RESUME_REWIND_SECS } from "./PlayerContext";
+
+function TestComponent() {
+  const { currentItem, isPlaying, speed, play, togglePlay, setSpeed } = usePlayer();
+  return (
+    <div>
+      <span data-testid="playing">{isPlaying ? "yes" : "no"}</span>
+      <span data-testid="speed">{speed}</span>
+      <span data-testid="title">{currentItem?.title ?? "none"}</span>
+      <button onClick={() => play({ id: "1", title: "Test Audio", duration: 768, format: "narrator", audioUrl: "/audio/test.mp3" })}>
+        Play
+      </button>
+      <button onClick={togglePlay}>Toggle</button>
+      <button onClick={() => setSpeed(1.5)}>Speed 1.5</button>
+    </div>
+  );
+}
+
+describe("PlayerContext", () => {
+  it("starts with nothing playing", () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+    expect(screen.getByTestId("playing").textContent).toBe("no");
+    expect(screen.getByTestId("title").textContent).toBe("none");
+  });
+
+  it("plays an item", () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+    fireEvent.click(screen.getByText("Play"));
+    expect(screen.getByTestId("playing").textContent).toBe("yes");
+    expect(screen.getByTestId("title").textContent).toBe("Test Audio");
+  });
+
+  it("toggles play/pause", () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+    fireEvent.click(screen.getByText("Play"));
+    expect(screen.getByTestId("playing").textContent).toBe("yes");
+    fireEvent.click(screen.getByText("Toggle"));
+    expect(screen.getByTestId("playing").textContent).toBe("no");
+  });
+
+  it("changes speed", () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+    fireEvent.click(screen.getByText("Speed 1.5"));
+    expect(screen.getByTestId("speed").textContent).toBe("1.5");
+  });
+});
+
+describe("PlayerContext — playback state persistence", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // Default: /api/me returns userId; /api/playback returns no state
+    fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === "string" && url === "/api/me") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ userId: "user_test123" }),
+        });
+      }
+      return Promise.resolve({
+        ok: false,
+        json: () => Promise.resolve(null),
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("fetches saved playback state when a new item is played", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (typeof url === "string" && url === "/api/me") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ userId: "user_test123" }),
+        });
+      }
+      // playback state GET
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ position: 120, speed: 1.5 }),
+      });
+    });
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    await waitFor(() => {
+      const getCall = fetchMock.mock.calls.find(
+        (c) => typeof c[0] === "string" &&
+               c[0].includes("/api/playback") &&
+               c[0].includes("audioId=1")
+      );
+      expect(getCall).toBeDefined();
+    });
+  });
+
+  it("saves position with completed=true when the ended event fires", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    // Wait for /api/me to resolve so userIdRef gets populated
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    // Allow /api/me fetch to complete
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("ended"));
+    });
+
+    await waitFor(() => {
+      const postCall = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      );
+      expect(postCall).toBeDefined();
+      const body = JSON.parse(postCall![1].body);
+      expect(body.completed).toBe(true);
+      expect(body.audioId).toBe("1");
+    });
+  });
+
+  it("saves position every 5 seconds while playing", async () => {
+    vi.useFakeTimers();
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    // Allow /api/me fetch to complete so userIdRef.current is set
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve(); // double flush for fetch chain
+    });
+
+    // Count POST calls before advancing time
+    const postCallsBefore = fetchMock.mock.calls.filter(
+      (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+    ).length;
+
+    // Advance 5 seconds
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    const postCallsAfter = fetchMock.mock.calls.filter(
+      (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+    ).length;
+
+    expect(postCallsAfter).toBeGreaterThan(postCallsBefore);
+
+    vi.useRealTimers();
+  });
+});
+
+// --- Persistence: event-triggered saves (pause, seeked, beforeunload, silent failure) ---
+// These tests intentionally do NOT mock /api/me to return a userId.
+// With the OLD implementation savePosition returns early when userIdRef.current is null,
+// so all POSTs are silently skipped.  The NEW implementation uses 'default-user' and
+// requires no /api/me dependency — so all tests below will FAIL until that change lands.
+
+describe("PlayerContext — persistence: event-triggered saves", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // /api/me returns a failure — userIdRef.current will stay null in the old implementation
+    fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve(null),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("POSTs to /api/playback WITHOUT userId in body", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("pause"));
+    });
+
+    await waitFor(() => {
+      const postCall = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      );
+      expect(postCall).toBeDefined();
+      const body = JSON.parse(postCall![1].body);
+      expect(body).not.toHaveProperty("userId");
+      expect(body.audioId).toBe("1");
+      expect(body.completed).toBe(false);
+    });
+  });
+
+  it("POSTs to /api/playback when the play event fires (save-on-play)", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    // Capture POST count before dispatching play (play() itself may or may not have
+    // already fired one — we only care that the native "play" event triggers a save)
+    const postsBefore = fetchMock.mock.calls.filter(
+      (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+    ).length;
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("play"));
+    });
+
+    await waitFor(() => {
+      const postsAfter = fetchMock.mock.calls.filter(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      ).length;
+      expect(postsAfter).toBeGreaterThan(postsBefore);
+    });
+  });
+
+  it("POSTs to /api/playback WITHOUT userId in body when the seeked event fires", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("seeked"));
+    });
+
+    await waitFor(() => {
+      const postCall = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      );
+      expect(postCall).toBeDefined();
+      const body = JSON.parse(postCall![1].body);
+      expect(body).not.toHaveProperty("userId");
+    });
+  });
+
+  it("POSTs to /api/playback when the beforeunload event fires", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const postsBefore = fetchMock.mock.calls.filter(
+      (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+    ).length;
+
+    await act(async () => {
+      window.dispatchEvent(new Event("beforeunload"));
+    });
+
+    await waitFor(() => {
+      const postsAfter = fetchMock.mock.calls.filter(
+        (c) => c[0] === "/api/playback" && c[1]?.method === "POST"
+      ).length;
+      expect(postsAfter).toBeGreaterThan(postsBefore);
+    });
+  });
+
+  it("does not throw when the /api/playback POST fetch rejects (silent failure)", async () => {
+    // Make every fetch reject with a network error
+    fetchMock.mockRejectedValue(new Error("network failure"));
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    const audioEl = document.querySelector("audio")!;
+
+    // None of these should throw
+    await expect(
+      act(async () => {
+        audioEl.dispatchEvent(new Event("pause"));
+      })
+    ).resolves.not.toThrow();
+  });
+
+  it("does NOT include userId in the GET restore URL", async () => {
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play"));
+    });
+
+    await waitFor(() => {
+      const getCall = fetchMock.mock.calls.find(
+        (c) => typeof c[0] === "string" && c[0].includes("/api/playback") &&
+               c[0].includes("audioId=1")
+      );
+      expect(getCall).toBeDefined();
+      expect(getCall![0]).not.toContain("userId");
+    });
+  });
+});
+
+// --- Smart Resume ---
+
+describe("PlayerContext — queue support", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function QueueTestComponent() {
+    const { currentItem, queue, queueIndex, playQueue, skipToNext, skipToPrevious } = usePlayer();
+    return (
+      <div>
+        <span data-testid="title">{currentItem?.title ?? "none"}</span>
+        <span data-testid="queue-length">{queue.length}</span>
+        <span data-testid="queue-index">{queueIndex}</span>
+        <button onClick={() => playQueue([
+          { id: "q1", title: "First", duration: 300, format: "narrator", audioUrl: "/a1.mp3" },
+          { id: "q2", title: "Second", duration: 400, format: "narrator", audioUrl: "/a2.mp3" },
+          { id: "q3", title: "Third", duration: 500, format: "narrator", audioUrl: "/a3.mp3" },
+        ])}>Play Queue</button>
+        <button onClick={skipToNext}>Next</button>
+        <button onClick={skipToPrevious}>Previous</button>
+      </div>
+    );
+  }
+
+  it("queue and queueIndex default to [] and 0", () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    expect(screen.getByTestId("queue-length").textContent).toBe("0");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("playQueue sets queue and plays first item", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => {
+      fireEvent.click(screen.getByText("Play Queue"));
+    });
+    expect(screen.getByTestId("title").textContent).toBe("First");
+    expect(screen.getByTestId("queue-length").textContent).toBe("3");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("skipToNext advances to next item", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    expect(screen.getByTestId("title").textContent).toBe("Second");
+    expect(screen.getByTestId("queue-index").textContent).toBe("1");
+  });
+
+  it("skipToPrevious goes back", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    await act(async () => { fireEvent.click(screen.getByText("Previous")); });
+    expect(screen.getByTestId("title").textContent).toBe("First");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("skipToNext does nothing at end of queue", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); });
+    await act(async () => { fireEvent.click(screen.getByText("Next")); }); // past end
+    expect(screen.getByTestId("title").textContent).toBe("Third");
+    expect(screen.getByTestId("queue-index").textContent).toBe("2");
+  });
+
+  it("skipToPrevious does nothing at start", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+    await act(async () => { fireEvent.click(screen.getByText("Previous")); });
+    expect(screen.getByTestId("title").textContent).toBe("First");
+    expect(screen.getByTestId("queue-index").textContent).toBe("0");
+  });
+
+  it("auto-advances when audio 'ended' event fires", async () => {
+    render(<PlayerProvider><QueueTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Queue")); });
+
+    const audioEl = document.querySelector("audio")!;
+    await act(async () => {
+      audioEl.dispatchEvent(new Event("ended"));
+    });
+
+    expect(screen.getByTestId("title").textContent).toBe("Second");
+    expect(screen.getByTestId("queue-index").textContent).toBe("1");
+  });
+});
+
+describe("PlayerContext — extended PlayableItem fields", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function RichItemComponent() {
+    const { currentItem, play } = usePlayer();
+    return (
+      <div>
+        <span data-testid="summary">{currentItem?.summary ?? "no-summary"}</span>
+        <span data-testid="author">{currentItem?.author ?? "no-author"}</span>
+        <span data-testid="content-type">{currentItem?.contentType ?? "no-type"}</span>
+        <span data-testid="source-url">{currentItem?.sourceUrl ?? "no-url"}</span>
+        <span data-testid="themes">{currentItem?.themes?.join(",") ?? "no-themes"}</span>
+        <span data-testid="compression">{currentItem?.compressionRatio ?? "no-compression"}</span>
+        <button onClick={() => play({
+          id: "rich1", title: "Rich Item", duration: 600, format: "narrator",
+          audioUrl: "/audio/rich.mp3",
+          author: "Daniel Kahneman", sourceType: "url",
+          sourceUrl: "https://example.com/article",
+          contentType: "science_article",
+          themes: ["psychology", "decision making"],
+          summary: "An exploration of cognitive biases.",
+          compressionRatio: 0.15,
+        })}>Play Rich</button>
+        <button onClick={() => play({
+          id: "basic1", title: "Basic Item", duration: 300, format: "narrator",
+          audioUrl: "/audio/basic.mp3",
+        })}>Play Basic</button>
+      </div>
+    );
+  }
+
+  it("accepts and exposes extended PlayableItem fields on currentItem", async () => {
+    render(<PlayerProvider><RichItemComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Rich")); });
+    expect(screen.getByTestId("summary").textContent).toBe("An exploration of cognitive biases.");
+    expect(screen.getByTestId("author").textContent).toBe("Daniel Kahneman");
+    expect(screen.getByTestId("content-type").textContent).toBe("science_article");
+    expect(screen.getByTestId("source-url").textContent).toBe("https://example.com/article");
+    expect(screen.getByTestId("themes").textContent).toBe("psychology,decision making");
+    expect(screen.getByTestId("compression").textContent).toBe("0.15");
+  });
+
+  it("existing play() calls without new fields still work (backward compat)", async () => {
+    render(<PlayerProvider><RichItemComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play Basic")); });
+    expect(screen.getByTestId("summary").textContent).toBe("no-summary");
+    expect(screen.getByTestId("author").textContent).toBe("no-author");
+    expect(screen.getByTestId("content-type").textContent).toBe("no-type");
+  });
+});
+
+describe("PlayerContext — sleep timer", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function SleepTestComponent() {
+    const { sleepTimer, setSleepTimer, isPlaying, play } = usePlayer();
+    return (
+      <div>
+        <span data-testid="sleep-timer">{sleepTimer === null ? "off" : String(sleepTimer)}</span>
+        <span data-testid="is-playing">{isPlaying ? "yes" : "no"}</span>
+        <button onClick={() => play({ id: "s1", title: "Sleep Test", duration: 3600, format: "narrator", audioUrl: "/a.mp3" })}>Play</button>
+        <button onClick={() => setSleepTimer(15)}>Set 15</button>
+        <button onClick={() => setSleepTimer("end")}>Set End</button>
+        <button onClick={() => setSleepTimer(null)}>Cancel</button>
+      </div>
+    );
+  }
+
+  it("sleepTimer defaults to null (off)", () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("off");
+  });
+
+  it("setSleepTimer(15) sets the timer value to 15", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Set 15")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("15");
+  });
+
+  it("setSleepTimer(null) cancels the timer", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Set 15")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("15");
+    await act(async () => { fireEvent.click(screen.getByText("Cancel")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("off");
+  });
+
+  it("setSleepTimer('end') sets timer to 'end'", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Set End")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("end");
+  });
+
+  it("pauses playback after sleep timer minutes elapse", async () => {
+    render(<PlayerProvider><SleepTestComponent /></PlayerProvider>);
+    await act(async () => { fireEvent.click(screen.getByText("Play")); });
+    expect(screen.getByTestId("is-playing").textContent).toBe("yes");
+
+    await act(async () => { fireEvent.click(screen.getByText("Set 15")); });
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("15");
+
+    // Advance past the 15-minute mark
+    await act(async () => {
+      vi.advanceTimersByTime(15 * 60 * 1000 + 100);
+    });
+
+    // Timer should have auto-cleared and playback should be paused
+    expect(screen.getByTestId("sleep-timer").textContent).toBe("off");
+  });
+});
+
+describe("Smart Resume", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve(null) });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("exports SMART_RESUME_REWIND_SECS = 3 and SMART_RESUME_THRESHOLD_MS = 10000", () => {
+    expect(SMART_RESUME_REWIND_SECS).toBe(3);
+    expect(SMART_RESUME_THRESHOLD_MS).toBe(10_000);
+  });
+
+  it("does NOT rewind when pause was short (< threshold)", async () => {
+    const now = Date.now();
+    const dateSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => { fireEvent.click(screen.getByText("Play")); });
+
+    // Set currentTime to 60 on the real DOM audio element
+    const audioEl = document.querySelector("audio")!;
+    audioEl.currentTime = 60;
+
+    // Pause — same Date.now (short pause)
+    await act(async () => { fireEvent.click(screen.getByText("Toggle")); });
+
+    // Resume immediately (same timestamp — 0ms elapsed, well under threshold)
+    await act(async () => { fireEvent.click(screen.getByText("Toggle")); });
+
+    expect(audioEl.currentTime).toBe(60); // no rewind
+
+    dateSpy.mockRestore();
+  });
+
+  it("rewinds 3 seconds when pause was long (> threshold)", async () => {
+    const now = 1_000_000;
+    const dateSpy = vi.spyOn(Date, "now");
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => { fireEvent.click(screen.getByText("Play")); });
+
+    // Set currentTime on the real DOM audio element after play() sets it to 0
+    const audioEl = document.querySelector("audio")!;
+    audioEl.currentTime = 60;
+
+    // Pause at t=now
+    dateSpy.mockReturnValue(now);
+    await act(async () => { fireEvent.click(screen.getByText("Toggle")); });
+
+    // Resume at t=now + THRESHOLD + 1s
+    dateSpy.mockReturnValue(now + SMART_RESUME_THRESHOLD_MS + 1000);
+    await act(async () => { fireEvent.click(screen.getByText("Toggle")); });
+
+    // Should have rewound 3 seconds
+    expect(audioEl.currentTime).toBe(60 - SMART_RESUME_REWIND_SECS);
+
+    dateSpy.mockRestore();
+  });
+
+  it("does not rewind below 0", async () => {
+    const now = 1_000_000;
+    const dateSpy = vi.spyOn(Date, "now");
+
+    render(<PlayerProvider><TestComponent /></PlayerProvider>);
+
+    await act(async () => { fireEvent.click(screen.getByText("Play")); });
+
+    // Only 1 second into the track
+    const audioEl = document.querySelector("audio")!;
+    audioEl.currentTime = 1;
+
+    // Pause at t=now
+    dateSpy.mockReturnValue(now);
+    await act(async () => { fireEvent.click(screen.getByText("Toggle")); });
+
+    // Resume after threshold
+    dateSpy.mockReturnValue(now + SMART_RESUME_THRESHOLD_MS + 1000);
+    await act(async () => { fireEvent.click(screen.getByText("Toggle")); });
+
+    // Math.max(0, 1 - 3) = 0
+    expect(audioEl.currentTime).toBe(0);
+
+    dateSpy.mockRestore();
+  });
+});

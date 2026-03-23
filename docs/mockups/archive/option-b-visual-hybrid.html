@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ridecast — Option B: Visual Hybrid</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0d0f;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-label {
+    color: #EA580C;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .page-title {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .page-subtitle {
+    color: rgba(255,255,255,0.4);
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 44px;
+    text-align: center;
+  }
+
+  /* ─── Phone Shell ─── */
+  .phone-wrap {
+    position: relative;
+    width: 393px;
+    background: #1c1c1e;
+    border-radius: 56px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 0 0 1px rgba(0,0,0,0.8) inset,
+      0 60px 120px rgba(0,0,0,0.7),
+      0 0 100px rgba(234,88,12,0.06);
+  }
+
+  .phone-screen {
+    background: #111827;
+    border-radius: 46px;
+    overflow: hidden;
+    position: relative;
+    height: 812px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 118px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 50;
+  }
+
+  /* ─── Status Bar ─── */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    background: transparent;
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+  }
+
+  .signal-bar {
+    width: 3px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 1px;
+  }
+
+  .battery-body {
+    width: 25px;
+    height: 12px;
+    border: 1.5px solid rgba(255,255,255,0.8);
+    border-radius: 3px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 1.5px;
+  }
+
+  .battery-body::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 5px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 0 1px 1px 0;
+  }
+
+  .battery-fill {
+    background: #34C759;
+    height: 100%;
+    width: 75%;
+    border-radius: 1.5px;
+  }
+
+  /* ─── Content Scroll Area ─── */
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 156px;
+    scrollbar-width: none;
+    position: relative;
+  }
+
+  .content-area::-webkit-scrollbar { display: none; }
+
+  /* ─── Hero Now Playing Card ─── */
+  .hero-section {
+    padding: 0 16px 20px;
+    position: relative;
+    /* Dark background behind header/hero */
+    background: linear-gradient(180deg, #111827 0%, #111827 100%);
+  }
+
+  .hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+  }
+
+  .greeting-block {}
+
+  .greeting-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+
+  .greeting-name {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  .settings-btn {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Hero card itself */
+  .hero-card {
+    border-radius: 22px;
+    overflow: hidden;
+    position: relative;
+    height: 210px;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 40px rgba(204,0,0,0.2);
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #CC0000 0%, #8B0000 40%, #1a0000 100%);
+  }
+
+  .hero-bg-noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 18px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .hero-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .hero-source-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    padding: 6px 10px 6px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .hero-source-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .hero-source-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+  }
+
+  .hero-now-playing-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero-now-playing-tag span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.3px;
+  }
+
+  .hero-middle { flex: 1; padding: 12px 0 8px; }
+
+  .hero-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.3);
+  }
+
+  .hero-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 6px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .hero-bottom {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hero-play-btn {
+    width: 46px;
+    height: 46px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .pause-icon { display: flex; gap: 3px; }
+
+  .pause-bar {
+    width: 3.5px;
+    height: 14px;
+    background: #CC0000;
+    border-radius: 2px;
+  }
+
+  .hero-progress-block { flex: 1; }
+
+  .hero-progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 5px;
+  }
+
+  .hero-progress-fill {
+    height: 100%;
+    background: rgba(255,255,255,0.9);
+    border-radius: 4px;
+  }
+
+  .hero-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero-skip-btn {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: rgba(255,255,255,0.8);
+    font-weight: 700;
+  }
+
+  /* ─── Section Title ─── */
+  .section-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .see-all {
+    font-size: 13px;
+    color: #EA580C;
+    font-weight: 600;
+  }
+
+  /* ─── Carousel ─── */
+  .carousel-wrapper {
+    padding-bottom: 24px;
+    background: #111827;
+  }
+
+  .carousel-scroll {
+    display: flex;
+    gap: 12px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .carousel-scroll::-webkit-scrollbar { display: none; }
+
+  .carousel-card {
+    flex-shrink: 0;
+    width: 148px;
+    height: 190px;
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  .carousel-bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  .carousel-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px;
+  }
+
+  .carousel-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .carousel-source-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .carousel-duration {
+    background: rgba(0,0,0,0.5);
+    color: rgba(255,255,255,0.9);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+  }
+
+  .carousel-bottom {}
+
+  .carousel-source {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .carousel-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  .carousel-unplayed {
+    width: 8px;
+    height: 8px;
+    background: #EA580C;
+    border-radius: 50%;
+    position: absolute;
+    top: 10px;
+    right: 48px;
+  }
+
+  /* ─── Up Next List (dark style) ─── */
+  .upnext-section {
+    background: #1a1a2e;
+    flex: 1;
+    padding: 4px 0;
+  }
+
+  .upnext-section .section-row {
+    padding: 16px 16px 4px;
+    margin-bottom: 0;
+  }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .list-source-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .list-text { flex: 1; min-width: 0; }
+
+  .list-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3px;
+  }
+
+  .list-source-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .list-date {
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    font-weight: 500;
+  }
+
+  .list-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    line-height: 1.3;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .list-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .list-chips {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .chip {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .chip-duration {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+  }
+
+  .chip-type-pdf {
+    background: rgba(22,163,74,0.2);
+    color: #34C759;
+  }
+
+  .chip-type-deep {
+    background: rgba(59,130,246,0.2);
+    color: #60A5FA;
+  }
+
+  .chip-progress {
+    background: rgba(234,88,12,0.2);
+    color: #FB923C;
+  }
+
+  .list-unplayed {
+    width: 8px;
+    height: 8px;
+    background: #EA580C;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .list-progress-bar {
+    height: 2px;
+    background: rgba(234,88,12,0.2);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .list-progress-fill {
+    height: 100%;
+    background: #EA580C;
+    border-radius: 2px;
+  }
+
+  /* Source icon gradients */
+  .icon-espn    { background: linear-gradient(135deg, #CC0000, #FF3333); }
+  .icon-substack { background: linear-gradient(135deg, #F97316, #FBBF24); }
+  .icon-github  { background: linear-gradient(135deg, #24292e, #454f5b); }
+  .icon-hbr     { background: linear-gradient(135deg, #9B1C1C, #C41E3A); }
+  .icon-arxiv   { background: linear-gradient(135deg, #0891b2, #06B6D4); }
+
+  /* ─── Mini Player ─── */
+  .mini-player {
+    position: absolute;
+    bottom: 82px;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: rgba(20,20,35,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 20;
+  }
+
+  .mini-source-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .mini-text { flex: 1; min-width: 0; }
+
+  .mini-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+
+  .mini-source {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 500;
+  }
+
+  .mini-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mini-play {
+    width: 38px;
+    height: 38px;
+    background: #EA580C;
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(234,88,12,0.4);
+  }
+
+  .mini-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .mini-progress-fill {
+    height: 100%;
+    background: #EA580C;
+    width: 65%;
+  }
+
+  /* ─── Tab Bar ─── */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 82px;
+    background: rgba(15,15,25,0.98);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 10px;
+    z-index: 30;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 60px;
+  }
+
+  .tab-icon { font-size: 22px; line-height: 1; }
+
+  .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .tab-item.active .tab-label { color: #EA580C; }
+  .tab-item.inactive .tab-label { color: rgba(255,255,255,0.3); }
+
+  /* ─── FAB ─── */
+  .fab {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    background: #EA580C;
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    font-weight: 300;
+    z-index: 25;
+    box-shadow:
+      0 4px 20px rgba(234,88,12,0.5),
+      0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* ─── Comparison note ─── */
+  .comparison-note {
+    margin-top: 36px;
+    max-width: 393px;
+    padding: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+  }
+
+  .note-title {
+    color: #EA580C;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .note-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .note-check { color: #34C759; flex-shrink: 0; }
+  .note-tradeoff { color: #FBBF24; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="page-label">Ridecast · Home Screen Concepts</div>
+<div class="page-title">Option B — Visual Hybrid</div>
+<div class="page-subtitle">Overcast-inspired · Hero card + Carousel + List · Dynamic feel</div>
+
+<div class="phone-wrap">
+  <div class="phone-screen">
+
+    <!-- Dynamic Island -->
+    <div class="dynamic-island"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <div class="signal-bars">
+          <div class="signal-bar" style="height:4px"></div>
+          <div class="signal-bar" style="height:6px"></div>
+          <div class="signal-bar" style="height:9px"></div>
+          <div class="signal-bar" style="height:12px"></div>
+        </div>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" style="margin-top:1px">
+          <path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="rgba(255,255,255,0.9)"/>
+          <path d="M4.5 7.5C5.6 6.4 6.7 5.8 8 5.8s2.4.6 3.5 1.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M1.5 4.5C3.4 2.6 5.6 1.5 8 1.5s4.6 1.1 6.5 3" stroke="rgba(255,255,255,0.9)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div class="battery-body">
+          <div class="battery-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="content-area">
+
+      <!-- ─── Hero Section (dark bg) ─── -->
+      <div class="hero-section">
+        <!-- Header -->
+        <div class="hero-header">
+          <div class="greeting-block">
+            <div class="greeting-sub">Good morning</div>
+            <div class="greeting-name">Chris</div>
+          </div>
+          <div class="settings-btn">⚙️</div>
+        </div>
+
+        <!-- Hero Now Playing Card -->
+        <div class="hero-card">
+          <div class="hero-bg"></div>
+          <div class="hero-bg-noise"></div>
+          <div class="hero-content">
+            <div class="hero-top">
+              <div class="hero-source-badge">
+                <div class="hero-source-icon">E</div>
+                <span class="hero-source-name">ESPN · Buster Olney</span>
+              </div>
+              <div class="hero-now-playing-tag">
+                <div class="pulse-dot"></div>
+                <span>Now Playing</span>
+              </div>
+            </div>
+
+            <div class="hero-middle">
+              <div class="hero-title">Why the Yankees' Bullpen Is a Problem This Season</div>
+              <div class="hero-desc">The Yankees enter 2025 with serious questions about bullpen depth and roster construction.</div>
+            </div>
+
+            <div class="hero-bottom">
+              <div class="hero-play-btn">
+                <div class="pause-icon">
+                  <div class="pause-bar"></div>
+                  <div class="pause-bar"></div>
+                </div>
+              </div>
+              <div class="hero-progress-block">
+                <div class="hero-progress-track">
+                  <div class="hero-progress-fill" style="width:65%"></div>
+                </div>
+                <div class="hero-progress-meta">
+                  <span>15:36</span>
+                  <span>24 min total</span>
+                </div>
+              </div>
+              <div class="hero-skip-btn">⏭</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Carousel Section ─── -->
+      <div class="carousel-wrapper">
+        <div class="section-row">
+          <span class="section-title">Up Next</span>
+          <span class="see-all">See all</span>
+        </div>
+
+        <div class="carousel-scroll">
+
+          <!-- Carousel Card 1 — Substack -->
+          <div class="carousel-card">
+            <div class="carousel-bg" style="background:linear-gradient(135deg,#F97316 0%,#C2410C 50%,#431407 100%)"></div>
+            <div class="carousel-content">
+              <div class="carousel-top">
+                <div class="carousel-source-icon">S</div>
+                <div class="carousel-duration">18m</div>
+              </div>
+              <div class="carousel-bottom">
+                <div class="carousel-source">Substack</div>
+                <div class="carousel-title">The Art of Slowing Down</div>
+              </div>
+            </div>
+            <!-- In progress bar -->
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.2)">
+              <div style="width:20%;height:100%;background:rgba(255,255,255,0.8)"></div>
+            </div>
+          </div>
+
+          <!-- Carousel Card 2 — GitHub -->
+          <div class="carousel-card">
+            <div class="carousel-bg" style="background:linear-gradient(135deg,#24292e 0%,#0d1117 100%)"></div>
+            <div class="carousel-content">
+              <div class="carousel-top">
+                <div class="carousel-source-icon">G</div>
+                <div class="carousel-duration">42m</div>
+              </div>
+              <div class="carousel-bottom">
+                <div class="carousel-source">GitHub</div>
+                <div class="carousel-title">Agents SDK Architecture Deep Dive</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Carousel Card 3 — HBR -->
+          <div class="carousel-card">
+            <div class="carousel-bg" style="background:linear-gradient(135deg,#A41034 0%,#6B1020 60%,#1a0308 100%)"></div>
+            <div class="carousel-content">
+              <div class="carousel-top">
+                <div class="carousel-source-icon" style="font-size:9px;letter-spacing:-0.5px">HBR</div>
+                <div class="carousel-duration">31m</div>
+              </div>
+              <div class="carousel-bottom">
+                <div class="carousel-source">Harv. Business Review</div>
+                <div class="carousel-title">The Future of Remote Work</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Carousel Card 4 — arXiv -->
+          <div class="carousel-card">
+            <div class="carousel-bg" style="background:linear-gradient(135deg,#0891b2 0%,#0e4f6b 60%,#02151e 100%)"></div>
+            <div class="carousel-content">
+              <div class="carousel-top">
+                <div class="carousel-source-icon" style="font-size:9px">arXiv</div>
+                <div class="carousel-duration">55m</div>
+              </div>
+              <div class="carousel-bottom">
+                <div class="carousel-source">arXiv · Research</div>
+                <div class="carousel-title">Understanding Transformer Architecture</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ─── Up Next Full List ─── -->
+      <div class="upnext-section">
+        <div class="section-row" style="padding-top:16px;padding-bottom:12px">
+          <span class="section-title" style="font-size:16px">Recent Episodes</span>
+        </div>
+
+        <!-- Row 1 — Substack -->
+        <div class="list-row">
+          <div class="list-source-icon icon-substack">S</div>
+          <div class="list-text">
+            <div class="list-meta-row">
+              <span class="list-source-name">Substack</span>
+              <span class="list-date">Yesterday</span>
+            </div>
+            <div class="list-title">Sunday Letters: The Art of Slowing Down</div>
+            <div class="list-desc">Exploring what it means to intentionally slow down in a culture obsessed with hustle.</div>
+            <div class="list-chips">
+              <div class="chip chip-duration">18 min</div>
+              <div class="chip chip-progress">20% played</div>
+            </div>
+            <div class="list-progress-bar">
+              <div class="list-progress-fill" style="width:20%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2 — GitHub -->
+        <div class="list-row">
+          <div class="list-source-icon icon-github">G</div>
+          <div class="list-text">
+            <div class="list-meta-row">
+              <span class="list-source-name">GitHub · Brian Krabach</span>
+              <span class="list-date">Mar 10</span>
+            </div>
+            <div class="list-title">Agents SDK Architecture Deep Dive</div>
+            <div class="list-desc">Multi-agent coordination, handoff patterns, and runtime context accumulation.</div>
+            <div class="list-chips">
+              <div class="chip chip-duration">42 min</div>
+              <div class="chip chip-type-deep">Deep Dive</div>
+            </div>
+          </div>
+          <div class="list-unplayed"></div>
+        </div>
+
+        <!-- Row 3 — HBR -->
+        <div class="list-row">
+          <div class="list-source-icon icon-hbr" style="font-size:11px;letter-spacing:-0.5px">HBR</div>
+          <div class="list-text">
+            <div class="list-meta-row">
+              <span class="list-source-name">Harv. Business Review</span>
+              <span class="list-date">Mar 8</span>
+            </div>
+            <div class="list-title">The Future of Remote Work: What Leaders Get Wrong</div>
+            <div class="list-desc">What the data says about hybrid mandates vs. full flexibility.</div>
+            <div class="list-chips">
+              <div class="chip chip-duration">31 min</div>
+              <div class="chip chip-type-pdf">PDF</div>
+            </div>
+          </div>
+          <div class="list-unplayed"></div>
+        </div>
+
+      </div>
+
+    </div><!-- end content-area -->
+
+    <!-- Mini Player -->
+    <div class="mini-player">
+      <div class="mini-source-icon icon-espn">E</div>
+      <div class="mini-text">
+        <div class="mini-title">Why the Yankees' Bullpen Is a Problem</div>
+        <div class="mini-source">ESPN · Buster Olney</div>
+      </div>
+      <div class="mini-controls">
+        <div style="font-size:17px;color:rgba(255,255,255,0.4)">«</div>
+        <div class="mini-play">
+          <div class="pause-icon">
+            <div class="pause-bar" style="background:#fff"></div>
+            <div class="pause-bar" style="background:#fff"></div>
+          </div>
+        </div>
+        <div style="font-size:17px;color:rgba(255,255,255,0.4)">»</div>
+      </div>
+      <div class="mini-progress">
+        <div class="mini-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <div class="tab-icon">🏠</div>
+        <div class="tab-label" style="color:#EA580C">Home</div>
+      </div>
+      <div class="tab-item inactive">
+        <div class="tab-icon" style="filter:grayscale(1) opacity(0.3)">📚</div>
+        <div class="tab-label">Library</div>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab">+</div>
+
+  </div>
+</div>
+
+<!-- Notes -->
+<div class="comparison-note">
+  <div class="note-title">What makes this work</div>
+  <div class="note-item"><span class="note-check">✓</span>Dark, premium feel — closer to Spotify than Apple Podcasts</div>
+  <div class="note-item"><span class="note-check">✓</span>Hero card creates immediate visual identity for each source</div>
+  <div class="note-item"><span class="note-check">✓</span>Carousel lets you preview what's coming up with a flick</div>
+  <div class="note-item"><span class="note-check">✓</span>Mixed layout types prevent monotony — scrolling feels dynamic</div>
+  <div class="note-item"><span class="note-tradeoff">~</span>Dark mode aesthetic — great for evening/commute, might feel heavy at 7am</div>
+  <div class="note-item"><span class="note-tradeoff">~</span>Carousel + list is slightly more complex to scan quickly</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Source & Author Cards — Ridecast</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 52px 48px 80px;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .page-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #EA580C;
+      margin-bottom: 10px;
+    }
+
+    .page-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.6px;
+      margin-bottom: 10px;
+    }
+
+    .page-subtitle {
+      font-size: 15px;
+      color: rgba(255,255,255,0.38);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .frames-row {
+      display: flex;
+      gap: 64px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .frame-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ─── PHONE SHELL ─── */
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #F2F2F7;
+      border-radius: 52px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 80px 160px rgba(0,0,0,0.75),
+        0 0 0 1px rgba(255,255,255,0.09),
+        inset 0 0 0 1.5px rgba(0,0,0,0.12);
+    }
+
+    /* ─── STATUS BAR ─── */
+    .status-bar {
+      height: 50px;
+      background: #F2F2F7;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 28px 8px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .status-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1C1C1E;
+      letter-spacing: -0.2px;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    /* ─── LIBRARY BACKGROUND ─── */
+    .library-bg {
+      position: absolute;
+      top: 50px;
+      left: 0; right: 0; bottom: 0;
+      background: #F2F2F7;
+    }
+
+    .lib-header {
+      background: #F2F2F7;
+      padding: 12px 20px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .lib-title {
+      font-size: 30px;
+      font-weight: 700;
+      color: #1C1C1E;
+      letter-spacing: -0.5px;
+    }
+
+    .lib-icons {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Filter chips */
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+      padding: 4px 20px 12px;
+      overflow: hidden;
+    }
+
+    .chip {
+      padding: 6px 13px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      background: #E5E5EA;
+      color: #3C3C43;
+      flex-shrink: 0;
+    }
+
+    .chip.active { background: #EA580C; color: #fff; }
+
+    /* Section header */
+    .sec-head {
+      padding: 6px 20px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #8E8E93;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    /* Episode card */
+    .ep-card {
+      margin: 0 16px 10px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 13px 14px;
+      display: flex;
+      gap: 11px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.04);
+    }
+
+    .ep-card.tapped {
+      box-shadow: 0 0 0 2px #EA580C, 0 4px 12px rgba(234,88,12,0.15);
+    }
+
+    .src-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .ep-body { flex: 1; min-width: 0; }
+
+    .ep-source {
+      font-size: 11px;
+      font-weight: 600;
+      color: #8E8E93;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 2px;
+    }
+
+    .ep-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1C1C1E;
+      line-height: 1.35;
+      margin-bottom: 7px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ep-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ep-dur {
+      font-size: 12px;
+      color: #8E8E93;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .prog-track {
+      height: 3px;
+      background: #E5E5EA;
+      border-radius: 2px;
+      flex: 1;
+    }
+
+    .prog-fill {
+      height: 100%;
+      background: #EA580C;
+      border-radius: 2px;
+    }
+
+    /* ─── DIM OVERLAY ─── */
+    .dim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.48);
+      z-index: 10;
+    }
+
+    /* ─── BOTTOM SHEET ─── */
+    .sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-radius: 22px 22px 0 0;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .drag-handle {
+      width: 36px;
+      height: 5px;
+      background: #D1D1D6;
+      border-radius: 3px;
+      margin: 10px auto 2px;
+    }
+
+    .sheet-src-header {
+      padding: 12px 20px 4px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .big-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .big-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .sheet-name-block { flex: 1; }
+
+    .sheet-name {
+      font-size: 21px;
+      font-weight: 700;
+      color: #1C1C1E;
+      letter-spacing: -0.4px;
+    }
+
+    .sheet-sub {
+      font-size: 14px;
+      color: #8E8E93;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .inline-src-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    /* Stats */
+    .stats-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 20px 12px;
+      font-size: 13px;
+      color: #8E8E93;
+      font-weight: 400;
+    }
+
+    .s-dot {
+      width: 3px;
+      height: 3px;
+      background: #C7C7CC;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Follow button */
+    .follow-btn {
+      margin: 0 20px 14px;
+      border: 1.5px solid #EA580C;
+      border-radius: 12px;
+      padding: 11px 16px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: #EA580C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .follow-btn.on {
+      background: #EA580C;
+      color: #fff;
+    }
+
+    .divider {
+      height: 0.5px;
+      background: #E5E5EA;
+      margin: 0;
+    }
+
+    .divider-inset {
+      height: 0.5px;
+      background: #F2F2F7;
+      margin: 0 20px;
+    }
+
+    .sec-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8E8E93;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 10px 20px 6px;
+    }
+
+    /* Author rows */
+    .author-row {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 20px;
+    }
+
+    .sm-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .author-info { flex: 1; }
+
+    .author-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1C1C1E;
+    }
+
+    .author-ct {
+      font-size: 12px;
+      color: #8E8E93;
+      margin-top: 1px;
+    }
+
+    .follow-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: #EA580C;
+      padding: 4px 0;
+    }
+
+    /* Recent episode rows */
+    .rec-row {
+      display: flex;
+      align-items: center;
+      padding: 9px 20px;
+      gap: 10px;
+    }
+
+    .rec-body { flex: 1; min-width: 0; }
+
+    .rec-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1C1C1E;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rec-meta {
+      font-size: 12px;
+      color: #8E8E93;
+      margin-top: 2px;
+    }
+
+    .rec-meta span { color: #C7C7CC; margin: 0 3px; }
+
+    .rec-chevron {
+      color: #C7C7CC;
+      flex-shrink: 0;
+    }
+
+    /* ─── TAB BAR ─── */
+    .tab-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 83px;
+      background: rgba(249,249,249,0.95);
+      backdrop-filter: blur(20px);
+      border-top: 0.5px solid rgba(0,0,0,0.1);
+      display: flex;
+      z-index: 1;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 10px;
+      gap: 4px;
+    }
+
+    .tab-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+    .tab-lbl { font-size: 10px; font-weight: 500; color: #8E8E93; }
+    .tab-item.on .tab-lbl { color: #EA580C; }
+
+    /* ─── BACK BREADCRUMB ─── */
+    .back-crumb {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 20px 2px;
+    }
+
+    .back-crumb span {
+      font-size: 14px;
+      color: #EA580C;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-eyebrow">Ridecast · Interaction Design</div>
+    <div class="page-title">Source &amp; Author Cards</div>
+    <div class="page-subtitle">Tap a source icon on any episode card to reveal source details and follow options</div>
+  </div>
+
+  <div class="frames-row">
+
+    <!-- ══════════════════════════════════════════════
+         PHONE 1 — SOURCE CARD (ESPN)
+    ══════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">Source Card</div>
+      <div class="phone">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span class="status-time">9:41</span>
+          <div class="status-icons">
+            <!-- Signal -->
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1C1C1E">
+              <rect x="0" y="5" width="3" height="7" rx="1" opacity="0.35"/>
+              <rect x="4.5" y="3.5" width="3" height="8.5" rx="1" opacity="0.55"/>
+              <rect x="9" y="1.5" width="3" height="10.5" rx="1" opacity="0.75"/>
+              <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+            </svg>
+            <!-- WiFi -->
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="#1C1C1E">
+              <circle cx="8" cy="10.5" r="1.4"/>
+              <path d="M4.8 7.5a4.5 4.5 0 016.4 0l-1.1 1.1a3 3 0 00-4.2 0L4.8 7.5z"/>
+              <path d="M2.3 5a7.5 7.5 0 0111.4 0l-1.1 1.1a6 6 0 00-9.2 0L2.3 5z" opacity="0.6"/>
+            </svg>
+            <!-- Battery -->
+            <svg width="25" height="12" viewBox="0 0 25 12">
+              <rect x="0.5" y="1" width="20" height="10" rx="2.5" stroke="#1C1C1E" stroke-width="1" fill="none"/>
+              <rect x="21" y="3.8" width="2.5" height="4.4" rx="1" fill="#1C1C1E" opacity="0.35"/>
+              <rect x="2" y="2.5" width="14" height="7" rx="1.5" fill="#1C1C1E"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Library background -->
+        <div class="library-bg">
+          <div class="lib-header">
+            <div class="lib-title">Library</div>
+            <div class="lib-icons">
+              <div class="icon-btn">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <circle cx="9" cy="9" r="6.5" stroke="#EA580C" stroke-width="1.8"/>
+                  <line x1="14" y1="14" x2="18" y2="18" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="icon-btn">
+                <svg width="20" height="4" viewBox="0 0 20 4" fill="#EA580C">
+                  <circle cx="2" cy="2" r="2"/><circle cx="10" cy="2" r="2"/><circle cx="18" cy="2" r="2"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-chips">
+            <div class="chip active">Active</div>
+            <div class="chip">All</div>
+            <div class="chip">♡ Favorites</div>
+            <div class="chip">In Progress</div>
+          </div>
+
+          <div class="sec-head">Today</div>
+
+          <!-- ESPN card — tapped state -->
+          <div class="ep-card tapped">
+            <div class="src-icon" style="background:#D00000; box-shadow:0 0 0 2.5px #fff, 0 0 0 4px #EA580C;">E</div>
+            <div class="ep-body">
+              <div class="ep-source">ESPN · Buster Olney</div>
+              <div class="ep-title">Why the Yankees' Bullpen Is a Problem</div>
+              <div class="ep-meta">
+                <span class="ep-dur">12 min</span>
+                <div class="prog-track"><div class="prog-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Substack card -->
+          <div class="ep-card">
+            <div class="src-icon" style="background:#FF6719;">S</div>
+            <div class="ep-body">
+              <div class="ep-source">Substack · Gurwinder</div>
+              <div class="ep-title">The Pattern of Disruption</div>
+              <div class="ep-meta">
+                <span class="ep-dur">24 min</span>
+                <div class="prog-track"><div class="prog-fill" style="width:45%"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sec-head" style="margin-top:2px">Earlier This Week</div>
+
+          <!-- GitHub card -->
+          <div class="ep-card">
+            <div class="src-icon" style="background:#24292E;">G</div>
+            <div class="ep-body">
+              <div class="ep-source">GitHub · shadcn</div>
+              <div class="ep-title">shadcn/ui v2 Release Notes</div>
+              <div class="ep-meta">
+                <span class="ep-dur">18 min</span>
+                <div class="prog-track"><div class="prog-fill" style="width:20%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dim overlay -->
+        <div class="dim"></div>
+
+        <!-- ── SOURCE CARD SHEET: ESPN ── -->
+        <div class="sheet">
+          <div class="drag-handle"></div>
+
+          <div class="sheet-src-header">
+            <div class="big-icon" style="background:#D00000;">E</div>
+            <div class="sheet-name-block">
+              <div class="sheet-name">ESPN</div>
+              <div class="sheet-sub">Sports &amp; Analysis</div>
+            </div>
+          </div>
+
+          <div class="stats-row">
+            <span>4 episodes</span>
+            <div class="s-dot"></div>
+            <span>1.2 hrs listened</span>
+            <div class="s-dot"></div>
+            <span>Since Feb 2026</span>
+          </div>
+
+          <div class="follow-btn">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path d="M9 14.4S1.2 9.6 1.2 4.8a3.8 3.8 0 016.6-2.6 3.8 3.8 0 016.6 2.6c0 4.8-7.4 9.6-6.4 9.6z" stroke="#EA580C" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+            Follow ESPN
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sec-label">Authors from ESPN</div>
+
+          <div class="author-row">
+            <div class="sm-avatar" style="background:#1A3A5C;">BO</div>
+            <div class="author-info">
+              <div class="author-name">Buster Olney</div>
+              <div class="author-ct">3 episodes</div>
+            </div>
+            <div class="follow-text">Follow</div>
+          </div>
+
+          <div class="divider-inset"></div>
+
+          <div class="author-row">
+            <div class="sm-avatar" style="background:#7C3D9B;">MK</div>
+            <div class="author-info">
+              <div class="author-name">Mina Kimes</div>
+              <div class="author-ct">1 episode</div>
+            </div>
+            <div class="follow-text">Follow</div>
+          </div>
+
+          <div class="divider" style="margin-top:6px"></div>
+
+          <div class="sec-label">Recent from ESPN</div>
+
+          <div class="rec-row">
+            <div class="rec-body">
+              <div class="rec-title">Why the Yankees' Bullpen Is a Problem</div>
+              <div class="rec-meta">12 min<span>·</span>Today</div>
+            </div>
+            <svg class="rec-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
+              <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="divider-inset"></div>
+
+          <div class="rec-row">
+            <div class="rec-body">
+              <div class="rec-title">AL East Power Rankings</div>
+              <div class="rec-meta">8 min<span>·</span>Mar 8</div>
+            </div>
+            <svg class="rec-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
+              <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="divider-inset"></div>
+
+          <div class="rec-row">
+            <div class="rec-body">
+              <div class="rec-title">Spring Training Takeaways</div>
+              <div class="rec-meta">15 min<span>·</span>Mar 5</div>
+            </div>
+            <svg class="rec-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
+              <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div style="height:28px;"></div>
+        </div>
+
+        <!-- Tab bar (sits under sheet) -->
+        <div class="tab-bar">
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M2.5 10.5L11 2.5l8.5 8" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="5" y="10.5" width="12" height="9" rx="1.5" stroke="#8E8E93" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Home</span>
+          </div>
+          <div class="tab-item on">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <rect x="2.5" y="2.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="2.5" y="13.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="2.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="10.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl" style="color:#EA580C">Library</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="11" r="8" stroke="#8E8E93" stroke-width="1.7"/>
+                <circle cx="11" cy="11" r="2.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <line x1="11" y1="3" x2="11" y2="8.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="11" y1="13.5" x2="11" y2="19" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="3" y1="11" x2="8.5" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="13.5" y1="11" x2="19" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Discover</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="8" r="3.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <path d="M3.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Profile</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         PHONE 2 — AUTHOR CARD (Buster Olney)
+    ══════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">Author Card</div>
+      <div class="phone">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span class="status-time">9:41</span>
+          <div class="status-icons">
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="#1C1C1E">
+              <rect x="0" y="5" width="3" height="7" rx="1" opacity="0.35"/>
+              <rect x="4.5" y="3.5" width="3" height="8.5" rx="1" opacity="0.55"/>
+              <rect x="9" y="1.5" width="3" height="10.5" rx="1" opacity="0.75"/>
+              <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+            </svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="#1C1C1E">
+              <circle cx="8" cy="10.5" r="1.4"/>
+              <path d="M4.8 7.5a4.5 4.5 0 016.4 0l-1.1 1.1a3 3 0 00-4.2 0L4.8 7.5z"/>
+              <path d="M2.3 5a7.5 7.5 0 0111.4 0l-1.1 1.1a6 6 0 00-9.2 0L2.3 5z" opacity="0.6"/>
+            </svg>
+            <svg width="25" height="12" viewBox="0 0 25 12">
+              <rect x="0.5" y="1" width="20" height="10" rx="2.5" stroke="#1C1C1E" stroke-width="1" fill="none"/>
+              <rect x="21" y="3.8" width="2.5" height="4.4" rx="1" fill="#1C1C1E" opacity="0.35"/>
+              <rect x="2" y="2.5" width="14" height="7" rx="1.5" fill="#1C1C1E"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Identical library background -->
+        <div class="library-bg">
+          <div class="lib-header">
+            <div class="lib-title">Library</div>
+            <div class="lib-icons">
+              <div class="icon-btn">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <circle cx="9" cy="9" r="6.5" stroke="#EA580C" stroke-width="1.8"/>
+                  <line x1="14" y1="14" x2="18" y2="18" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="filter-chips">
+            <div class="chip active">Active</div>
+            <div class="chip">All</div>
+            <div class="chip">♡ Favorites</div>
+            <div class="chip">In Progress</div>
+          </div>
+          <div class="sec-head">Today</div>
+          <div class="ep-card tapped">
+            <div class="src-icon" style="background:#D00000; box-shadow:0 0 0 2.5px #fff, 0 0 0 4px #EA580C;">E</div>
+            <div class="ep-body">
+              <div class="ep-source">ESPN · Buster Olney</div>
+              <div class="ep-title">Why the Yankees' Bullpen Is a Problem</div>
+              <div class="ep-meta">
+                <span class="ep-dur">12 min</span>
+                <div class="prog-track"><div class="prog-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ep-card">
+            <div class="src-icon" style="background:#FF6719;">S</div>
+            <div class="ep-body">
+              <div class="ep-source">Substack · Gurwinder</div>
+              <div class="ep-title">The Pattern of Disruption</div>
+              <div class="ep-meta">
+                <span class="ep-dur">24 min</span>
+                <div class="prog-track"><div class="prog-fill" style="width:45%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="sec-head" style="margin-top:2px">Earlier This Week</div>
+          <div class="ep-card">
+            <div class="src-icon" style="background:#24292E;">G</div>
+            <div class="ep-body">
+              <div class="ep-source">GitHub · shadcn</div>
+              <div class="ep-title">shadcn/ui v2 Release Notes</div>
+              <div class="ep-meta">
+                <span class="ep-dur">18 min</span>
+                <div class="prog-track"><div class="prog-fill" style="width:20%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dim overlay -->
+        <div class="dim"></div>
+
+        <!-- ── AUTHOR CARD SHEET: Buster Olney ── -->
+        <div class="sheet">
+          <div class="drag-handle"></div>
+
+          <!-- Breadcrumb back to ESPN -->
+          <div class="back-crumb">
+            <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
+              <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="#EA580C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>ESPN</span>
+          </div>
+
+          <div class="sheet-src-header" style="padding-top:8px;">
+            <div class="big-avatar" style="background:#1A3A5C;">BO</div>
+            <div class="sheet-name-block">
+              <div class="sheet-name">Buster Olney</div>
+              <div class="sheet-sub">
+                <div class="inline-src-icon" style="background:#D00000;">E</div>
+                ESPN
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-row">
+            <span>3 episodes</span>
+            <div class="s-dot"></div>
+            <span>45 min listened</span>
+          </div>
+
+          <div class="follow-btn">
+            <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+              <path d="M9 14.4S1.2 9.6 1.2 4.8a3.8 3.8 0 016.6-2.6 3.8 3.8 0 016.6 2.6c0 4.8-7.4 9.6-6.4 9.6z" stroke="#EA580C" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+            Follow Buster Olney
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sec-label">Episodes by Buster Olney</div>
+
+          <div class="rec-row">
+            <div class="rec-body">
+              <div class="rec-title">Why the Yankees' Bullpen Is a Problem</div>
+              <div class="rec-meta">ESPN<span>·</span>12 min<span>·</span>Today</div>
+            </div>
+            <svg class="rec-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
+              <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="divider-inset"></div>
+
+          <div class="rec-row">
+            <div class="rec-body">
+              <div class="rec-title">AL East Power Rankings</div>
+              <div class="rec-meta">ESPN<span>·</span>8 min<span>·</span>Mar 8</div>
+            </div>
+            <svg class="rec-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
+              <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="divider-inset"></div>
+
+          <div class="rec-row">
+            <div class="rec-body">
+              <div class="rec-title">Spring Training Takeaways</div>
+              <div class="rec-meta">ESPN<span>·</span>15 min<span>·</span>Mar 5</div>
+            </div>
+            <svg class="rec-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
+              <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- Followed state preview -->
+          <div style="margin: 20px 20px 0; padding: 12px 16px; background:#FFF7F2; border-radius:12px; border: 1px solid rgba(234,88,12,0.15);">
+            <div style="font-size:12px; font-weight:600; color:#EA580C; margin-bottom:4px;">After tapping Follow:</div>
+            <div class="follow-btn on" style="margin:0; border-radius:10px; padding:9px 12px; font-size:14px;">
+              <svg width="16" height="14" viewBox="0 0 18 16" fill="#fff">
+                <path d="M9 14.4S1.2 9.6 1.2 4.8a3.8 3.8 0 016.6-2.6 3.8 3.8 0 016.6 2.6c0 4.8-7.4 9.6-6.4 9.6z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+              </svg>
+              Following Buster Olney
+            </div>
+          </div>
+
+          <div style="height:28px;"></div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M2.5 10.5L11 2.5l8.5 8" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="5" y="10.5" width="12" height="9" rx="1.5" stroke="#8E8E93" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Home</span>
+          </div>
+          <div class="tab-item on">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <rect x="2.5" y="2.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="2.5" y="13.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="2.5" width="7" height="6" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+                <rect x="12.5" y="10.5" width="7" height="9" rx="1.5" stroke="#EA580C" stroke-width="1.7"/>
+              </svg>
+            </div>
+            <span class="tab-lbl" style="color:#EA580C">Library</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="11" r="8" stroke="#8E8E93" stroke-width="1.7"/>
+                <circle cx="11" cy="11" r="2.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <line x1="11" y1="3" x2="11" y2="8.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="11" y1="13.5" x2="11" y2="19" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="3" y1="11" x2="8.5" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+                <line x1="13.5" y1="11" x2="19" y2="11" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Discover</span>
+          </div>
+          <div class="tab-item">
+            <div class="tab-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="8" r="3.5" stroke="#8E8E93" stroke-width="1.7"/>
+                <path d="M3.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5" stroke="#8E8E93" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="tab-lbl">Profile</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

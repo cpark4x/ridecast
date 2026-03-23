@@ -1,0 +1,450 @@
+project:
+  name: ridecast2
+  repo_root: /Users/chrispark/Projects/ridecast2
+  description: "iOS app \u2014 AI content-to-audio transformation engine.\n\"Turn anything you want to read into audio worth\
+    \ listening to.\"\nAny content (PDF/EPUB/TXT/URL) \u2192 Claude script \u2192 OpenAI TTS \u2192 enjoyable episode.\nShipping\
+    \ as iOS app with free catalog + paid bring-your-own-content tier.\n"
+specs:
+  directory: ./specs
+  architecture: specs/architecture.md
+  modules:
+  - specs/modules/content-pipeline.md
+  features:
+  - specs/features/phase0/google-cloud-tts.md
+  - specs/features/phase0/clerk-auth.md
+  - specs/features/phase0/azure-blob-storage.md
+  - specs/features/phase0/multi-user-schema.md
+  - specs/features/phase0/stripe-subscription.md
+  - specs/features/phase0/azure-deployment.md
+  - specs/features/phase3/home-screen-redesign.md
+  - specs/features/phase3/expanded-player.md
+  - specs/features/phase3/library-redesign.md
+commands:
+  build: npm run build
+  test: npm run test
+  lint: npm run lint
+  e2e: npm run test:e2e
+  dev: npm run dev
+  db_migrate: npm run db:migrate
+  db_generate: npm run db:generate
+health_gates:
+- id: lint
+  command: npm run lint
+  status: PASS
+  duration: 2.7s
+  notes: '10 warnings (@typescript-eslint/no-unused-vars) across seed, route handlers,
+
+    and tests. Non-blocking; safe to defer.
+
+    '
+- id: test
+  command: npm run test
+  status: FAIL
+  duration: 5.01s
+  notes: 'Vitest: 310/323 tests passing, 6 failing, 7 skipped.
+
+    6 failures in src/app/api/process/route.test.ts:
+    - 4 tests: mockScriptCreate called 0 times (mock wiring broke after process route refactor)
+    - 2 tests: error message mismatch ("AI provider not configured" vs "Something went wrong")
+    Fix before starting Phase 5 features.'
+- id: build
+  command: npm run build
+  status: PASS
+  duration: 5.1s
+  notes: 'Next.js 16.1.6 with Turbopack builds successfully.
+
+    Non-blocking: MODULE_TYPELESS_PACKAGE_JSON (tailwind), themeColor metadata.
+
+    '
+- id: e2e
+  command: npm run test:e2e
+  status: PASS
+  exit_code: 0
+  duration: 15.2s
+  scenarios: 5/5 passing
+  notes: 'All scenarios passing as of PR #16 (merged 2026-03-06).
+
+    Pattern A (Library selector) fixed. Pattern B (Target Duration race) fixed.
+
+    '
+known_issues:
+- id: type-check-caveat
+  severity: P2
+  title: 'Type-check caveat: Request vs NextRequest mismatch'
+  affected_file: src/app/api/playback/route.test.ts
+  notes: 'npx tsc --noEmit fails but npm run build succeeds.
+
+    Next.js handles Request/NextRequest internally. Not gating.
+
+    '
+- id: lint-warnings
+  severity: P3
+  title: 10 no-unused-vars warnings across seed, routes, tests
+  notes: 'Non-blocking. Deferred. Address in a cleanup pass.
+
+    '
+recently_shipped:
+- session: '15'
+  date: '2026-03-11'
+  commits:
+  - ccfd6fa feat(library): "rewrite LibraryScreen \u2014 search, filter chips, progress bars, played state, process new version,
+      empty states"
+  title: "Session 15: 1 feature \u2014 library-screen-rewrite (Phase 3 COMPLETE)"
+  notes: Final Phase 3 feature completed (3 pts). 25 new tests. Antagonistic review found no actionable bugs. All 316 tests
+    passing. Phase 3 done \u2014 43 features across 15 sessions.
+- session: '13'
+  date: '2026-03-11'
+  commits:
+  - 9c2c7e0 feat(player): "rewrite ExpandedPlayer \u2014 scrollable layout, rich metadata, 5s/15s skips, sleep timer, dynamic\
+      \ gradients"
+  - 7dec82c feat(library): extract UploadModal component from AppShell
+  - 6dc8857 feat(library): "add ProcessNewVersionModal \u2014 duration preset picker"
+  - 3864ac0 fix(player): sync sleep timer local state from context to prevent desync
+  title: "Session 13: 3 features \u2014 expanded-player-rewrite, upload-modal, process-new-version"
+  notes: 3 features completed (6 pts). 1 feature remaining (library-screen-rewrite). Antagonistic review caught 1 bug (sleep
+    timer desync, fixed).
+- session: '12'
+  date: '2026-03-11'
+  commits:
+  - fadc894 feat(library): add useLibraryFilter hook
+  - f7b87ac feat(library): add library-progress utilities
+  - 4d220f6 feat(home): "complete rewrite \u2014 greeting, Play All, queue cards, progress bars"
+  - 28904c1 feat(player): update PlayerBar with dynamic gradient and richer subtitle
+  - 88d4852 fix(library): respect completed flag + guard unplayed vacuous truth
+  title: "Session 12: 4 features \u2014 home-screen-rewrite, minibar, search-filter, progress-display"
+  notes: 4 features completed (8 pts). 4 features remaining. Antagonistic review caught 2 bugs (fixed).
+- session: '11'
+  date: '2026-03-11'
+  commits:
+  - 733d360 feat(player): add queue support
+  - d3d8ac6 feat(process): persist AI-generated summary
+  - bc69055 feat(api): return rich metadata for expanded player
+  - 837dccc feat(player): extend PlayableItem with rich metadata
+  - 85fe472 feat(player): add sleep timer
+  - 68f2a09 feat(library): add author display to cards
+  title: "Session 11: 6 features \u2014 queue, summary, API, playable-item, sleep-timer, library-card"
+  notes: 6 features completed. 8 features remaining across home-screen, expanded-player, library-redesign.
+- session: '10'
+  date: '2026-03-11'
+  commits:
+  - 718b2ee feat(api): join PlaybackState and return author/sourceUrl
+  - 4e9c5dd fix(player): remove hardcoded userId
+  - 3e15e6d feat(upload): add 2-min and 3-min duration presets
+  - 1ee7e19 refactor: extract shared content-display utils
+  - bce42ad feat(nav): restructure to 2 tabs + FAB + modal overlay
+  - 6f3d1ca feat(schema): add nullable summary column to Script model
+  title: 'Session 10: home-screen-redesign (tasks 1,2,4,5,6,8) + expanded-player-schema'
+  notes: 7 features completed. 14 features remaining across home-screen, expanded-player, library-redesign.
+- session: '8'
+  date: '2026-03-06'
+  commits:
+  - a476a7b
+  - 3b39547
+  - 7750c49
+  title: 'Phase 0 complete: multi-user-schema + azure-deployment + stripe-subscription'
+  notes: All 6 Phase 0 specs implemented. App ready for Azure deployment.
+- pr: '#17'
+  merged: '2026-03-06'
+  title: 'fix: restore 409 status for duplicate-content upload response'
+  notes: Regression from PR
+- pr: '#16'
+  merged: '2026-03-06'
+  title: 'fix: reset upload form state and fix E2E race conditions'
+  notes: 'Upload form resets after audio generation (#4 closed).
+
+    E2E Pattern A + B fixed. 5/5 scenarios passing.
+
+    Phase 1 specs written: duration-accuracy.md, pipeline-error-resilience.md.
+
+    Competitive analysis + mobile UI research docs added.
+
+    ROADMAP.md + VISION.md updated to reflect iOS strategy.
+
+    '
+phase: 5
+phase_name: phase-5-platform-expansion
+epoch: 19
+next_action: "Phase 4 complete. Fix 6 failing tests in src/app/api/process/route.test.ts (mock wiring + error message mismatch). Then pick Phase 5 feature: pocket-refugee-capture (time-sensitive), source-author-following (fully specced), or episode-sharing (no spec yet, high growth leverage). Close stale GitHub issues (#24-#32 dupes, #33-#41 already shipped)."
+completed_features:
+- duration-accuracy
+- pipeline-error-resilience
+- processing-screen-upgrade
+- playback-state-persistence
+- audio-duration-measurement
+- elevenlabs-provider
+- elevenlabs-routing
+- episode-versioning
+- commute-duration
+- home-screen-queue-first
+- smart-resume
+- undo-seek
+- elevenlabs-key-settings
+- fix-scrubber-handle
+- fix-mini-player-controls
+- fix-upload-polish
+- google-cloud-tts
+- clerk-auth
+- azure-blob-storage
+- multi-user-schema
+- azure-deployment
+- stripe-subscription
+- home-screen-api
+- home-screen-playercontext-userid
+- home-screen-upload-presets
+- home-screen-nav-restructure
+- home-screen-content-display-utils
+- home-screen-title-fallback
+- expanded-player-schema
+- home-screen-playercontext-queue
+- expanded-player-save-summary
+- expanded-player-api
+- expanded-player-playable-item
+- expanded-player-sleep-timer
+- library-card-enhancement
+- home-screen-rewrite
+- expanded-player-minibar
+- library-search-filter
+- library-progress-display
+- expanded-player-rewrite
+- library-upload-modal
+- library-process-new-version
+- library-screen-rewrite
+- homepage-redesign
+features:
+  # ── Night 1: Critical Fixes + Foundations (8 pts) ──
+  delete-episodes:
+    status: done
+    started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
+    spec: specs/features/phase4/delete-episodes.md
+    description: "Fix stubbed delete, add swipe-to-delete, remove non-functional queue button"
+    size: S
+  generating-feedback:
+    status: done
+    started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
+    spec: specs/features/phase4/generating-feedback.md
+    description: "Toast feedback when tapping a generating episode instead of silent failure"
+    size: S
+  offline-guards:
+    status: done
+    started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
+    spec: specs/features/phase4/offline-guards.md
+    description: "Network connectivity guards on upload flow with clear error messaging"
+    size: S
+  episode-identity:
+    status: done
+    started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
+    spec: specs/features/phase4/episode-identity.md
+    description: "Source icons, attribution metadata, SourceIcon component — foundational for all visual redesigns"
+    size: M
+  smart-titles:
+    status: done
+    started_at: "2026-03-12T16:50:00Z"
+    completed_at: "2026-03-12T18:20:00Z"
+    commit: e1287fd
+    spec: specs/features/phase4/smart-titles.md
+    description: "Client-side title cleaning — strip publisher suffixes, clean PDF filenames"
+    size: M
+
+  # ── Night 2: Polish + Pocket (7 pts) ──
+  haptic-feedback:
+    status: done
+    started_at: "2026-03-12T18:30:00Z"
+    completed_at: "2026-03-12T18:35:00Z"
+    commit: b8371fa
+    spec: specs/features/phase4/haptic-feedback.md
+    description: "expo-haptics throughout the app — light/medium/error on all touch points"
+    size: S
+  player-bar-upgrade:
+    status: done
+    started_at: "2026-03-12T18:36:00Z"
+    completed_at: "2026-03-12T18:38:00Z"
+    commit: 89ded0e
+    spec: specs/features/phase4/player-bar-upgrade.md
+    description: "Add SourceIcon, source name, and time remaining to mini player"
+    size: S
+    depends_on: [episode-identity]
+  skeleton-loading:
+    status: done
+    started_at: "2026-03-12T18:39:00Z"
+    completed_at: "2026-03-12T18:55:00Z"
+    commit: d5111bd
+    spec: specs/features/phase4/skeleton-loading.md
+    description: "Shimmer loading states for home and library on cold launch"
+    size: S
+  active-filter-default:
+    status: done
+    started_at: "2026-03-12T18:57:00Z"
+    completed_at: "2026-03-12T19:24:47Z"
+    commit: "1310424"
+    spec: specs/features/phase4/active-filter-default.md
+    description: "Default library filter to Active (unlistened + in-progress), not All"
+    size: S
+  native-jest-fix:
+    status: done
+    started_at: "2026-03-13T09:46:00Z"
+    completed_at: "2026-03-13T10:46:00Z"
+    commit: 77f49f9
+    spec: specs/features/phase4/native-jest-fix.md
+    description: "Fix native Jest environment — all 31 suites fail with ExpoImportMetaRegistry error"
+    size: S
+
+  pocket-refugee-capture:
+    status: deferred
+    spec: specs/features/phase3/pocket-refugee-capture.md
+    description: "Pocket import, bookmarklet, marketing landing page — time-sensitive (Pocket shuts down July 2025)"
+    size: M
+
+  # ── Homepage Redesign (7 pts) ──
+  homepage-redesign:
+    status: done
+    started_at: "2026-03-13T04:14:00Z"
+    completed_at: "2026-03-13T05:04:00Z"
+    commit: d95f316
+    spec: specs/features/phase4/homepage-redesign.md
+    description: "Option B visual hybrid — hero now-playing card, episode carousel, rich list"
+    size: L
+    depends_on: [episode-identity, episode-card-redesign]
+  episode-card-redesign:
+    status: done
+    started_at: "2026-03-12T23:00:00Z"
+    completed_at: "2026-03-12T23:13:26Z"
+    commit: "a0845fd"
+    spec: specs/features/phase4/episode-card-redesign.md
+    description: "Rich cards with SourceIcon, attribution, description preview, state indicators"
+    size: M
+    depends_on: [episode-identity]
+  empty-states:
+    status: done
+    started_at: "2026-03-13T06:42:00Z"
+    completed_at: "2026-03-13T08:15:00Z"
+    commit: 81a7201
+    spec: specs/features/phase4/empty-states.md
+    description: "Context-aware empty states — new user onboarding, all caught up, stale library nudge"
+    size: M
+
+  # ── Night 4: Library Overhaul (8 pts) ──
+  library-redesign:
+    status: done
+    started_at: "2026-03-13T10:48:00Z"
+    completed_at: "2026-03-13T12:00:00Z"
+    commit: 653c1a4
+    spec: specs/features/phase4/library-redesign.md
+    description: "Time sections, upgraded filters with Sources/Topics dropdowns, sort control"
+    size: L
+    depends_on: [episode-card-redesign, active-filter-default]
+  smart-search:
+    status: done
+    started_at: "2026-03-13T12:30:00Z"
+    completed_at: "2026-03-13T13:10:00Z"
+    commit: 0a6b63d
+    spec: specs/features/phase4/smart-search.md
+    description: "Search across title, author, source, themes, summary — not just title/author"
+    size: M
+    depends_on: [episode-identity]
+  upload-polish:
+    status: done
+    started_at: "2026-03-13T08:16:00Z"
+    completed_at: "2026-03-13T08:40:00Z"
+    commit: fb8af41
+    spec: specs/features/phase4/upload-polish.md
+    description: "Upload modal error handling, loading states, bottom sheet behavior"
+    size: S
+  player-controls-polish:
+    status: done
+    started_at: "2026-03-13T08:41:00Z"
+    completed_at: "2026-03-13T08:55:00Z"
+    commit: a21ef4f
+    spec: specs/features/phase4/player-controls-polish.md
+    description: "Skip boundary fixes, speed chip in mini bar, lock screen integration"
+    size: S
+  single-version-new-version:
+    status: done
+    started_at: "2026-03-13T08:56:00Z"
+    completed_at: "2026-03-13T09:15:00Z"
+    commit: 22b02df
+    spec: specs/features/phase4/single-version-new-version.md
+    description: "Direct path to create new version from single-version cards"
+    size: S
+
+  # ── Night 5: Following & Discovery (8 pts) ──
+  source-author-following:
+    status: deferred
+    spec: specs/features/phase4/source-author-following.md
+    description: "Follow sources and authors — source/author cards, following filter"
+    size: L
+    depends_on: [episode-identity]
+  settings-onboarding-polish:
+    status: done
+    started_at: "2026-03-13T13:10:00Z"
+    completed_at: "2026-03-13T13:30:00Z"
+    commit: 458dd4d
+    spec: specs/features/phase4/settings-onboarding-polish.md
+    description: "Default duration, haptics toggle, notification prefs, first-run hints"
+    size: S
+  minor-ux-polish:
+    status: done
+    started_at: "2026-03-13T13:30:00Z"
+    completed_at: "2026-03-13T13:48:00Z"
+    commit: c772878
+    spec: specs/features/phase4/minor-ux-polish.md
+    description: "Animation timing, keyboard handling, scroll restoration, loading consistency"
+    size: S
+  app-infrastructure:
+    status: done
+    started_at: "2026-03-13T13:30:00Z"
+    completed_at: "2026-03-13T13:48:00Z"
+    commit: c772878
+    spec: specs/features/phase4/app-infrastructure.md
+    description: "Error boundaries, crash reporting, performance monitoring"
+    size: M
+
+  # ── Night 6+: Platform Expansion ──
+  content-type-expansion:
+    status: deferred
+    spec: specs/features/phase4/content-type-expansion.md
+    description: "Support .docx, Google Docs, Notion, GitHub, Markdown"
+    size: M
+  generic-url-handling:
+    status: deferred
+    spec: specs/features/phase4/generic-url-handling.md
+    description: "Homepage detection, article extraction, multi-select picker"
+    size: M
+  browser-extension:
+    status: deferred
+    spec: specs/features/phase4/browser-extension.md
+    description: "Chrome extension — right-click any article, send to Ridecast"
+    size: L
+  ios-share-extension:
+    status: deferred
+    spec: specs/features/phase4/ios-share-extension.md
+    description: "iOS Share Extension — share from Safari or any app to Ridecast"
+    size: M
+
+proposed_features: []
+next_steps:
+- step: 1
+  task: "Fix 6 failing tests in src/app/api/process/route.test.ts"
+  action: "Mock wiring broke after process route refactor (ElevenLabs→OpenAI switch). Fix mockScriptCreate path + update error message assertions."
+- step: 2
+  task: "Close stale GitHub issues"
+  action: "Close #24-#32 (dupes of #33-#41). Close #33-#41 (all shipped). Close #3,#6,#7,#9 (already implemented)."
+- step: 3
+  task: "Pick first Phase 5 feature"
+  action: "Options: pocket-refugee-capture (time-sensitive, specced), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M)."
+last_session: '2026-03-15'
+meta:
+  project: ridecast2
+  created: '2026-03-05'
+  total_features_completed: 49
+  last_updated: '2026-03-13'
+  session_count: 17
+  zero_change_sessions: 0
+  last_session_head: 653c1a4

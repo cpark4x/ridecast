@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ridecast 2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0a0a0f;
+    --bg-card: rgba(255,255,255,0.04);
+    --bg-glass: rgba(255,255,255,0.06);
+    --bg-glass-hover: rgba(255,255,255,0.10);
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --accent3: #a78bfa;
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.15);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.15);
+    --text: #f5f5f5;
+    --text-secondary: rgba(245,245,245,0.55);
+    --text-tertiary: rgba(245,245,245,0.3);
+    --border: rgba(255,255,255,0.08);
+    --radius: 14px;
+    --radius-sm: 10px;
+    --radius-xs: 8px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,0.5);
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  html, body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    height: 100%; width: 100%;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===== APP SHELL ===== */
+  #app {
+    max-width: 430px;
+    width: 100%;
+    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  /* ===== SCREEN SYSTEM ===== */
+  .screen {
+    position: absolute;
+    inset: 0;
+    bottom: 64px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+  .screen.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    z-index: 1;
+  }
+  .screen.active ~ .screen { z-index: 0; }
+
+  /* Full-overlay screens */
+  .overlay-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .overlay-screen.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #expanded-player {
+    transform: translateY(100%);
+  }
+  #expanded-player.active {
+    transform: translateY(0);
+  }
+  #car-mode {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+  #car-mode.active {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: linear-gradient(to top, rgba(10,10,15,0.98) 60%, rgba(10,10,15,0.85));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: var(--radius-xs);
+    transition: var(--transition);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .nav-tab:active { transform: scale(0.92); }
+  .nav-tab svg { width: 22px; height: 22px; fill: none; stroke: var(--text-tertiary); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: var(--transition); }
+  .nav-tab span { font-size: 10px; font-weight: 500; color: var(--text-tertiary); transition: var(--transition); letter-spacing: 0.02em; }
+  .nav-tab.active svg { stroke: var(--accent3); }
+  .nav-tab.active span { color: var(--accent3); }
+
+  /* ===== COLLAPSED PLAYER BAR ===== */
+  .player-bar {
+    position: absolute;
+    bottom: 64px; left: 8px; right: 8px;
+    height: 58px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1));
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    z-index: 60;
+    cursor: pointer;
+    transition: var(--transition);
+    transform: translateY(80px);
+    opacity: 0;
+  }
+  .player-bar.visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .player-bar:active { transform: scale(0.98); }
+  .player-bar .pb-art {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .player-bar .pb-art svg { width: 18px; height: 18px; fill: white; stroke: none; }
+  .player-bar .pb-info { flex: 1; min-width: 0; }
+  .player-bar .pb-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-bar .pb-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+  .player-bar .pb-play {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: white;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .player-bar .pb-play:active { transform: scale(0.88); }
+  .player-bar .pb-play svg { width: 14px; height: 14px; fill: var(--bg); stroke: none; }
+  .player-bar .pb-progress {
+    position: absolute;
+    bottom: 0; left: 16px; right: 16px;
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .player-bar .pb-progress-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 1px;
+    transition: width 0.3s ease;
+  }
+
+  /* ===== COMMON ELEMENTS ===== */
+  .page-pad { padding: 24px 20px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 28px rgba(99,102,241,0.5); transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.96) translateY(0); }
+  .btn-secondary {
+    background: var(--bg-glass);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-glass-hover); }
+  .btn-full { width: 100%; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-accent { background: rgba(99,102,241,0.15); color: var(--accent3); }
+
+  /* ===== SCREEN: UPLOAD ===== */
+  .upload-header {
+    text-align: center;
+    padding-top: 16px;
+    margin-bottom: 32px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; fill: white; }
+  .logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--text), var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .upload-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed rgba(99,102,241,0.3);
+    border-radius: var(--radius);
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: rgba(99,102,241,0.03);
+    margin-bottom: 16px;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(99,102,241,0.08);
+  }
+  .dropzone svg { width: 40px; height: 40px; stroke: var(--accent3); fill: none; stroke-width: 1.5; margin-bottom: 12px; }
+  .dropzone-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .dropzone-sub { font-size: 12px; color: var(--text-secondary); }
+
+  .divider-or {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 500;
+    margin: 16px 0;
+    position: relative;
+  }
+  .divider-or::before, .divider-or::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: calc(50% - 24px);
+    height: 1px;
+    background: var(--border);
+  }
+  .divider-or::before { left: 0; }
+  .divider-or::after { right: 0; }
+
+  .url-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .url-input-row input {
+    flex: 1;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: var(--transition);
+  }
+  .url-input-row input::placeholder { color: var(--text-tertiary); }
+  .url-input-row input:focus { border-color: var(--accent); background: rgba(99,102,241,0.06); }
+  .url-input-row .btn { padding: 12px 20px; white-space: nowrap; }
+
+  /* Content preview */
+  .content-preview {
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 28px;
+    display: none;
+    animation: slideUp 0.4s ease;
+  }
+  .content-preview.visible { display: block; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .cp-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .cp-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15));
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .cp-icon svg { width: 22px; height: 22px; stroke: var(--accent3); fill: none; stroke-width: 1.5; }
+  .cp-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; line-height: 1.3; }
+  .cp-meta { font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; }
+  .cp-meta span { display: flex; align-items: center; gap: 4px; }
+  .cp-divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+  /* Duration selector */
+  .section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+  .duration-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .preset-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 8px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .preset-btn:active { transform: scale(0.96); }
+  .preset-btn.selected {
+    background: rgba(99,102,241,0.12);
+    border-color: var(--accent);
+  }
+  .preset-btn .preset-time { font-size: 15px; font-weight: 700; margin-bottom: 2px; color: var(--text); }
+  .preset-btn .preset-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+  .preset-btn.selected .preset-time { color: var(--accent3); }
+
+  .slider-container { margin-bottom: 28px; }
+  .slider-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .slider-label-row span { font-size: 13px; color: var(--text-secondary); }
+  .slider-value { font-size: 18px; font-weight: 700; color: var(--accent3); }
+  .custom-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .custom-slider::-moz-range-thumb {
+    width: 22px; height: 22px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding: 0 2px;
+  }
+  .slider-ticks span { font-size: 10px; color: var(--text-tertiary); }
+
+  /* ===== SCREEN: PROCESSING ===== */
+  #processing { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 32px; }
+  .proc-artwork {
+    width: 120px; height: 120px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2), #c084fc);
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 36px;
+    box-shadow: 0 0 60px rgba(99,102,241,0.3);
+  }
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .proc-artwork svg { width: 48px; height: 48px; fill: white; opacity: 0.9; }
+
+  .proc-stages { width: 100%; max-width: 280px; margin-bottom: 32px; }
+  .proc-stage {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    transition: var(--transition);
+  }
+  .proc-stage .stage-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: var(--bg-glass);
+    border: 2px solid var(--border);
+    transition: var(--transition);
+  }
+  .proc-stage.active .stage-dot {
+    border-color: var(--accent);
+    background: rgba(99,102,241,0.2);
+    animation: pulseDot 1.5s ease infinite;
+  }
+  .proc-stage.done .stage-dot {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+  .proc-stage.done .stage-dot svg { stroke: var(--green); }
+  @keyframes pulseDot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+  }
+  .stage-dot svg { width: 12px; height: 12px; stroke: var(--text-tertiary); fill: none; stroke-width: 2.5; stroke-linecap: round; }
+  .proc-stage .stage-text { font-size: 14px; color: var(--text-tertiary); font-weight: 500; transition: var(--transition); }
+  .proc-stage.active .stage-text { color: var(--text); }
+  .proc-stage.done .stage-text { color: var(--text-secondary); }
+
+  .proc-progress {
+    width: 100%; max-width: 280px;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .proc-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .proc-badge {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .proc-badge.visible { opacity: 1; }
+
+  /* ===== SCREEN: LIBRARY ===== */
+  .lib-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .lib-header h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+  .lib-count { font-size: 13px; color: var(--text-secondary); }
+
+  .lib-card {
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .lib-card:hover { background: var(--bg-glass-hover); border-color: rgba(255,255,255,0.12); }
+  .lib-card:active { transform: scale(0.98); }
+  .lib-card-art {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .lib-card-art svg { width: 24px; height: 24px; fill: white; opacity: 0.85; }
+  .lib-card-art.gradient-1 { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .lib-card-art.gradient-2 { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+  .lib-card-art.gradient-3 { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
+  .lib-card-art.gradient-4 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+  .lib-card-info { flex: 1; min-width: 0; }
+  .lib-card-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lib-card-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+  .lib-card-sub .source-icon { width: 14px; height: 14px; stroke: var(--text-secondary); fill: none; stroke-width: 1.8; }
+  .lib-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+  .lib-card-duration { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+
+  /* Processing animation for library card */
+  .status-processing {
+    width: 16px; height: 16px;
+    position: relative;
+  }
+  .status-processing::before, .status-processing::after {
+    content: '';
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+  }
+  .status-processing::before { top: 0; left: 5px; animation: procBounce 0.8s ease infinite; }
+  .status-processing::after { top: 0; left: 5px; animation: procBounce 0.8s ease 0.2s infinite; opacity: 0.5; }
+  @keyframes procBounce {
+    0%, 100% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 32px;
+  }
+  .empty-state svg { width: 64px; height: 64px; stroke: var(--text-tertiary); fill: none; stroke-width: 1; margin-bottom: 20px; }
+  .empty-state h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .empty-state p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* ===== EXPANDED PLAYER ===== */
+  #expanded-player {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .ep-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+  }
+  .ep-header-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: var(--transition);
+  }
+  .ep-header-btn:hover { background: var(--bg-glass); }
+  .ep-header-btn svg { width: 20px; height: 20px; stroke: var(--text-secondary); fill: none; stroke-width: 2; stroke-linecap: round; }
+  .ep-header-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .ep-art {
+    width: calc(100% - 80px);
+    max-width: 300px;
+    aspect-ratio: 1;
+    margin: 8px auto 32px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2), #c084fc);
+    background-size: 200% 200%;
+    animation: gradientShift 6s ease infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 16px 64px rgba(99,102,241,0.25);
+  }
+  .ep-art svg { width: 60px; height: 60px; fill: white; opacity: 0.85; }
+
+  .ep-info { text-align: center; padding: 0 24px; margin-bottom: 24px; }
+  .ep-info h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+  .ep-info .badge { margin-top: 4px; }
+
+  .ep-progress-container { padding: 0 24px; margin-bottom: 24px; }
+  .ep-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+  }
+  .ep-progress-bar:hover { height: 6px; }
+  .ep-progress-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.15s ease;
+    position: relative;
+  }
+  .ep-progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -5px; top: 50%;
+    transform: translateY(-50%);
+    width: 12px; height: 12px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .ep-progress-bar:hover .ep-progress-fill::after { opacity: 1; }
+  .ep-time {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+  .ep-time span { font-size: 11px; color: var(--text-secondary); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .ep-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 0 24px;
+    margin-bottom: 32px;
+  }
+  .ep-skip {
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: var(--transition);
+    position: relative;
+  }
+  .ep-skip:active { transform: scale(0.88); }
+  .ep-skip svg { width: 28px; height: 28px; fill: var(--text); }
+  .ep-skip-label { position: absolute; bottom: -14px; font-size: 9px; font-weight: 600; color: var(--text-tertiary); }
+  .ep-play-main {
+    width: 68px; height: 68px;
+    background: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+  }
+  .ep-play-main:hover { transform: scale(1.05); }
+  .ep-play-main:active { transform: scale(0.92); }
+  .ep-play-main svg { width: 28px; height: 28px; fill: var(--bg); margin-left: 3px; }
+  .ep-play-main.playing svg { margin-left: 0; }
+
+  .ep-extras {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 40px;
+    margin-bottom: 20px;
+  }
+  .ep-extra-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-xs);
+    transition: var(--transition);
+  }
+  .ep-extra-btn:active { transform: scale(0.9); }
+  .ep-extra-btn svg { width: 22px; height: 22px; stroke: var(--text-secondary); fill: none; stroke-width: 1.8; stroke-linecap: round; }
+  .ep-extra-btn span { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+
+  .speed-selector {
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .speed-selector:hover { background: var(--bg-glass-hover); }
+
+  /* ===== CAR MODE ===== */
+  #car-mode {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .car-close {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    transition: var(--transition);
+  }
+  .car-close:active { transform: scale(0.88); background: rgba(255,255,255,0.12); }
+  .car-close svg { width: 24px; height: 24px; stroke: var(--text-secondary); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+  .car-title {
+    position: absolute;
+    top: 12%;
+    left: 24px; right: 24px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+  .car-controls {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+  .car-skip {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .car-skip:active { transform: scale(0.88); background: rgba(255,255,255,0.12); }
+  .car-skip svg { width: 32px; height: 32px; fill: white; }
+  .car-skip span { font-size: 10px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; }
+  .car-play {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 0 60px rgba(99,102,241,0.3);
+  }
+  .car-play:active { transform: scale(0.9); }
+  .car-play svg { width: 56px; height: 56px; fill: white; margin-left: 6px; }
+  .car-play.playing svg { margin-left: 0; }
+
+  /* ===== MISC ANIMATIONS ===== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .anim-in { animation: fadeInUp 0.5s ease forwards; }
+  .anim-delay-1 { animation-delay: 0.1s; opacity: 0; }
+  .anim-delay-2 { animation-delay: 0.2s; opacity: 0; }
+  .anim-delay-3 { animation-delay: 0.3s; opacity: 0; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (min-width: 768px) {
+    #app {
+      border-radius: 20px;
+      margin-top: 20px;
+      height: calc(100vh - 40px);
+      box-shadow: 0 0 80px rgba(99,102,241,0.08);
+    }
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      background: #050508;
+    }
+  }
+
+  /* Scrollbar hide globally */
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ==================== SCREEN: UPLOAD ==================== -->
+  <div id="upload" class="screen active page-pad">
+    <div class="upload-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9z" fill="white" opacity="0.3"/><polygon points="10,8 16,12 10,16" fill="white"/></svg>
+        </div>
+        <span class="logo-text">Ridecast 2</span>
+      </div>
+      <p class="upload-sub">Turn anything into audio for your commute</p>
+    </div>
+
+    <div class="dropzone" id="dropzone" onclick="simulateUpload()">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="dropzone-title">Drop files here</div>
+      <div class="dropzone-sub">PDF, EPUB, TXT up to 50MB</div>
+    </div>
+
+    <div class="divider-or">or</div>
+
+    <div class="url-input-row">
+      <input type="text" id="urlInput" placeholder="Paste article or newsletter URL..." value="">
+      <button class="btn btn-secondary" onclick="simulateUpload()">Fetch</button>
+    </div>
+
+    <!-- Content Preview (hidden initially) -->
+    <div class="content-preview" id="contentPreview">
+      <div class="cp-header">
+        <div class="cp-icon">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div>
+          <div class="cp-title">The Future of Human-AI Collaboration in Creative Work</div>
+          <div class="cp-meta">
+            <span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              8,420 words
+            </span>
+            <span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ~34 min read
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="cp-divider"></div>
+      <div class="section-label">Target Duration</div>
+      <div class="duration-presets">
+        <div class="preset-btn" onclick="selectPreset(this, 5)">
+          <div class="preset-time">~5 min</div>
+          <div class="preset-label">Quick Summary</div>
+        </div>
+        <div class="preset-btn selected" onclick="selectPreset(this, 15)">
+          <div class="preset-time">~15 min</div>
+          <div class="preset-label">Main Points</div>
+        </div>
+        <div class="preset-btn" onclick="selectPreset(this, 30)">
+          <div class="preset-time">~30 min</div>
+          <div class="preset-label">Deep Dive</div>
+        </div>
+      </div>
+      <div class="slider-container">
+        <div class="slider-label-row">
+          <span>Fit to my commute</span>
+          <span class="slider-value" id="sliderValue">15 min</span>
+        </div>
+        <input type="range" class="custom-slider" id="durationSlider" min="5" max="60" value="15" step="1" oninput="updateSlider(this.value)">
+        <div class="slider-ticks">
+          <span>5</span><span>15</span><span>30</span><span>45</span><span>60</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="startProcessing()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L12 22"/><path d="M5 12l7-7 7 7"/></svg>
+        Create Audio
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN: PROCESSING ==================== -->
+  <div id="processing" class="screen">
+    <div class="proc-artwork">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="white" opacity="0.7"/><circle cx="18" cy="16" r="3" fill="white" opacity="0.7"/></svg>
+    </div>
+
+    <div class="proc-stages">
+      <div class="proc-stage" id="stage1">
+        <div class="stage-dot">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="stage-text">Analyzing content...</span>
+      </div>
+      <div class="proc-stage" id="stage2">
+        <div class="stage-dot">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="stage-text">Compressing to 15 minutes...</span>
+      </div>
+      <div class="proc-stage" id="stage3">
+        <div class="stage-dot">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="stage-text">Generating audio...</span>
+      </div>
+    </div>
+
+    <div class="proc-progress">
+      <div class="proc-progress-fill" id="procProgressFill"></div>
+    </div>
+
+    <div class="proc-badge badge badge-accent" id="procBadge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      AI chose: Conversation style
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN: LIBRARY ==================== -->
+  <div id="library" class="screen page-pad">
+    <div class="lib-header">
+      <h1>Library</h1>
+      <span class="lib-count" id="libCount">4 episodes</span>
+    </div>
+
+    <div id="libraryList">
+      <!-- New item gets inserted at top -->
+      <div class="lib-card" onclick="playItem(this, 'The Future of Human-AI Collaboration', '15:22', 'Conversation')" style="display:none" id="newLibCard">
+        <div class="lib-card-art gradient-1">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="white" opacity="0.3"/><polyline points="14 2 14 8 20 8" fill="none" stroke="white" stroke-width="1.5"/></svg>
+        </div>
+        <div class="lib-card-info">
+          <div class="lib-card-title">The Future of Human-AI Collaboration</div>
+          <div class="lib-card-sub">
+            <svg class="source-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            PDF &middot; Just now
+          </div>
+        </div>
+        <div class="lib-card-right">
+          <span class="lib-card-duration">15:22</span>
+          <span class="badge badge-green" id="newCardBadge" style="display:none">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+            Ready
+          </span>
+          <span class="badge badge-amber" id="newCardProcessing">
+            <div class="status-processing"></div>
+            Processing
+          </span>
+        </div>
+      </div>
+
+      <div class="lib-card" onclick="playItem(this, 'How to Build a Second Brain', '12:48', 'Narrator')">
+        <div class="lib-card-art gradient-2">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="white" opacity="0.3"/><path d="M12 6v6l4 2" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="lib-card-info">
+          <div class="lib-card-title">How to Build a Second Brain</div>
+          <div class="lib-card-sub">
+            <svg class="source-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            EPUB &middot; Yesterday
+          </div>
+        </div>
+        <div class="lib-card-right">
+          <span class="lib-card-duration">12:48</span>
+          <span class="badge badge-green">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+            Ready
+          </span>
+        </div>
+      </div>
+
+      <div class="lib-card" onclick="playItem(this, 'Paul Graham: Do Things That Don\'t Scale', '8:15', 'Conversation')">
+        <div class="lib-card-art gradient-3">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="white" opacity="0.2"/><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="lib-card-info">
+          <div class="lib-card-title">Paul Graham: Do Things That Don't Scale</div>
+          <div class="lib-card-sub">
+            <svg class="source-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            URL &middot; 2 days ago
+          </div>
+        </div>
+        <div class="lib-card-right">
+          <span class="lib-card-duration">8:15</span>
+          <span class="badge badge-green">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+            Ready
+          </span>
+        </div>
+      </div>
+
+      <div class="lib-card" onclick="playItem(this, 'Stripe Annual Letter 2024', '22:30', 'Narrator')">
+        <div class="lib-card-art gradient-4">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="white" opacity="0.25"/><path d="M8 12h8M8 8h8M8 16h4" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="lib-card-info">
+          <div class="lib-card-title">Stripe Annual Letter 2024</div>
+          <div class="lib-card-sub">
+            <svg class="source-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            PDF &middot; Last week
+          </div>
+        </div>
+        <div class="lib-card-right">
+          <span class="lib-card-duration">22:30</span>
+          <span class="badge badge-green">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+            Ready
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN: PLAYER TAB (placeholder) ==================== -->
+  <div id="player-tab" class="screen page-pad">
+    <div class="empty-state" id="playerEmpty">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+      </svg>
+      <h3>Nothing playing</h3>
+      <p>Pick something from your library<br>and it'll appear here.</p>
+    </div>
+  </div>
+
+  <!-- ==================== EXPANDED PLAYER (overlay) ==================== -->
+  <div id="expanded-player" class="overlay-screen">
+    <div class="ep-header">
+      <div class="ep-header-btn" onclick="closeExpandedPlayer()">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <span class="ep-header-title">Now Playing</span>
+      <div class="ep-header-btn" onclick="toggleSleepTimer(event)">
+        <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </div>
+    </div>
+
+    <div class="ep-art">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="white" opacity="0.7"/><circle cx="18" cy="16" r="3" fill="white" opacity="0.7"/></svg>
+    </div>
+
+    <div class="ep-info">
+      <h2 id="epTitle">How to Build a Second Brain</h2>
+      <span class="badge badge-accent" id="epBadge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span id="epBadgeText">Narrator</span>
+      </span>
+    </div>
+
+    <div class="ep-progress-container">
+      <div class="ep-progress-bar" id="epProgressBar" onclick="seekProgress(event)">
+        <div class="ep-progress-fill" id="epProgressFill"></div>
+      </div>
+      <div class="ep-time">
+        <span id="epTimeElapsed">5:18</span>
+        <span id="epTimeRemaining">-7:30</span>
+      </div>
+    </div>
+
+    <div class="ep-controls">
+      <div class="ep-skip" onclick="skipBack()">
+        <svg viewBox="0 0 24 24"><path d="M12.5 8.5C12.5 8.5 7 12 7 12l5.5 3.5V8.5z"/><path d="M18 8.5C18 8.5 12.5 12 12.5 12L18 15.5V8.5z"/><rect x="4" y="7" width="2" height="10" rx="0.5" fill="currentColor"/></svg>
+        <span class="ep-skip-label">15s</span>
+      </div>
+      <div class="ep-play-main" id="epPlayBtn" onclick="togglePlay()">
+        <svg viewBox="0 0 24 24" id="epPlayIcon"><polygon points="8,5 19,12 8,19"/></svg>
+      </div>
+      <div class="ep-skip" onclick="skipForward()">
+        <svg viewBox="0 0 24 24"><path d="M11.5 8.5v7L6 12l5.5-3.5z"/><path d="M6 8.5v7L11.5 12 6 8.5z" opacity="0"/><path d="M11.5 15.5V8.5L17 12l-5.5 3.5z"/><rect x="18" y="7" width="2" height="10" rx="0.5" fill="currentColor"/></svg>
+        <span class="ep-skip-label">30s</span>
+      </div>
+    </div>
+
+    <div class="ep-extras">
+      <div class="ep-extra-btn" onclick="cycleSpeed()">
+        <span class="speed-selector" id="speedDisplay">1.0x</span>
+        <span>Speed</span>
+      </div>
+      <div class="ep-extra-btn" onclick="toggleSleepTimer(event)">
+        <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span>Sleep</span>
+      </div>
+      <div class="ep-extra-btn" onclick="enterCarMode()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        <span>Car Mode</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CAR MODE (overlay) ==================== -->
+  <div id="car-mode" class="overlay-screen">
+    <div class="car-close" onclick="exitCarMode()">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+    <div class="car-title" id="carTitle">How to Build a Second Brain</div>
+    <div class="car-controls">
+      <div class="car-skip" onclick="skipBack()">
+        <svg viewBox="0 0 24 24"><path d="M12.5 8.5C12.5 8.5 7 12 7 12l5.5 3.5V8.5z"/><path d="M18 8.5C18 8.5 12.5 12 12.5 12L18 15.5V8.5z"/><rect x="4" y="7" width="2" height="10" rx="0.5" fill="currentColor"/></svg>
+        <span>30s</span>
+      </div>
+      <div class="car-play" id="carPlayBtn" onclick="togglePlay()">
+        <svg viewBox="0 0 24 24" id="carPlayIcon"><polygon points="8,5 19,12 8,19"/></svg>
+      </div>
+      <div class="car-skip" onclick="skipForward()">
+        <svg viewBox="0 0 24 24"><path d="M11.5 15.5V8.5L17 12l-5.5 3.5z"/><path d="M6 15.5V8.5L11.5 12 6 8.5z" opacity="0"/><rect x="18" y="7" width="2" height="10" rx="0.5" fill="currentColor"/></svg>
+        <span>30s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== COLLAPSED PLAYER BAR ==================== -->
+  <div class="player-bar" id="playerBar" onclick="openExpandedPlayer(event)">
+    <div class="pb-art">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="white" opacity="0.7"/><circle cx="18" cy="16" r="3" fill="white" opacity="0.7"/></svg>
+    </div>
+    <div class="pb-info">
+      <div class="pb-title" id="pbTitle">How to Build a Second Brain</div>
+      <div class="pb-sub" id="pbSub">Narrator &middot; 12:48</div>
+    </div>
+    <div class="pb-play" onclick="event.stopPropagation(); togglePlay()">
+      <svg viewBox="0 0 24 24" id="pbPlayIcon"><polygon points="9,6 18,12 9,18"/></svg>
+    </div>
+    <div class="pb-progress">
+      <div class="pb-progress-fill" id="pbProgressFill"></div>
+    </div>
+  </div>
+
+  <!-- ==================== BOTTOM NAV ==================== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="nav-tab active" data-screen="upload" onclick="switchTab(this)">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Upload</span>
+    </div>
+    <div class="nav-tab" data-screen="library" onclick="switchTab(this)">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span>Library</span>
+    </div>
+    <div class="nav-tab" data-screen="player-tab" onclick="switchTab(this)">
+      <svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+      <span>Player</span>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+// ===== STATE =====
+let currentScreen = 'upload';
+let isPlaying = false;
+let currentSpeed = 1.0;
+const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
+let speedIndex = 2;
+let playerActive = false;
+let progressInterval = null;
+let currentProgress = 35;
+
+// ===== ICONS (play/pause SVG) =====
+const playSVG = '<polygon points="9,6 18,12 9,18"/>';
+const pauseSVG = '<rect x="7" y="6" width="3.5" height="12" rx="1"/><rect x="13.5" y="6" width="3.5" height="12" rx="1"/>';
+const playCarSVG = '<polygon points="8,5 19,12 8,19"/>';
+const pauseCarSVG = '<rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/>';
+
+// ===== NAVIGATION =====
+function switchTab(tab) {
+  const screen = tab.dataset.screen;
+  if (screen === currentScreen) return;
+
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screen).classList.add('active');
+  currentScreen = screen;
+}
+
+function goToScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  currentScreen = screenId;
+
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.screen === screenId);
+  });
+}
+
+// ===== UPLOAD SCREEN =====
+function simulateUpload() {
+  const preview = document.getElementById('contentPreview');
+  if (preview.classList.contains('visible')) return;
+  preview.classList.add('visible');
+  preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function selectPreset(btn, minutes) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('durationSlider').value = minutes;
+  document.getElementById('sliderValue').textContent = minutes + ' min';
+}
+
+function updateSlider(val) {
+  document.getElementById('sliderValue').textContent = val + ' min';
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  if (val == 5) document.querySelectorAll('.preset-btn')[0].classList.add('selected');
+  else if (val == 15) document.querySelectorAll('.preset-btn')[1].classList.add('selected');
+  else if (val == 30) document.querySelectorAll('.preset-btn')[2].classList.add('selected');
+}
+
+// ===== PROCESSING =====
+function startProcessing() {
+  goToScreen('processing');
+  const fill = document.getElementById('procProgressFill');
+  const badge = document.getElementById('procBadge');
+  const s1 = document.getElementById('stage1');
+  const s2 = document.getElementById('stage2');
+  const s3 = document.getElementById('stage3');
+
+  // Reset
+  [s1, s2, s3].forEach(s => { s.classList.remove('active', 'done'); });
+  fill.style.width = '0%';
+  badge.classList.remove('visible');
+
+  // Stage 1: Analyzing
+  setTimeout(() => { s1.classList.add('active'); fill.style.width = '15%'; }, 300);
+  setTimeout(() => { s1.classList.remove('active'); s1.classList.add('done'); fill.style.width = '33%'; }, 2200);
+
+  // Stage 2: Compressing
+  setTimeout(() => { s2.classList.add('active'); fill.style.width = '50%'; }, 2400);
+  setTimeout(() => { badge.classList.add('visible'); }, 3000);
+  setTimeout(() => { s2.classList.remove('active'); s2.classList.add('done'); fill.style.width = '66%'; }, 4400);
+
+  // Stage 3: Generating
+  setTimeout(() => { s3.classList.add('active'); fill.style.width = '80%'; }, 4600);
+  setTimeout(() => { fill.style.width = '95%'; }, 5800);
+  setTimeout(() => {
+    s3.classList.remove('active'); s3.classList.add('done');
+    fill.style.width = '100%';
+  }, 6500);
+
+  // Transition to library
+  setTimeout(() => {
+    goToScreen('library');
+    showNewLibraryItem();
+  }, 7200);
+}
+
+function showNewLibraryItem() {
+  const card = document.getElementById('newLibCard');
+  card.style.display = 'flex';
+  card.style.animation = 'slideUp 0.5s ease forwards';
+  document.getElementById('libCount').textContent = '5 episodes';
+
+  // Simulate processing -> ready transition
+  setTimeout(() => {
+    document.getElementById('newCardProcessing').style.display = 'none';
+    document.getElementById('newCardBadge').style.display = 'inline-flex';
+  }, 2000);
+}
+
+// ===== LIBRARY =====
+function playItem(card, title, duration, style) {
+  // Activate player
+  playerActive = true;
+  document.getElementById('playerBar').classList.add('visible');
+
+  // Set info
+  document.getElementById('pbTitle').textContent = title;
+  document.getElementById('pbSub').textContent = style + ' \u00B7 ' + duration;
+  document.getElementById('epTitle').textContent = title;
+  document.getElementById('epBadgeText').textContent = style;
+  document.getElementById('carTitle').textContent = title;
+
+  // Update time display
+  const parts = duration.split(':');
+  const totalSeconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  const elapsed = Math.floor(totalSeconds * 0.35);
+  const remaining = totalSeconds - elapsed;
+  document.getElementById('epTimeElapsed').textContent = formatTime(elapsed);
+  document.getElementById('epTimeRemaining').textContent = '-' + formatTime(remaining);
+
+  currentProgress = 35;
+  updateProgressBars();
+
+  // Subtle flash on the card
+  card.style.background = 'rgba(99,102,241,0.12)';
+  setTimeout(() => { card.style.background = ''; }, 400);
+
+  // Adjust screen bottom for player bar
+  document.querySelectorAll('.screen').forEach(s => { s.style.bottom = '130px'; });
+}
+
+function formatTime(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// ===== PLAYER =====
+function openExpandedPlayer(e) {
+  document.getElementById('expanded-player').classList.add('active');
+  document.getElementById('bottomNav').style.display = 'none';
+  document.getElementById('playerBar').style.display = 'none';
+}
+
+function closeExpandedPlayer() {
+  document.getElementById('expanded-player').classList.remove('active');
+  document.getElementById('bottomNav').style.display = '';
+  document.getElementById('playerBar').style.display = '';
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  updatePlayButtons();
+
+  if (isPlaying) {
+    progressInterval = setInterval(() => {
+      currentProgress += 0.15;
+      if (currentProgress >= 100) { currentProgress = 100; clearInterval(progressInterval); }
+      updateProgressBars();
+    }, 100);
+  } else {
+    clearInterval(progressInterval);
+  }
+}
+
+function updatePlayButtons() {
+  document.getElementById('epPlayIcon').innerHTML = isPlaying ? pauseSVG : '<polygon points="8,5 19,12 8,19"/>';
+  document.getElementById('epPlayBtn').classList.toggle('playing', isPlaying);
+  document.getElementById('pbPlayIcon').innerHTML = isPlaying ? pauseSVG : playSVG;
+  document.getElementById('carPlayIcon').innerHTML = isPlaying ? pauseCarSVG : playCarSVG;
+  document.getElementById('carPlayBtn').classList.toggle('playing', isPlaying);
+  if (isPlaying) {
+    const iconEl = document.getElementById('epPlayIcon').querySelector('polygon, rect');
+    if (iconEl) iconEl.setAttribute('fill', 'currentColor');
+  }
+}
+
+function updateProgressBars() {
+  document.getElementById('epProgressFill').style.width = currentProgress + '%';
+  document.getElementById('pbProgressFill').style.width = currentProgress + '%';
+}
+
+function seekProgress(e) {
+  const bar = document.getElementById('epProgressBar');
+  const rect = bar.getBoundingClientRect();
+  const pct = ((e.clientX - rect.left) / rect.width) * 100;
+  currentProgress = Math.max(0, Math.min(100, pct));
+  updateProgressBars();
+}
+
+function skipBack() {
+  currentProgress = Math.max(0, currentProgress - 5);
+  updateProgressBars();
+}
+
+function skipForward() {
+  currentProgress = Math.min(100, currentProgress + 8);
+  updateProgressBars();
+}
+
+function cycleSpeed() {
+  speedIndex = (speedIndex + 1) % speeds.length;
+  currentSpeed = speeds[speedIndex];
+  document.getElementById('speedDisplay').textContent = currentSpeed + 'x';
+}
+
+function toggleSleepTimer(evt) {
+  // Simulated — just flash the button
+  const btn = evt && evt.currentTarget;
+  if (!btn) return;
+  btn.style.opacity = '0.5';
+  setTimeout(() => { btn.style.opacity = '1'; }, 200);
+}
+
+// ===== CAR MODE =====
+function enterCarMode() {
+  document.getElementById('car-mode').classList.add('active');
+}
+
+function exitCarMode() {
+  document.getElementById('car-mode').classList.remove('active');
+}
+
+// ===== DROPZONE DRAG EFFECTS =====
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => { dz.classList.remove('dragover'); });
+dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('dragover'); simulateUpload(); });
+
+// ===== URL INPUT ENTER KEY =====
+document.getElementById('urlInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') simulateUpload();
+});
+</script>
+</body>
+</html>

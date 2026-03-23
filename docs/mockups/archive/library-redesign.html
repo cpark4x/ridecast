@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library — Smart Redesign · Ridecast</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px 60px;
+    }
+
+    /* ── Page label ───────────────────────────────────── */
+    .page-label {
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    .page-title {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .page-title span {
+      color: #EA580C;
+    }
+
+    /* ── Phone frame ──────────────────────────────────── */
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: #f2f2f7;
+      border-radius: 54px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 0 0 1.5px #3a3a3a,
+        0 0 0 10px #1c1c1e,
+        0 0 0 11.5px #3a3a3a,
+        0 40px 120px rgba(0,0,0,0.85),
+        0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    /* Dynamic island */
+    .dynamic-island {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+    }
+
+    /* ── Status bar ───────────────────────────────────── */
+    .status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      background: #f2f2f7;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 24px 6px;
+      z-index: 50;
+    }
+    .status-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: #000;
+      letter-spacing: -0.2px;
+    }
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-icons svg { display: block; }
+
+    /* ── Scrollable content area ──────────────────────── */
+    .screen {
+      position: absolute;
+      top: 54px;
+      left: 0;
+      right: 0;
+      bottom: 148px; /* mini player + tab bar */
+      overflow-y: auto;
+      background: #f2f2f7;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .screen::-webkit-scrollbar { display: none; }
+
+    /* ── Header ───────────────────────────────────────── */
+    .lib-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 18px 20px 4px;
+    }
+    .lib-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #000;
+      letter-spacing: -1px;
+    }
+    .sort-btn {
+      width: 36px;
+      height: 36px;
+      background: #e5e5ea;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    /* ── Search bar ───────────────────────────────────── */
+    .search-wrap {
+      padding: 12px 20px 8px;
+    }
+    .search-bar {
+      background: #dcdce0;
+      border-radius: 12px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 8px;
+    }
+    .search-bar svg { flex-shrink: 0; opacity: 0.45; }
+    .search-placeholder {
+      font-size: 15px;
+      color: #8e8e93;
+      letter-spacing: -0.1px;
+    }
+
+    /* ── Filter chips ─────────────────────────────────── */
+    .filter-scroll {
+      padding: 8px 20px 10px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-scroll::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 100px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      background: #dcdce0;
+      color: #3c3c43;
+      letter-spacing: -0.1px;
+    }
+    .chip.active {
+      background: #EA580C;
+      color: #fff;
+    }
+    .chip.picker {
+      background: #dcdce0;
+      color: #3c3c43;
+    }
+    .chip-arrow {
+      font-size: 10px;
+      opacity: 0.6;
+    }
+
+    /* ── Section headers ──────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px 8px;
+      gap: 10px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #8e8e93;
+      white-space: nowrap;
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: #d1d1d6;
+    }
+    .section-count {
+      font-size: 11px;
+      font-weight: 600;
+      color: #aeaeb2;
+      white-space: nowrap;
+    }
+
+    /* ── Episode cards ────────────────────────────────── */
+    .cards-wrap {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .episode-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 14px 14px 0 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.04);
+      position: relative;
+    }
+
+    /* Swipe hint on first card */
+    .episode-card.swipe-hint::after {
+      content: '';
+      position: absolute;
+      top: 0; right: -48px; bottom: 0;
+      width: 64px;
+      background: linear-gradient(to right, transparent, #ff3b3022);
+      border-radius: 0 16px 16px 0;
+      pointer-events: none;
+    }
+    .swipe-delete-hint {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.3;
+    }
+
+    .card-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 14px;
+    }
+
+    /* Source icon */
+    .source-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      position: relative;
+      letter-spacing: -0.5px;
+    }
+
+    /* Status dot / check on source icon */
+    .icon-badge {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+    }
+    .badge-new { background: #EA580C; }
+    .badge-done { background: #34c759; color: #fff; }
+
+    /* Middle content */
+    .card-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .card-meta {
+      font-size: 12px;
+      font-weight: 500;
+      color: #8e8e93;
+      margin-bottom: 5px;
+      letter-spacing: -0.1px;
+    }
+    .card-meta-dot { margin: 0 4px; opacity: 0.5; }
+    .card-desc {
+      font-size: 12.5px;
+      color: #aeaeb2;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      letter-spacing: -0.1px;
+    }
+
+    /* Right column — duration pill */
+    .card-right {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    .duration-pill {
+      background: #f2f2f7;
+      border-radius: 100px;
+      padding: 3px 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #8e8e93;
+      letter-spacing: 0.01em;
+    }
+
+    /* Progress bar at card bottom */
+    .card-progress {
+      height: 3px;
+      background: #f2f2f7;
+      border-radius: 0 0 0 0;
+      margin: 0 -14px;
+    }
+    .card-progress-fill {
+      height: 100%;
+      background: #EA580C;
+      border-radius: 0;
+    }
+
+    /* Generating state */
+    .card-generating .card-desc {
+      display: none;
+    }
+    .generating-label {
+      font-size: 12.5px;
+      color: #aeaeb2;
+      font-style: italic;
+    }
+    @keyframes shimmer {
+      0%   { opacity: 0.4; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+    .card-generating {
+      animation: shimmer 1.6s ease-in-out infinite;
+    }
+    .generating-bar {
+      height: 3px;
+      background: linear-gradient(90deg, #EA580C 0%, #f97316 60%, #EA580C 100%);
+      background-size: 200% 100%;
+      animation: slide 1.8s linear infinite;
+      margin: 0 -14px;
+      border-radius: 0;
+    }
+    @keyframes slide {
+      0%   { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+
+    /* ── Mini player ──────────────────────────────────── */
+    .mini-player {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 83px;
+      height: 65px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 40;
+    }
+    .mini-player-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #dc2626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .mini-player-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .mini-player-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.2px;
+    }
+    .mini-player-sub {
+      font-size: 11.5px;
+      color: #8e8e93;
+      margin-top: 1px;
+    }
+    .mini-play-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .mini-progress {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: #e5e5ea;
+    }
+    .mini-progress-fill {
+      width: 35%;
+      height: 100%;
+      background: #EA580C;
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* ── Tab bar ──────────────────────────────────────── */
+    .tab-bar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 83px;
+      background: rgba(249,249,249,0.94);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid rgba(0,0,0,0.1);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 8px;
+      z-index: 50;
+    }
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .tab-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tab-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: #8e8e93;
+    }
+    .tab-item.active .tab-label { color: #EA580C; }
+
+    /* ── FAB ──────────────────────────────────────────── */
+    .fab {
+      position: absolute;
+      right: 20px;
+      bottom: 165px; /* above mini player */
+      width: 52px;
+      height: 52px;
+      background: #EA580C;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(234,88,12,0.5), 0 2px 4px rgba(0,0,0,0.2);
+      z-index: 45;
+    }
+    .fab svg { display: block; }
+
+    /* bottom spacer in scroll */
+    .scroll-spacer { height: 24px; }
+
+  </style>
+</head>
+<body>
+
+  <p class="page-label">Ridecast · iOS Mockup</p>
+  <h1 class="page-title">Library — <span>Smart Redesign</span></h1>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  Phone frame                                   -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phone-frame">
+
+    <!-- Dynamic island -->
+    <div class="dynamic-island"></div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <!-- Signal -->
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
+          <rect x="0" y="7" width="3" height="5" rx="0.8" fill="#000"/>
+          <rect x="4.5" y="5" width="3" height="7" rx="0.8" fill="#000"/>
+          <rect x="9" y="2.5" width="3" height="9.5" rx="0.8" fill="#000"/>
+          <rect x="13.5" y="0" width="3" height="12" rx="0.8" fill="#000"/>
+        </svg>
+        <!-- WiFi -->
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 10.5a1.25 1.25 0 100-2.5 1.25 1.25 0 000 2.5z" fill="#000"/>
+          <path d="M4.5 7.5C5.6 6.4 6.7 5.8 8 5.8s2.4.6 3.5 1.7" stroke="#000" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+          <path d="M2 5C3.7 3.3 5.7 2.4 8 2.4s4.3.9 6 2.6" stroke="#000" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+        </svg>
+        <!-- Battery -->
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="#000" stroke-opacity="0.35"/>
+          <rect x="2" y="2" width="16" height="8" rx="2" fill="#000"/>
+          <path d="M23 4v4a2 2 0 000-4z" fill="#000" fill-opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ─── Scrollable library content ─────────────── -->
+    <div class="screen" id="libraryScroll">
+
+      <!-- Header -->
+      <div class="lib-header">
+        <span class="lib-title">Library</span>
+        <div class="sort-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M4 8h8M6 12h4" stroke="#3c3c43" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <div class="search-bar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="7" cy="7" r="5.5" stroke="#3c3c43" stroke-width="1.5"/>
+            <path d="M11.5 11.5L14 14" stroke="#3c3c43" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="search-placeholder">Search episodes, topics, sources…</span>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-scroll">
+        <div class="chip active">All</div>
+        <div class="chip">New</div>
+        <div class="chip">In Progress</div>
+        <div class="chip">Completed</div>
+        <div class="chip picker">Sources <span class="chip-arrow">▾</span></div>
+        <div class="chip picker">Topics <span class="chip-arrow">▾</span></div>
+      </div>
+
+      <!-- ══════════ TODAY ══════════ -->
+      <div class="section-header">
+        <span class="section-label">Today</span>
+        <div class="section-line"></div>
+        <span class="section-count">3 episodes</span>
+      </div>
+
+      <div class="cards-wrap">
+
+        <!-- Card 1 — ESPN, New, with swipe hint -->
+        <div class="episode-card swipe-hint">
+          <!-- swipe delete hint -->
+          <div class="swipe-delete-hint">
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+              <path d="M1 4h12l-1 10H2L1 4z" stroke="#ff3b30" stroke-width="1.4" stroke-linejoin="round" fill="none"/>
+              <path d="M5 4V2.5h4V4" stroke="#ff3b30" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 7v5M9 7v5" stroke="#ff3b30" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="card-row">
+            <div class="source-icon" style="background:#dc2626;">
+              E
+              <div class="icon-badge badge-new"></div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">Why the Yankees' Bullpen Is a Problem</div>
+              <div class="card-meta">ESPN<span class="card-meta-dot">·</span>Buster Olney<span class="card-meta-dot">·</span>12 min</div>
+              <div class="card-desc">An analysis of the Yankees' relief pitching struggles heading into the stretch run, and what deadline trades could fix a leaky late-inning formula.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill">12m</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <!-- no progress — new -->
+          </div>
+        </div>
+
+        <!-- Card 2 — Substack, In Progress -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#EA580C;">
+              S
+            </div>
+            <div class="card-content">
+              <div class="card-title">The Collapse of Consensus Reality</div>
+              <div class="card-meta">Substack<span class="card-meta-dot">·</span>Gurwinder Bhogal<span class="card-meta-dot">·</span>18 min</div>
+              <div class="card-desc">How social media has fractured shared epistemology and what that means for democracy, trust, and our ability to agree on basic facts.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill">18m</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width: 62%;"></div>
+          </div>
+        </div>
+
+        <!-- Card 3 — Generating -->
+        <div class="episode-card card-generating">
+          <div class="card-row">
+            <div class="source-icon" style="background:#6366f1;">
+              A
+              <div class="icon-badge badge-new"></div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">Attention Is All You Need (Revisited)</div>
+              <div class="card-meta">arXiv<span class="card-meta-dot">·</span>Vaswani et al.<span class="card-meta-dot">·</span>--</div>
+              <div class="generating-label">Generating audio… usually takes ~30s</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill" style="color:#EA580C; background:#fff4ee;">Soon</div>
+            </div>
+          </div>
+          <div class="generating-bar"></div>
+        </div>
+
+      </div><!-- /cards-wrap today -->
+
+      <!-- ══════════ THIS WEEK ══════════ -->
+      <div class="section-header">
+        <span class="section-label">This Week</span>
+        <div class="section-line"></div>
+        <span class="section-count">4 episodes</span>
+      </div>
+
+      <div class="cards-wrap">
+
+        <!-- Card 4 — GitHub, New -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#24292e;">
+              G
+              <div class="icon-badge badge-new"></div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">shadcn/ui — Component Architecture Deep Dive</div>
+              <div class="card-meta">GitHub README<span class="card-meta-dot">·</span>shadcn<span class="card-meta-dot">·</span>9 min</div>
+              <div class="card-desc">How shadcn/ui rethinks component libraries by shipping source code directly — no abstraction tax, full ownership, copy-paste philosophy.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill">9m</div>
+            </div>
+          </div>
+          <div class="card-progress"></div>
+        </div>
+
+        <!-- Card 5 — HBR, In Progress -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#9b1c1c;">
+              H
+            </div>
+            <div class="card-content">
+              <div class="card-title">When to Trust Your Gut Over the Data</div>
+              <div class="card-meta">Harvard Business Review<span class="card-meta-dot">·</span>Roger Martin<span class="card-meta-dot">·</span>22 min</div>
+              <div class="card-desc">Integrative thinking and the case for using both analytical rigor and experienced intuition when making high-stakes strategic decisions.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill">22m</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width: 28%;"></div>
+          </div>
+        </div>
+
+        <!-- Card 6 — The Verge, New -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#4c1d95;">
+              V
+              <div class="icon-badge badge-new"></div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">Apple Intelligence Is Finally Here. Does It Matter?</div>
+              <div class="card-meta">The Verge<span class="card-meta-dot">·</span>Nilay Patel<span class="card-meta-dot">·</span>14 min</div>
+              <div class="card-desc">A critical look at Apple's AI rollout — what shipped, what's delayed, and whether on-device intelligence is meaningfully different from cloud AI.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill">14m</div>
+            </div>
+          </div>
+          <div class="card-progress"></div>
+        </div>
+
+        <!-- Card 7 — Substack, Completed -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#EA580C;">
+              S
+              <div class="icon-badge badge-done">✓</div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">The Case for Doing Less, Better</div>
+              <div class="card-meta">Substack<span class="card-meta-dot">·</span>Paul Graham<span class="card-meta-dot">·</span>11 min</div>
+              <div class="card-desc">Why great work requires strategic neglect — how founders and creators who ship the least often build the most enduring things.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill" style="color:#34c759;">✓ Done</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width: 100%; background: #34c759;"></div>
+          </div>
+        </div>
+
+      </div><!-- /cards-wrap this week -->
+
+      <!-- ══════════ EARLIER ══════════ -->
+      <div class="section-header">
+        <span class="section-label">Earlier</span>
+        <div class="section-line"></div>
+        <span class="section-count">3 episodes</span>
+      </div>
+
+      <div class="cards-wrap">
+
+        <!-- Card 8 — arXiv, Completed -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#0d9488;">
+              A
+              <div class="icon-badge badge-done">✓</div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">Constitutional AI: Harmlessness from AI Feedback</div>
+              <div class="card-meta">arXiv<span class="card-meta-dot">·</span>Anthropic Research<span class="card-meta-dot">·</span>26 min</div>
+              <div class="card-desc">Anthropic's method for training helpful, harmless, and honest AI systems using a set of constitutional principles rather than human feedback alone.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill" style="color:#34c759;">✓ Done</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width: 100%; background: #34c759;"></div>
+          </div>
+        </div>
+
+        <!-- Card 9 — HBR, Completed -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#9b1c1c;">
+              H
+              <div class="icon-badge badge-done">✓</div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">The Real Reason Smart Companies Fail</div>
+              <div class="card-meta">Harvard Business Review<span class="card-meta-dot">·</span>Clayton Christensen<span class="card-meta-dot">·</span>19 min</div>
+              <div class="card-desc">Revisiting the innovator's dilemma — why market leaders systematically ignore disruptive technologies until it's too late to respond.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill" style="color:#34c759;">✓ Done</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width: 100%; background: #34c759;"></div>
+          </div>
+        </div>
+
+        <!-- Card 10 — GitHub, Completed -->
+        <div class="episode-card">
+          <div class="card-row">
+            <div class="source-icon" style="background:#24292e;">
+              G
+              <div class="icon-badge badge-done">✓</div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">How Postgres Makes Your Queries Fast</div>
+              <div class="card-meta">GitHub<span class="card-meta-dot">·</span>brandur/postgres-indexes<span class="card-meta-dot">·</span>16 min</div>
+              <div class="card-desc">A visual walkthrough of query planning, index types, and the EXPLAIN ANALYZE output that tells you exactly why your query is slow.</div>
+            </div>
+            <div class="card-right">
+              <div class="duration-pill" style="color:#34c759;">✓ Done</div>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width: 100%; background: #34c759;"></div>
+          </div>
+        </div>
+
+      </div><!-- /cards-wrap earlier -->
+
+      <div class="scroll-spacer"></div>
+    </div><!-- /screen -->
+
+    <!-- FAB -->
+    <div class="fab">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M11 4v14M4 11h14" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- Mini player -->
+    <div class="mini-player">
+      <div class="mini-player-icon">E</div>
+      <div class="mini-player-info">
+        <div class="mini-player-title">Why the Yankees' Bullpen Is a Problem</div>
+        <div class="mini-player-sub">ESPN · Buster Olney</div>
+      </div>
+      <div class="mini-play-btn">
+        <!-- Pause icon (playing) -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="14" fill="#EA580C"/>
+          <rect x="9" y="9" width="3.5" height="10" rx="1.2" fill="#fff"/>
+          <rect x="15.5" y="9" width="3.5" height="10" rx="1.2" fill="#fff"/>
+        </svg>
+      </div>
+      <div class="mini-progress">
+        <div class="mini-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <div class="tab-item">
+        <div class="tab-icon">
+          <!-- Home icon -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1H5a1 1 0 01-1-1V10.5z" stroke="#8e8e93" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+            <path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="tab-label">Home</span>
+      </div>
+      <div class="tab-item active">
+        <div class="tab-icon">
+          <!-- Library / books icon -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="5" width="3" height="14" rx="1" fill="#EA580C"/>
+            <rect x="8" y="3" width="3" height="16" rx="1" fill="#EA580C" opacity="0.7"/>
+            <rect x="13" y="6" width="8" height="12" rx="1" stroke="#EA580C" stroke-width="1.6" fill="none"/>
+            <path d="M16 10h4M16 13h3" stroke="#EA580C" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="tab-label" style="color:#EA580C; font-weight:600;">Library</span>
+      </div>
+    </div>
+
+  </div><!-- /phone-frame -->
+
+</body>
+</html>

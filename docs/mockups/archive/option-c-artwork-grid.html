@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ridecast — Option C: Artwork Grid</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0d0f;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-label {
+    color: #EA580C;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .page-title {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .page-subtitle {
+    color: rgba(255,255,255,0.4);
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 44px;
+    text-align: center;
+  }
+
+  /* ─── Phone Shell ─── */
+  .phone-wrap {
+    position: relative;
+    width: 393px;
+    background: #1c1c1e;
+    border-radius: 56px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 0 0 1px rgba(0,0,0,0.8) inset,
+      0 60px 120px rgba(0,0,0,0.7),
+      0 0 100px rgba(234,88,12,0.08);
+  }
+
+  .phone-screen {
+    background: #F2F2F7;
+    border-radius: 46px;
+    overflow: hidden;
+    position: relative;
+    height: 812px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 118px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 50;
+  }
+
+  /* ─── Status Bar ─── */
+  .status-bar {
+    height: 54px;
+    background: #fff;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #000;
+    letter-spacing: -0.3px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+  }
+
+  .signal-bar {
+    width: 3px;
+    background: #000;
+    border-radius: 1px;
+  }
+
+  .battery-body {
+    width: 25px;
+    height: 12px;
+    border: 1.5px solid rgba(0,0,0,0.8);
+    border-radius: 3px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 1.5px;
+  }
+
+  .battery-body::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 5px;
+    background: rgba(0,0,0,0.8);
+    border-radius: 0 1px 1px 0;
+  }
+
+  .battery-fill {
+    background: #34C759;
+    height: 100%;
+    width: 75%;
+    border-radius: 1.5px;
+  }
+
+  /* ─── Content Scroll Area ─── */
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    background: #F2F2F7;
+    padding-bottom: 156px;
+    scrollbar-width: none;
+  }
+
+  .content-area::-webkit-scrollbar { display: none; }
+
+  /* ─── App Header ─── */
+  .app-header {
+    background: #fff;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .greeting-block {}
+
+  .greeting {
+    font-size: 21px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.5px;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: #9CA3AF;
+    margin-top: 1px;
+  }
+
+  .header-sub span {
+    color: #EA580C;
+    font-weight: 600;
+  }
+
+  .settings-btn {
+    width: 36px;
+    height: 36px;
+    background: #F3F4F6;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  /* ─── Now Playing Wide Tile ─── */
+  .now-playing-wrapper {
+    padding: 14px 14px 0;
+  }
+
+  .now-playing-tile {
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    height: 130px;
+    box-shadow:
+      0 8px 32px rgba(204,0,0,0.3),
+      0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .np-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #CC0000 0%, #8B0000 45%, #1f0000 100%);
+  }
+
+  /* Subtle texture overlay */
+  .np-texture {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,80,80,0.3) 0%, transparent 60%);
+  }
+
+  .np-content {
+    position: relative;
+    z-index: 2;
+    padding: 14px 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .np-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .now-playing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 20px;
+  }
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .np-play-btn {
+    width: 34px;
+    height: 34px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+  }
+
+  .pause-icon { display: flex; gap: 3px; }
+
+  .pause-bar {
+    width: 3px;
+    height: 11px;
+    background: #CC0000;
+    border-radius: 2px;
+  }
+
+  .np-middle {
+    flex: 1;
+    padding: 8px 0 4px;
+  }
+
+  .np-source {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+
+  .np-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.25;
+    letter-spacing: -0.2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.3);
+  }
+
+  .np-bottom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .np-progress-track {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .np-progress-fill {
+    height: 100%;
+    background: rgba(255,255,255,0.9);
+    width: 65%;
+    border-radius: 3px;
+  }
+
+  .np-time-left {
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  /* ─── Grid Section ─── */
+  .grid-section {
+    padding: 16px 14px 0;
+  }
+
+  .grid-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .grid-section-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.3px;
+  }
+
+  .grid-sort-btn {
+    font-size: 12px;
+    color: #EA580C;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ─── 2-Column Grid ─── */
+  .episode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .grid-tile {
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1 / 1.08;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+
+  .tile-bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Subtle gradient overlay at bottom for text legibility */
+  .tile-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.05) 0%,
+      rgba(0,0,0,0.0) 30%,
+      rgba(0,0,0,0.45) 65%,
+      rgba(0,0,0,0.75) 100%
+    );
+  }
+
+  .tile-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px;
+  }
+
+  .tile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .tile-source-letter {
+    font-size: 44px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.2);
+    line-height: 1;
+    letter-spacing: -2px;
+    /* Positioned as a large watermark-style element */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .tile-duration-badge {
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    color: rgba(255,255,255,0.9);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 8px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    letter-spacing: 0.2px;
+  }
+
+  .tile-unplayed-badge {
+    width: 10px;
+    height: 10px;
+    background: #EA580C;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.9);
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    box-shadow: 0 2px 6px rgba(234,88,12,0.5);
+  }
+
+  .tile-inprogress-badge {
+    background: rgba(234,88,12,0.85);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 8px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+  }
+
+  .tile-source-icon-small {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+  }
+
+  .tile-bottom {
+    position: relative;
+    z-index: 2;
+  }
+
+  .tile-source-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+
+  .tile-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    letter-spacing: -0.1px;
+  }
+
+  .tile-progress-bar {
+    height: 2px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .tile-progress-fill {
+    height: 100%;
+    background: rgba(255,255,255,0.8);
+    border-radius: 2px;
+  }
+
+  /* ─── Source-specific tile backgrounds ─── */
+  .tile-espn .tile-bg {
+    background: linear-gradient(145deg, #CC0000 0%, #8B0000 55%, #2d0000 100%);
+  }
+
+  .tile-substack .tile-bg {
+    background: linear-gradient(145deg, #F97316 0%, #C2410C 50%, #431407 100%);
+  }
+
+  .tile-github .tile-bg {
+    background: linear-gradient(145deg, #374151 0%, #1f2937 50%, #0d1117 100%);
+  }
+
+  .tile-hbr .tile-bg {
+    background: linear-gradient(145deg, #A41034 0%, #6B1020 55%, #1a030a 100%);
+  }
+
+  .tile-arxiv .tile-bg {
+    background: linear-gradient(145deg, #0891b2 0%, #075985 50%, #02151e 100%);
+  }
+
+  /* ─── PDF type label ─── */
+  .tile-type-tag {
+    position: absolute;
+    bottom: 48px;
+    left: 12px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    color: rgba(255,255,255,0.9);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ─── Mini Player ─── */
+  .mini-player {
+    position: absolute;
+    bottom: 82px;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 20;
+  }
+
+  .mini-source-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #CC0000, #8B0000);
+  }
+
+  .mini-text { flex: 1; min-width: 0; }
+
+  .mini-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+
+  .mini-source {
+    font-size: 11px;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+
+  .mini-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mini-play {
+    width: 36px;
+    height: 36px;
+    background: #EA580C;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(234,88,12,0.3);
+  }
+
+  .mini-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #FED7AA;
+  }
+
+  .mini-progress-fill {
+    height: 100%;
+    background: #EA580C;
+    width: 65%;
+  }
+
+  /* ─── Tab Bar ─── */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 82px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 10px;
+    z-index: 30;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 60px;
+  }
+
+  .tab-icon { font-size: 22px; line-height: 1; }
+  .tab-label { font-size: 10px; font-weight: 600; }
+  .tab-item.active .tab-label { color: #EA580C; }
+  .tab-item.inactive .tab-label { color: #9CA3AF; }
+
+  /* ─── FAB ─── */
+  .fab {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    background: #EA580C;
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    font-weight: 300;
+    z-index: 25;
+    box-shadow:
+      0 4px 20px rgba(234,88,12,0.45),
+      0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  /* ─── Comparison note ─── */
+  .comparison-note {
+    margin-top: 36px;
+    max-width: 393px;
+    padding: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+  }
+
+  .note-title {
+    color: #EA580C;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .note-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .note-check { color: #34C759; flex-shrink: 0; }
+  .note-tradeoff { color: #FBBF24; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="page-label">Ridecast · Home Screen Concepts</div>
+<div class="page-title">Option C — Artwork Grid</div>
+<div class="page-subtitle">Pocket Casts-inspired · Visual library · Source-brand color tiles</div>
+
+<div class="phone-wrap">
+  <div class="phone-screen">
+
+    <!-- Dynamic Island -->
+    <div class="dynamic-island"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <div class="signal-bars">
+          <div class="signal-bar" style="height:4px"></div>
+          <div class="signal-bar" style="height:6px"></div>
+          <div class="signal-bar" style="height:9px"></div>
+          <div class="signal-bar" style="height:12px"></div>
+        </div>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" style="margin-top:1px">
+          <path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="#000"/>
+          <path d="M4.5 7.5C5.6 6.4 6.7 5.8 8 5.8s2.4.6 3.5 1.7" stroke="#000" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M1.5 4.5C3.4 2.6 5.6 1.5 8 1.5s4.6 1.1 6.5 3" stroke="#000" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div class="battery-body">
+          <div class="battery-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="content-area">
+
+      <!-- App Header -->
+      <div class="app-header">
+        <div class="greeting-block">
+          <div class="greeting">Good morning, Chris</div>
+          <div class="header-sub"><span>5 episodes</span> ready · 2h 50m</div>
+        </div>
+        <div class="settings-btn">⚙️</div>
+      </div>
+
+      <!-- Now Playing Wide Tile -->
+      <div class="now-playing-wrapper">
+        <div class="now-playing-tile">
+          <div class="np-bg"></div>
+          <div class="np-texture"></div>
+
+          <!-- Large watermark letter -->
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:16px;pointer-events:none">
+            <div style="font-size:120px;font-weight:900;color:rgba(255,255,255,0.08);line-height:1;letter-spacing:-4px;user-select:none">E</div>
+          </div>
+
+          <div class="np-content">
+            <div class="np-top-row">
+              <div class="now-playing-badge">
+                <div class="pulse-dot"></div>
+                Now Playing
+              </div>
+              <div class="np-play-btn">
+                <div class="pause-icon">
+                  <div class="pause-bar"></div>
+                  <div class="pause-bar"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="np-middle">
+              <div class="np-source">ESPN · Buster Olney</div>
+              <div class="np-title">Why the Yankees' Bullpen Is a Problem This Season</div>
+            </div>
+
+            <div class="np-bottom">
+              <div class="np-progress-track">
+                <div class="np-progress-fill"></div>
+              </div>
+              <div class="np-time-left">8m left</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid Section -->
+      <div class="grid-section">
+        <div class="grid-section-header">
+          <div class="grid-section-title">Up Next</div>
+          <div class="grid-sort-btn">↕ Sort</div>
+        </div>
+
+        <div class="episode-grid">
+
+          <!-- Tile 1 — Substack (in progress) -->
+          <div class="grid-tile tile-substack">
+            <div class="tile-bg"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-source-letter">S</div>
+            <div class="tile-content">
+              <div class="tile-top"></div>
+              <div>
+                <!-- In progress badge top-left -->
+                <div class="tile-inprogress-badge">20% in</div>
+                <!-- Duration top-right -->
+                <div class="tile-duration-badge">18m</div>
+              </div>
+              <div class="tile-bottom">
+                <div class="tile-source-label">Substack</div>
+                <div class="tile-title">The Art of Slowing Down</div>
+                <div class="tile-progress-bar">
+                  <div class="tile-progress-fill" style="width:20%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tile 2 — GitHub -->
+          <div class="grid-tile tile-github">
+            <div class="tile-bg"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-source-letter">G</div>
+            <div class="tile-content">
+              <div class="tile-top"></div>
+              <div>
+                <div class="tile-unplayed-badge"></div>
+                <div class="tile-duration-badge">42m</div>
+              </div>
+              <div class="tile-bottom">
+                <div class="tile-source-label">GitHub</div>
+                <div class="tile-title">Agents SDK Architecture Deep Dive</div>
+              </div>
+            </div>
+            <!-- Deep dive type tag -->
+            <div class="tile-type-tag">Deep Dive</div>
+          </div>
+
+          <!-- Tile 3 — HBR -->
+          <div class="grid-tile tile-hbr">
+            <div class="tile-bg"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-source-letter" style="font-size:32px;letter-spacing:-1px">HBR</div>
+            <div class="tile-content">
+              <div class="tile-top"></div>
+              <div>
+                <div class="tile-unplayed-badge"></div>
+                <div class="tile-duration-badge">31m</div>
+              </div>
+              <div class="tile-bottom">
+                <div class="tile-source-label">Harv. Biz Review</div>
+                <div class="tile-title">The Future of Remote Work</div>
+              </div>
+            </div>
+            <div class="tile-type-tag">PDF</div>
+          </div>
+
+          <!-- Tile 4 — arXiv -->
+          <div class="grid-tile tile-arxiv">
+            <div class="tile-bg"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-source-letter" style="font-size:30px;letter-spacing:-1px">arX</div>
+            <div class="tile-content">
+              <div class="tile-top"></div>
+              <div>
+                <div class="tile-unplayed-badge"></div>
+                <div class="tile-duration-badge">55m</div>
+              </div>
+              <div class="tile-bottom">
+                <div class="tile-source-label">arXiv · Research</div>
+                <div class="tile-title">Understanding Transformer Architecture</div>
+              </div>
+            </div>
+            <div class="tile-type-tag">PDF</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- end content-area -->
+
+    <!-- Mini Player -->
+    <div class="mini-player">
+      <div class="mini-source-icon">E</div>
+      <div class="mini-text">
+        <div class="mini-title">Why the Yankees' Bullpen Is a Problem</div>
+        <div class="mini-source">ESPN · Buster Olney</div>
+      </div>
+      <div class="mini-controls">
+        <div style="font-size:16px;color:#9CA3AF">«</div>
+        <div class="mini-play">
+          <div class="pause-icon">
+            <div class="pause-bar" style="background:#fff"></div>
+            <div class="pause-bar" style="background:#fff"></div>
+          </div>
+        </div>
+        <div style="font-size:16px;color:#9CA3AF">»</div>
+      </div>
+      <div class="mini-progress">
+        <div class="mini-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <div class="tab-icon">🏠</div>
+        <div class="tab-label" style="color:#EA580C">Home</div>
+      </div>
+      <div class="tab-item inactive">
+        <div class="tab-icon" style="filter:grayscale(1) opacity(0.5)">📚</div>
+        <div class="tab-label">Library</div>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab">+</div>
+
+  </div>
+</div>
+
+<!-- Notes -->
+<div class="comparison-note">
+  <div class="note-title">What makes this work</div>
+  <div class="note-item"><span class="note-check">✓</span>Most visually striking — feels like a premium media library, not a list</div>
+  <div class="note-item"><span class="note-check">✓</span>Source brand colors make each episode instantly recognizable</div>
+  <div class="note-item"><span class="note-check">✓</span>The full-width Now Playing tile is commanding — you always know what's on</div>
+  <div class="note-item"><span class="note-check">✓</span>Grid density shows more episodes at once than the card list</div>
+  <div class="note-item"><span class="note-tradeoff">~</span>Titles are shorter (3 lines max) — less description context per tile</div>
+  <div class="note-item"><span class="note-tradeoff">~</span>Requires extracting/assigning source brand colors at episode creation time</div>
+</div>
+
+</body>
+</html>
