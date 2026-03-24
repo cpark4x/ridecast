@@ -133,7 +133,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const interval = setInterval(async () => {
       const pos = progress.position;
       const dur = progress.duration;
-      const completed = dur > 0 && pos >= dur - 1;
+      const completed = isPlaybackCompleted(pos, dur);
       await saveLocalPlayback({
         audioId: currentItem.id,
         position: pos,
@@ -213,7 +213,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     const dur = progress.duration;
     const pos = progress.position;
-    if (dur > 0 && pos >= dur - 1) {
+    if (isPlaybackCompleted(pos, dur)) {
       TrackPlayer.pause();
       setSleepTimerState(null);
     }
