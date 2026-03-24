@@ -172,8 +172,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         speed,
         completed: true,
       };
-      (async () => {
-        await saveLocalPlayback(payload);
+      void (async () => {
+        try {
+          await saveLocalPlayback(payload);
+        } catch {
+          // Local persistence failed; still attempt server sync below
+        }
         saveServerPlayback(payload).catch(() => { /* fire and forget */ });
       })();
     }

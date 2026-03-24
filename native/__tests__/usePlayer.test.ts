@@ -147,6 +147,85 @@ describe("PlayerProvider – completion detection useEffect", () => {
     );
   });
 
+  it("calls saveServerPlayback only after saveLocalPlayback resolves (sequencing)", async () => {
+    mockProgressPosition = 299;
+    mockProgressDuration = 300;
+
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(() => usePlayer(), { wrapper });
+
+    await act(async () => {
+      await result.current.play(MOCK_ITEM);
+    });
+
+    // Set up a deferred local-save promise BEFORE the transition fires
+    let resolveLocal!: () => void;
+    const localDeferred = new Promise<void>((res) => { resolveLocal = res; });
+    mockDb.saveLocalPlayback.mockImplementationOnce(() => localDeferred);
+
+    jest.clearAllMocks();
+    // Re-apply deferred after clearing so the next call uses it
+    mockDb.saveLocalPlayback.mockImplementationOnce(() => localDeferred);
+
+    // Trigger playing → stopped transition at end of track
+    mockPlaybackStateValue = "playing";
+    await act(async () => { rerender(); });
+
+    mockPlaybackStateValue = "none";
+    await act(async () => { rerender(); });
+
+    // Flush microtasks — local save is still pending, server must not have fired yet
+    await act(async () => { await Promise.resolve(); });
+
+    expect(mockApi.savePlaybackState).not.toHaveBeenCalled();
+
+    // Resolve local save and flush again
+    await act(async () => {
+      resolveLocal();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Now server save should be called
+    expect(mockApi.savePlaybackState).toHaveBeenCalledWith(
+      expect.objectContaining({ audioId: "ep-1", completed: true })
+    );
+  });
+
+  it("still calls saveServerPlayback even when saveLocalPlayback rejects", async () => {
+    mockProgressPosition = 299;
+    mockProgressDuration = 300;
+
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(() => usePlayer(), { wrapper });
+
+    await act(async () => {
+      await result.current.play(MOCK_ITEM);
+    });
+
+    jest.clearAllMocks();
+    // Make local persistence fail on the next call
+    mockDb.saveLocalPlayback.mockRejectedValueOnce(new Error("local DB error"));
+
+    // Trigger playing → stopped transition at end of track
+    mockPlaybackStateValue = "playing";
+    await act(async () => { rerender(); });
+
+    mockPlaybackStateValue = "none";
+    await act(async () => { rerender(); });
+
+    // Flush microtasks so the async IIFE runs to completion
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Server save must still be called despite the local failure
+    expect(mockApi.savePlaybackState).toHaveBeenCalledWith(
+      expect.objectContaining({ audioId: "ep-1", completed: true })
+    );
+  });
+
   it("does NOT save completed when playback stops before end of track", async () => {
     // Position well before the end
     mockProgressPosition = 100;
