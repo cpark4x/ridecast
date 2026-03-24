@@ -61,4 +61,8 @@ export async function PlaybackService() {
     const position = await TrackPlayer.getPosition();
     await TrackPlayer.seekTo(Math.max(0, position - event.interval));
   });
+  TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+    await TrackPlayer.pause();
+    await TrackPlayer.seekTo(0);
+  });
 }

@@ -31,6 +31,7 @@ jest.mock("react-native-track-player", () => ({
     RemoteSeek: "remote-seek",
     RemoteJumpForward: "remote-jump-forward",
     RemoteJumpBackward: "remote-jump-backward",
+    PlaybackQueueEnded: "playback-queue-ended",
   },
   RepeatMode: { Off: 0 },
   State: { Playing: "playing", Paused: "paused", None: "none" },
@@ -126,5 +127,17 @@ describe("PlaybackService", () => {
     const handler = fwdCall![1] as (e: { interval: number }) => Promise<void>;
     await handler({ interval: 15 });
     expect(tp.seekTo).toHaveBeenCalledWith(115);
+  });
+
+  it("PlaybackQueueEnded handler pauses and seeks to start", async () => {
+    await PlaybackService();
+    const queueEndedCall = tp.addEventListener.mock.calls.find(
+      (c: unknown[]) => c[0] === "playback-queue-ended",
+    );
+    expect(queueEndedCall).toBeDefined();
+    const handler = queueEndedCall![1] as () => Promise<void>;
+    await handler();
+    expect(tp.pause).toHaveBeenCalledTimes(1);
+    expect(tp.seekTo).toHaveBeenCalledWith(0);
   });
 });
