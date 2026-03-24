@@ -83,6 +83,7 @@ describe("api client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
         json: async () => mockLibrary,
       });
 
@@ -99,6 +100,7 @@ describe("api client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
         json: async () => ({
           id: "script-1",
           contentId: "content-1",
@@ -121,6 +123,7 @@ describe("api client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
         json: async () => ({
           id: "audio-1",
           scriptId: "script-1",
@@ -141,6 +144,7 @@ describe("api client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
         json: async () => ({
           audioId: "audio-1",
           position: 42.5,
@@ -158,6 +162,7 @@ describe("api client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
         json: async () => ({
           audioId: "audio-1",
           position: 100,

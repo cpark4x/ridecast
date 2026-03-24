@@ -13,6 +13,7 @@ describe("api.deleteEpisode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
+      headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
       json: async () => ({ ok: true }),
     });
 
@@ -28,6 +29,7 @@ describe("api.deleteEpisode", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
+      headers: { get: (key: string) => (key === "content-type" ? "application/json" : null) },
       json: async () => ({ ok: true }),
     });
 

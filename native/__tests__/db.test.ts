@@ -30,7 +30,11 @@ import {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // Default: getAllAsync returns [] (needed for PRAGMA table_info + backfill queries during migration)
+  // mockReset clears queued mockResolvedValueOnce values and custom implementations
+  // left over from previous tests. clearAllMocks only clears call records.
+  mockGetAllAsync.mockReset();
+  mockExecAsync.mockReset();
+  // Default: getAllAsync returns [] (needed for backfill query during migration)
   mockGetAllAsync.mockResolvedValue([]);
   // Reset the module-level _db cache so each test gets a fresh DB
   setDb(null as unknown as import("expo-sqlite").SQLiteDatabase);
@@ -59,20 +63,19 @@ describe("db", () => {
       expect(v3Call2).toContain("summary_snippet");
     });
 
-    it("V3 migration skips columns that already exist", async () => {
-      // PRAGMA table_info returns columns including themes_text and summary_snippet
-      mockGetAllAsync
-        .mockResolvedValueOnce([
-          { name: "content_id" }, { name: "title" }, { name: "themes_text" },
-        ])
-        .mockResolvedValueOnce([
-          { name: "content_id" }, { name: "title" }, { name: "summary_snippet" },
-        ])
-        .mockResolvedValueOnce([]); // backfill query
+    it("V3 migration completes normally when columns already exist", async () => {
+      // addColumnIfMissing wraps ALTER TABLE in try/catch, so duplicate-column
+      // errors are silently swallowed. Verify the migration resolves even when
+      // the V3 ALTER TABLE calls throw.
+      let execCount = 0;
+      mockExecAsync.mockImplementation(async () => {
+        execCount++;
+        if (execCount >= 7) throw new Error("duplicate column");
+      });
 
-      await getDb();
-      // Only 6 calls: 1 CREATE + 5 V2 ALTER — no V3 ALTERs because columns exist
-      expect(mockExecAsync).toHaveBeenCalledTimes(6);
+      await expect(getDb()).resolves.toBeDefined();
+      // 1 CREATE + 5 V2 ALTERs + 2 V3 ALTERs (errors caught) = 8 total
+      expect(mockExecAsync).toHaveBeenCalledTimes(8);
     });
   });
 

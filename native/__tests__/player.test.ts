@@ -89,7 +89,7 @@ describe("setupPlayer", () => {
 });
 
 describe("PlaybackService", () => {
-  it("registers remote event listeners", async () => {
+  it("registers expected playback event listeners", async () => {
     await PlaybackService();
 
     const registeredEvents = tp.addEventListener.mock.calls.map(

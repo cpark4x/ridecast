@@ -81,7 +81,8 @@ describe("resolveAudioUrl", () => {
     mockDb.getDownloadPath.mockResolvedValueOnce(null);
 
     const url = await resolveAudioUrl("a1", "https://cdn.example.com/a1.mp3");
-    expect(url).toBe("https://cdn.example.com/a1.mp3");
+    // resolveAudioUrl routes through the API's /api/audio endpoint (generates time-limited SAS URLs)
+    expect(url).toBe("http://localhost:3000/api/audio/a1");
   });
 });
 
