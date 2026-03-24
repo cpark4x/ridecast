@@ -36,7 +36,7 @@ export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
 
   return {
     id:               version.audioId,
-    title:            item.title,
+    title:            smartTitle(item.title, item.sourceType, item.sourceDomain),
     duration:         version.durationSecs ?? version.targetDuration * 60,
     format:           version.format,
     audioUrl:         version.audioUrl,

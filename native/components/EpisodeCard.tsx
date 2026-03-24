@@ -200,7 +200,7 @@ export default function EpisodeCard({
     void Haptics.light();
     const playable: PlayableItem = {
       id:              v.audioId,
-      title:           item.title,
+      title:           smartTitle(item.title, item.sourceType, item.sourceDomain),
       duration:        v.durationSecs ?? v.targetDuration * 60,
       format:          v.format,
       audioUrl:        v.audioUrl ?? "",

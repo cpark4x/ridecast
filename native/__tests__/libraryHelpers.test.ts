@@ -184,3 +184,34 @@ describe("libraryItemToPlayable — artwork", () => {
     expect(playable!.thumbnailUrl).toBeUndefined();
   });
 });
+
+describe("libraryItemToPlayable — title cleaning", () => {
+  it("strips publisher suffix from pipe-separated titles", () => {
+    const item = makeItem("c1", [makeVersion({ audioId: "a1", audioUrl: "https://cdn.example.com/a1.mp3" })], {
+      title: "Sunday Letters | Sam Schillace",
+      sourceType: "url",
+    });
+    const playable = libraryItemToPlayable(item);
+    expect(playable).not.toBeNull();
+    expect(playable!.title).toBe("Sunday Letters");
+    expect(playable!.title).not.toContain("|");
+  });
+  it("cleans PDF filename-style titles", () => {
+    const item = makeItem("c2", [makeVersion({ audioId: "a2", audioUrl: "https://cdn.example.com/a2.mp3" })], {
+      title: "2024_Q3_strategy_report.pdf",
+      sourceType: "pdf",
+    });
+    const playable = libraryItemToPlayable(item);
+    expect(playable).not.toBeNull();
+    expect(playable!.title).toBe("2024 Q3 Strategy Report");
+  });
+  it("passes through clean titles unchanged", () => {
+    const item = makeItem("c3", [makeVersion({ audioId: "a3", audioUrl: "https://cdn.example.com/a3.mp3" })], {
+      title: "How Transformers Work",
+      sourceType: "url",
+    });
+    const playable = libraryItemToPlayable(item);
+    expect(playable).not.toBeNull();
+    expect(playable!.title).toBe("How Transformers Work");
+  });
+});
