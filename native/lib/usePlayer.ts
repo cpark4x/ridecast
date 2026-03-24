@@ -166,18 +166,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       currentItem &&
       isPlaybackCompleted(progress.position, progress.duration)
     ) {
-      saveLocalPlayback({
+      const payload = {
         audioId: currentItem.id,
         position: progress.position,
         speed,
         completed: true,
-      });
-      saveServerPlayback({
-        audioId: currentItem.id,
-        position: progress.position,
-        speed,
-        completed: true,
-      }).catch(() => { /* fire and forget */ });
+      };
+      (async () => {
+        await saveLocalPlayback(payload);
+        saveServerPlayback(payload).catch(() => { /* fire and forget */ });
+      })();
     }
   }, [isPlaying, currentItem, progress.position, progress.duration, speed]);
 
