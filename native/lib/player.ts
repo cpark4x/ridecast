@@ -66,3 +66,11 @@ export async function PlaybackService() {
     await TrackPlayer.seekTo(0);
   });
 }
+
+/**
+ * Returns true when playback position is within 1 second of the track's end.
+ * Used to determine when to mark an episode as "completed".
+ */
+export function isPlaybackCompleted(position: number, duration: number): boolean {
+  return duration > 0 && position >= duration - 1;
+}

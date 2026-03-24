@@ -142,3 +142,26 @@ describe("PlaybackService", () => {
     expect(tp.seekTo).toHaveBeenCalledWith(0);
   });
 });
+
+describe("isPlaybackCompleted", () => {
+  it("returns true when position is within 1 second of duration", () => {
+    const { isPlaybackCompleted } = require("../lib/player");
+    expect(isPlaybackCompleted(299.5, 300)).toBe(true);
+  });
+  it("returns true when position equals duration", () => {
+    const { isPlaybackCompleted } = require("../lib/player");
+    expect(isPlaybackCompleted(300, 300)).toBe(true);
+  });
+  it("returns false when position is far from end", () => {
+    const { isPlaybackCompleted } = require("../lib/player");
+    expect(isPlaybackCompleted(100, 300)).toBe(false);
+  });
+  it("returns false when duration is 0 (no track loaded)", () => {
+    const { isPlaybackCompleted } = require("../lib/player");
+    expect(isPlaybackCompleted(0, 0)).toBe(false);
+  });
+  it("returns false for negative values", () => {
+    const { isPlaybackCompleted } = require("../lib/player");
+    expect(isPlaybackCompleted(-1, 300)).toBe(false);
+  });
+});

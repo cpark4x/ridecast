@@ -12,6 +12,7 @@ import TrackPlayer, {
   useActiveTrack,
   State,
 } from "react-native-track-player";
+import { isPlaybackCompleted } from "./player";
 import { resolveAudioUrl } from "./downloads";
 import { saveLocalPlayback, getLocalPlayback } from "./db";
 import { savePlaybackState as saveServerPlayback } from "./api";
@@ -90,6 +91,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const progress = useProgress(500);
   const activeTrack = useActiveTrack();
 
+  // Track previous isPlaying state for completion detection
+  const prevPlayingRef = useRef(false);
+
   // Timestamps for smart resume
   const pausedAtRef = useRef<number | null>(null);
 
@@ -147,6 +151,34 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }, POSITION_SAVE_INTERVAL_MS);
 
     return () => clearInterval(interval);
+  }, [isPlaying, currentItem, progress.position, progress.duration, speed]);
+
+  // -------------------------------------------------------------------------
+  // Completion detection: save completed when playback stops at end of track
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    const wasPlaying = prevPlayingRef.current;
+    prevPlayingRef.current = isPlaying;
+    // Detect playing → stopped transition at end of track
+    if (
+      wasPlaying &&
+      !isPlaying &&
+      currentItem &&
+      isPlaybackCompleted(progress.position, progress.duration)
+    ) {
+      saveLocalPlayback({
+        audioId: currentItem.id,
+        position: progress.position,
+        speed,
+        completed: true,
+      });
+      saveServerPlayback({
+        audioId: currentItem.id,
+        position: progress.position,
+        speed,
+        completed: true,
+      }).catch(() => { /* fire and forget */ });
+    }
   }, [isPlaying, currentItem, progress.position, progress.duration, speed]);
 
   // -------------------------------------------------------------------------
