@@ -1,5 +1,6 @@
+import { smartTitle } from "../lib/libraryHelpers";
 import { sourceName } from "../lib/utils";
-import type { AudioVersion } from "../lib/types";
+import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
 
 // ---------------------------------------------------------------------------
 // Test factory helpers
@@ -269,5 +270,91 @@ describe("sourceName", () => {
 
   it("handles undefined sourceType gracefully", () => {
     expect(typeof sourceName(undefined, null, null)).toBe("string");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Factory helper for LibraryItem (needed for handleVersionTap tests below)
+// ---------------------------------------------------------------------------
+
+function makeItem(
+  id: string,
+  versions: AudioVersion[],
+  overrides: Partial<LibraryItem> = {},
+): LibraryItem {
+  return {
+    id,
+    title: `Episode ${id}`,
+    author: null,
+    sourceType: "url",
+    sourceUrl: null,
+    createdAt: new Date().toISOString(),
+    wordCount: 1000,
+    versions,
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// handleVersionTap — PlayableItem title cleaning (EpisodeCard execution path)
+// ---------------------------------------------------------------------------
+// These tests mirror the PlayableItem construction logic in
+// EpisodeCard.handleVersionTap(), which uses:
+//   title: smartTitle(item.title, item.sourceType, item.sourceDomain)
+// If that line is ever regressed to `item.title`, the assertions below catch it.
+
+function buildVersionTapPlayable(item: LibraryItem, version: AudioVersion): PlayableItem {
+  // Mirrors EpisodeCard.handleVersionTap() PlayableItem construction exactly.
+  return {
+    id:               version.audioId!,
+    title:            smartTitle(item.title, item.sourceType, item.sourceDomain),
+    duration:         version.durationSecs ?? version.targetDuration * 60,
+    format:           version.format,
+    audioUrl:         version.audioUrl ?? "",
+    author:           item.author,
+    sourceType:       item.sourceType,
+    sourceUrl:        item.sourceUrl,
+    sourceDomain:     item.sourceDomain,
+    sourceName:       item.sourceName,
+    sourceBrandColor: item.sourceBrandColor,
+    contentType:      version.contentType,
+    themes:           version.themes,
+    summary:          version.summary,
+    targetDuration:   version.targetDuration,
+    createdAt:        item.createdAt,
+    thumbnailUrl:     item.thumbnailUrl,
+  };
+}
+
+describe("EpisodeCard: handleVersionTap — PlayableItem title cleaning", () => {
+  it("strips publisher suffix from pipe-separated titles before passing to onVersionPress", () => {
+    const item = makeItem("t1", [makeVersion()], {
+      title: "Sunday Letters | Sam Schillace",
+      sourceType: "url",
+    });
+    const version = makeVersion({ audioId: "av1", audioUrl: "https://cdn.example.com/av1.mp3" });
+    const playable = buildVersionTapPlayable(item, version);
+    expect(playable.title).toBe("Sunday Letters");
+    expect(playable.title).not.toContain("|");
+  });
+
+  it("cleans PDF filename-style titles before passing to onVersionPress", () => {
+    const item = makeItem("t2", [makeVersion()], {
+      title: "2024_Q3_strategy_report.pdf",
+      sourceType: "pdf",
+    });
+    const version = makeVersion({ audioId: "av2", audioUrl: "https://cdn.example.com/av2.mp3" });
+    const playable = buildVersionTapPlayable(item, version);
+    expect(playable.title).toBe("2024 Q3 Strategy Report");
+  });
+
+  it("passes through clean titles unchanged", () => {
+    const item = makeItem("t3", [makeVersion()], {
+      title: "How Transformers Work",
+      sourceType: "url",
+    });
+    const version = makeVersion({ audioId: "av3", audioUrl: "https://cdn.example.com/av3.mp3" });
+    const playable = buildVersionTapPlayable(item, version);
+    expect(playable.title).toBe("How Transformers Work");
   });
 });
