@@ -70,6 +70,7 @@ function itemToTrack(item: PlayableItem) {
     title: item.title,
     artist: item.author ?? undefined,
     duration: item.duration,
+    artwork: item.thumbnailUrl ?? undefined,
   };
 }
 

@@ -215,6 +215,7 @@ export default function EpisodeCard({
       summary:         v.summary,
       targetDuration:  v.targetDuration,
       createdAt:       item.createdAt,
+      thumbnailUrl:    item.thumbnailUrl,
     };
     onVersionPress(item, v, playable);
   }

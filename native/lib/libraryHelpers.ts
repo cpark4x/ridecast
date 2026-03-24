@@ -51,6 +51,7 @@ export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
     summary:          version.summary,
     targetDuration:   version.targetDuration,
     createdAt:        item.createdAt,
+    thumbnailUrl:     item.thumbnailUrl, // for lock screen artwork
   };
 }
 

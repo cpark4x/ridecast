@@ -1,4 +1,4 @@
-import { getLibraryContext, getTopSourceDomain } from "../lib/libraryHelpers";
+import { getLibraryContext, getTopSourceDomain, libraryItemToPlayable } from "../lib/libraryHelpers";
 import type { AudioVersion, LibraryItem } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -163,5 +163,24 @@ describe("getTopSourceDomain", () => {
     ];
     expect(() => getTopSourceDomain(items)).not.toThrow();
     expect(getTopSourceDomain(items)).toBe("espn.com");
+  });
+});
+
+describe("libraryItemToPlayable — artwork", () => {
+  it("includes thumbnailUrl in the returned PlayableItem", () => {
+    const item = makeItem("c1", [makeVersion({ audioId: "a1", audioUrl: "https://cdn.example.com/a1.mp3" })], {
+      thumbnailUrl: "https://www.google.com/s2/favicons?domain=example.com&sz=128",
+    });
+    const playable = libraryItemToPlayable(item);
+    expect(playable).not.toBeNull();
+    expect(playable!.thumbnailUrl).toBe(
+      "https://www.google.com/s2/favicons?domain=example.com&sz=128",
+    );
+  });
+  it("sets thumbnailUrl to null when LibraryItem has no thumbnail", () => {
+    const item = makeItem("c2", [makeVersion({ audioId: "a2", audioUrl: "https://cdn.example.com/a2.mp3" })]);
+    const playable = libraryItemToPlayable(item);
+    expect(playable).not.toBeNull();
+    expect(playable!.thumbnailUrl).toBeUndefined();
   });
 });

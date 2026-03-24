@@ -113,6 +113,7 @@ export interface PlayableItem {
   voices?: string[];
   ttsProvider?: string | null;
   createdAt?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 export type LibraryFilter = "active" | "all" | "in_progress" | "completed" | "generating";
