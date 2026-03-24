@@ -1,6 +1,6 @@
-import { smartTitle } from "../lib/libraryHelpers";
+import { buildPlayableItem, smartTitle } from "../lib/libraryHelpers";
 import { sourceName } from "../lib/utils";
-import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
+import type { AudioVersion, LibraryItem } from "../lib/types";
 
 // ---------------------------------------------------------------------------
 // Test factory helpers
@@ -298,33 +298,11 @@ function makeItem(
 // ---------------------------------------------------------------------------
 // handleVersionTap — PlayableItem title cleaning (EpisodeCard execution path)
 // ---------------------------------------------------------------------------
-// These tests mirror the PlayableItem construction logic in
-// EpisodeCard.handleVersionTap(), which uses:
-//   title: smartTitle(item.title, item.sourceType, item.sourceDomain)
-// If that line is ever regressed to `item.title`, the assertions below catch it.
-
-function buildVersionTapPlayable(item: LibraryItem, version: AudioVersion): PlayableItem {
-  // Mirrors EpisodeCard.handleVersionTap() PlayableItem construction exactly.
-  return {
-    id:               version.audioId!,
-    title:            smartTitle(item.title, item.sourceType, item.sourceDomain),
-    duration:         version.durationSecs ?? version.targetDuration * 60,
-    format:           version.format,
-    audioUrl:         version.audioUrl ?? "",
-    author:           item.author,
-    sourceType:       item.sourceType,
-    sourceUrl:        item.sourceUrl,
-    sourceDomain:     item.sourceDomain,
-    sourceName:       item.sourceName,
-    sourceBrandColor: item.sourceBrandColor,
-    contentType:      version.contentType,
-    themes:           version.themes,
-    summary:          version.summary,
-    targetDuration:   version.targetDuration,
-    createdAt:        item.createdAt,
-    thumbnailUrl:     item.thumbnailUrl,
-  };
-}
+// These tests exercise the real buildPlayableItem() helper that both
+// libraryItemToPlayable() and handleVersionTap() delegate to.
+// A regression in buildPlayableItem() — e.g. reverting to `title: item.title`
+// — will cause these tests to fail, and handleVersionTap() is protected
+// because it calls the same shared function.
 
 describe("EpisodeCard: handleVersionTap — PlayableItem title cleaning", () => {
   it("strips publisher suffix from pipe-separated titles before passing to onVersionPress", () => {
@@ -333,7 +311,7 @@ describe("EpisodeCard: handleVersionTap — PlayableItem title cleaning", () => 
       sourceType: "url",
     });
     const version = makeVersion({ audioId: "av1", audioUrl: "https://cdn.example.com/av1.mp3" });
-    const playable = buildVersionTapPlayable(item, version);
+    const playable = buildPlayableItem(item, version);
     expect(playable.title).toBe("Sunday Letters");
     expect(playable.title).not.toContain("|");
   });
@@ -344,7 +322,7 @@ describe("EpisodeCard: handleVersionTap — PlayableItem title cleaning", () => 
       sourceType: "pdf",
     });
     const version = makeVersion({ audioId: "av2", audioUrl: "https://cdn.example.com/av2.mp3" });
-    const playable = buildVersionTapPlayable(item, version);
+    const playable = buildPlayableItem(item, version);
     expect(playable.title).toBe("2024 Q3 Strategy Report");
   });
 
@@ -354,7 +332,7 @@ describe("EpisodeCard: handleVersionTap — PlayableItem title cleaning", () => 
       sourceType: "url",
     });
     const version = makeVersion({ audioId: "av3", audioUrl: "https://cdn.example.com/av3.mp3" });
-    const playable = buildVersionTapPlayable(item, version);
+    const playable = buildPlayableItem(item, version);
     expect(playable.title).toBe("How Transformers Work");
   });
 });

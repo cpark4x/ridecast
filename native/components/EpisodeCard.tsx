@@ -11,7 +11,7 @@ import {
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Ionicons } from "@expo/vector-icons";
 import type { AudioVersion, LibraryItem, PlayableItem } from "../lib/types";
-import { smartTitle } from "../lib/libraryHelpers";
+import { buildPlayableItem, smartTitle } from "../lib/libraryHelpers";
 import { humanizeContentType, sourceName } from "../lib/utils";
 import { Haptics } from "../lib/haptics";
 import SourceThumbnail, { registeredDomain } from "./SourceThumbnail";
@@ -198,26 +198,7 @@ export default function EpisodeCard({
   function handleVersionTap(v: AudioVersion) {
     if (v.status !== "ready" || !v.audioId || !onVersionPress) return;
     void Haptics.light();
-    const playable: PlayableItem = {
-      id:              v.audioId,
-      title:           smartTitle(item.title, item.sourceType, item.sourceDomain),
-      duration:        v.durationSecs ?? v.targetDuration * 60,
-      format:          v.format,
-      audioUrl:        v.audioUrl ?? "",
-      author:          item.author,
-      sourceType:      item.sourceType,
-      sourceUrl:       item.sourceUrl,
-      sourceDomain:    item.sourceDomain,
-      sourceName:      item.sourceName,
-      sourceBrandColor: item.sourceBrandColor,
-      contentType:     v.contentType,
-      themes:          v.themes,
-      summary:         v.summary,
-      targetDuration:  v.targetDuration,
-      createdAt:       item.createdAt,
-      thumbnailUrl:    item.thumbnailUrl,
-    };
-    onVersionPress(item, v, playable);
+    onVersionPress(item, v, buildPlayableItem(item, v));
   }
 
   // ---------------------------------------------------------------------------

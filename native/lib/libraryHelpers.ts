@@ -1,4 +1,4 @@
-import type { LibraryItem, LibraryFilter, PlayableItem } from "./types";
+import type { AudioVersion, LibraryItem, LibraryFilter, PlayableItem } from "./types";
 import { sourceName } from "./utils";
 
 export type SortOrder =
@@ -25,21 +25,17 @@ export function getUnlistenedItems(items: LibraryItem[]): LibraryItem[] {
 }
 
 /**
- * Build a PlayableItem from a LibraryItem using its first ready version.
- * Returns null if no ready version with audioId + audioUrl exists.
+ * Build a PlayableItem from a LibraryItem and a specific AudioVersion.
+ * Applies smartTitle() to clean the raw title before it reaches the player.
+ * Used by both libraryItemToPlayable() and EpisodeCard.handleVersionTap().
  */
-export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
-  const version = item.versions.find(
-    (v) => v.status === "ready" && v.audioId && v.audioUrl,
-  );
-  if (!version || !version.audioId || !version.audioUrl) return null;
-
+export function buildPlayableItem(item: LibraryItem, version: AudioVersion): PlayableItem {
   return {
-    id:               version.audioId,
+    id:               version.audioId!,
     title:            smartTitle(item.title, item.sourceType, item.sourceDomain),
     duration:         version.durationSecs ?? version.targetDuration * 60,
     format:           version.format,
-    audioUrl:         version.audioUrl,
+    audioUrl:         version.audioUrl ?? "",
     author:           item.author,
     sourceType:       item.sourceType,
     sourceUrl:        item.sourceUrl,
@@ -51,8 +47,21 @@ export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
     summary:          version.summary,
     targetDuration:   version.targetDuration,
     createdAt:        item.createdAt,
-    thumbnailUrl:     item.thumbnailUrl, // for lock screen artwork
+    thumbnailUrl:     item.thumbnailUrl,   // for lock screen artwork
   };
+}
+
+/**
+ * Build a PlayableItem from a LibraryItem using its first ready version.
+ * Returns null if no ready version with audioId + audioUrl exists.
+ */
+export function libraryItemToPlayable(item: LibraryItem): PlayableItem | null {
+  const version = item.versions.find(
+    (v) => v.status === "ready" && v.audioId && v.audioUrl,
+  );
+  if (!version || !version.audioId || !version.audioUrl) return null;
+
+  return buildPlayableItem(item, version);
 }
 
 export function filterEpisodes(

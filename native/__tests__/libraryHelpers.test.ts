@@ -177,7 +177,7 @@ describe("libraryItemToPlayable — artwork", () => {
       "https://www.google.com/s2/favicons?domain=example.com&sz=128",
     );
   });
-  it("sets thumbnailUrl to null when LibraryItem has no thumbnail", () => {
+  it("sets thumbnailUrl to undefined when LibraryItem has no thumbnail", () => {
     const item = makeItem("c2", [makeVersion({ audioId: "a2", audioUrl: "https://cdn.example.com/a2.mp3" })]);
     const playable = libraryItemToPlayable(item);
     expect(playable).not.toBeNull();
