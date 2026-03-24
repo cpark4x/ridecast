@@ -102,6 +102,7 @@ describe("PlaybackService", () => {
     expect(registeredEvents).toContain("remote-seek");
     expect(registeredEvents).toContain("remote-jump-forward");
     expect(registeredEvents).toContain("remote-jump-backward");
+    expect(registeredEvents).toContain("playback-queue-ended");
   });
 
   it("RemotePause listener calls TrackPlayer.pause", async () => {
