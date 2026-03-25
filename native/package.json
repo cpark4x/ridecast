@@ -18,7 +18,7 @@
       "/ios/"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind|@gorhom/.*)"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.after-env.js"
@@ -42,6 +42,7 @@
     "@sentry/react-native": "~7.11.0",
     "expo": "~55.0.6",
     "expo-auth-session": "~55.0.8",
+    "expo-av": "~15.0.2",
     "expo-constants": "~55.0.7",
     "expo-crypto": "~55.0.9",
     "expo-dev-client": "~55.0.16",
