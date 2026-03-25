@@ -294,6 +294,12 @@ describe("FeedbackSheet: tab switching", () => {
   });
 
   it("tab switch is blocked while recording is active (stop-button stays visible)", async () => {
+    // Use fake timers: startRecording() starts a real setInterval for the
+    // duration counter.  Without fake timers the interval outlives the test
+    // and keeps Jest from exiting cleanly (open-handle hang).
+    // afterEach already calls jest.useRealTimers() to restore the environment.
+    jest.useFakeTimers();
+
     const { ref, getByText, getByTestId, queryByTestId } = renderSheet();
 
     await act(async () => {
