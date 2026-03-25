@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import {
   Alert,
@@ -26,6 +26,8 @@ import SettingsSection from "../components/settings/SettingsSection";
 import SettingsRow from "../components/settings/SettingsRow";
 import SettingsToggleRow from "../components/settings/SettingsToggleRow";
 import SettingsDivider from "../components/settings/SettingsDivider";
+import FeedbackSheet from "../components/FeedbackSheet";
+import type { FeedbackSheetRef } from "../components/FeedbackSheet";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -55,6 +57,7 @@ function SettingsScreen() {
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [keyDirty, setKeyDirty] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
+  const feedbackRef = useRef<FeedbackSheetRef>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -318,6 +321,17 @@ function SettingsScreen() {
           </SettingsRow>
         </SettingsSection>
 
+
+        {/* ─── Support ───────────────────────────────────────────────────────────── */}
+        <SettingsSection title="Support">
+          <SettingsRow
+            label="Send Feedback"
+            subtitle="Report a bug or share an idea"
+            onPress={() => feedbackRef.current?.open()}
+          >
+            <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />
+          </SettingsRow>
+        </SettingsSection>
         {/* ── About ─────────────────────────────────────────── */}
         <SettingsSection title="About">
           <SettingsRow
@@ -332,6 +346,7 @@ function SettingsScreen() {
         </SettingsSection>
       </ScrollView>
       </KeyboardAvoidingView>
+      <FeedbackSheet ref={feedbackRef} />
     </SafeAreaView>
   );
 }
