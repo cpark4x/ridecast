@@ -13,7 +13,6 @@ export default function TabLayout() {
           borderTopColor: "rgba(0,0,0,0.06)",
         },
         lazy: true,
-        unmountOnBlur: false,
       }}
       screenListeners={{
         tabPress: () => {
