@@ -101,6 +101,8 @@ describe("submitTextFeedback", () => {
 
 describe("submitVoiceFeedback", () => {
   it("sends FormData with audioFile, screenContext, and episodeId", async () => {
+    const appendSpy = jest.spyOn(FormData.prototype, "append");
+
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -122,10 +124,17 @@ describe("submitVoiceFeedback", () => {
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/api/feedback");
     expect(options.method).toBe("POST");
-    expect(options.headers.Authorization).toBeDefined();
+    expect(options.headers.Authorization).toBe("Bearer test-token-123");
     // FormData sets the Content-Type with multipart boundary — do not set it manually
     expect(options.headers["Content-Type"]).toBeUndefined();
     expect(options.body).toBeInstanceOf(FormData);
+
+    // Verify actual FormData fields were appended
+    expect(appendSpy).toHaveBeenCalledWith("audioFile", expect.anything());
+    expect(appendSpy).toHaveBeenCalledWith("screenContext", "/player");
+    expect(appendSpy).toHaveBeenCalledWith("episodeId", "ep-456");
+
+    appendSpy.mockRestore();
   });
 
   it("throws on server error", async () => {
@@ -156,9 +165,9 @@ describe("sendTelemetryBatch", () => {
       json: async () => ({ ok: true }),
     });
 
-    const events = [
-      { eventType: "play_started", metadata: { audioId: "audio-1" } },
-      { eventType: "seek", metadata: { position: 42.5 } },
+    const events: import("../lib/types").TelemetryEventPayload[] = [
+      { eventType: "api_error", metadata: { audioId: "audio-1" } },
+      { eventType: "playback_failure", metadata: { position: 42.5 } },
     ];
 
     await sendTelemetryBatch(events);
