@@ -73,6 +73,16 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
 
   useImperativeHandle(ref, () => ({
     open() {
+      // Clear any active timer
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      // Clean up any in-flight recording
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+      }
       setTab("type");
       setText("");
       setState("idle");
