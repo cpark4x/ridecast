@@ -81,7 +81,6 @@ describe('categorizeFeedback', () => {
       telemetryEvents: [{
         eventType: 'playback_failure',
         metadata: { error: 'buffer underrun' },
-        createdAt: new Date(),
       }],
     });
 
