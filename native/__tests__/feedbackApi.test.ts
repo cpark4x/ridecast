@@ -176,16 +176,16 @@ describe("sendTelemetryBatch", () => {
 
     await sendTelemetryBatch(events);
 
-    // One fetch call per event
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
 
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/api/telemetry");
     expect(options.method).toBe("POST");
+    expect(options.headers.Authorization).toBe("Bearer test-token-123");
+    expect(options.headers["Content-Type"]).toBe("application/json");
 
     const body = JSON.parse(options.body);
-    expect(body.eventType).toBeDefined();
-    expect(body.metadata).toBeDefined();
+    expect(body).toEqual(events);
   });
 
   it("does nothing for empty array", async () => {

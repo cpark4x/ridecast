@@ -232,13 +232,9 @@ export async function sendTelemetryBatch(
 ): Promise<void> {
   if (events.length === 0) return;
 
-  await Promise.all(
-    events.map((event) =>
-      fetchJSON<{ id: string }>("/api/telemetry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(event),
-      }),
-    ),
-  );
+  await fetchJSON<Record<string, unknown>>("/api/telemetry", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(events),
+  });
 }
