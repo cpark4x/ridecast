@@ -232,7 +232,7 @@ export async function sendTelemetryBatch(
 ): Promise<void> {
   if (events.length === 0) return;
 
-  await Promise.allSettled(
+  await Promise.all(
     events.map((event) =>
       fetchJSON<{ id: string }>("/api/telemetry", {
         method: "POST",

@@ -3,6 +3,7 @@ jest.mock("../lib/api", () => ({
 }));
 
 import React from "react";
+import { AppState } from "react-native";
 import { renderHook, act } from "@testing-library/react-native";
 import { TelemetryProvider, useTelemetry } from "../lib/useTelemetry";
 import * as api from "../lib/api";
@@ -113,5 +114,62 @@ describe("useTelemetry", () => {
     const sentEvents = mockSendBatch.mock.calls[0][0];
     expect(sentEvents).toHaveLength(1);
     expect(sentEvents[0]).toMatchObject({ eventType: "api_error", metadata: { status: 500, path: "/api/library" } });
+  });
+
+  it("flushes when app goes to background", async () => {
+    const wrapper = makeWrapper();
+    const { result } = renderHook(() => useTelemetry(), { wrapper });
+
+    act(() => {
+      result.current.trackEvent("api_error", { status: 500, path: "/api/library" });
+    });
+
+    // Retrieve the handler registered with AppState.addEventListener("change", handler)
+    const handler = (AppState.addEventListener as jest.Mock).mock.calls.find(
+      (c: unknown[]) => c[0] === "change",
+    )?.[1] as (state: string) => void;
+    expect(handler).toBeDefined();
+
+    await act(async () => {
+      handler("background");
+    });
+
+    expect(mockSendBatch).toHaveBeenCalledTimes(1);
+    const sentEvents = mockSendBatch.mock.calls[0][0];
+    expect(sentEvents).toHaveLength(1);
+    expect(sentEvents[0]).toMatchObject({
+      eventType: "api_error",
+      metadata: { status: 500, path: "/api/library" },
+    });
+  });
+
+  it("requeues events when sendTelemetryBatch fails", async () => {
+    mockSendBatch.mockRejectedValueOnce(new Error("Network error"));
+
+    const wrapper = makeWrapper();
+    const { result } = renderHook(() => useTelemetry(), { wrapper });
+
+    act(() => {
+      result.current.trackEvent("api_error", { status: 500, path: "/api/library" });
+    });
+
+    // First flush — sendTelemetryBatch will reject; events should be requeued
+    await act(async () => {
+      result.current.flush();
+    });
+
+    expect(mockSendBatch).toHaveBeenCalledTimes(1);
+
+    // Second flush — events should have been restored to the queue
+    await act(async () => {
+      result.current.flush();
+    });
+
+    expect(mockSendBatch).toHaveBeenCalledTimes(2);
+    expect(mockSendBatch.mock.calls[1][0]).toHaveLength(1);
+    expect(mockSendBatch.mock.calls[1][0][0]).toMatchObject({
+      eventType: "api_error",
+      metadata: { status: 500, path: "/api/library" },
+    });
   });
 });
