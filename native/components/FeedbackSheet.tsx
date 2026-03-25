@@ -68,21 +68,28 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   const episodeTitle = currentItem?.title ?? null;
 
   // -------------------------------------------------------------------------
+  // Cleanup helper — stops any active timer + recording without resetting UI
+  // state (UI reset is the caller's responsibility).
+  // -------------------------------------------------------------------------
+
+  const cleanupRecording = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (recordingRef.current) {
+      recordingRef.current.stopAndUnloadAsync().catch(() => {});
+      recordingRef.current = null;
+    }
+  }, []);
+
+  // -------------------------------------------------------------------------
   // Imperative handle
   // -------------------------------------------------------------------------
 
   useImperativeHandle(ref, () => ({
     open() {
-      // Clear any active timer
-      if (timerRef.current !== null) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      // Clean up any in-flight recording
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
-      }
+      cleanupRecording();
       setTab("type");
       setText("");
       setState("idle");
@@ -176,7 +183,8 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         modalRef.current?.dismiss();
       }, 1500);
     } catch {
-      setState("idle");
+      // Return to preview so the user can retry or discard intentionally.
+      setState("preview");
     }
   }, [recordingUri, screenContext, episodeId]);
 
@@ -202,7 +210,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         <TextInput
           style={styles.textInput}
           multiline
-          placeholder="Tell us what's on your mind…"
+          placeholder={"Tell us what\u2019s on your mind\u2026"}
           placeholderTextColor="#9CA3AF"
           value={text}
           onChangeText={setText}
@@ -236,10 +244,10 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         <View style={styles.talkCenter}>
           <Text style={styles.durationText}>{formatDuration(recordingDuration)}</Text>
           <View style={styles.previewButtons}>
-            <TouchableOpacity style={styles.reRecordButton} onPress={discardRecording}>
+            <TouchableOpacity testID="rerecord-button" style={styles.reRecordButton} onPress={discardRecording}>
               <Text style={styles.reRecordButtonText}>Re-record</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitVoice}>
+            <TouchableOpacity testID="submit-voice-button" style={styles.submitButton} onPress={handleSubmitVoice}>
               <Text style={styles.submitButtonText}>Submit</Text>
             </TouchableOpacity>
           </View>
@@ -250,7 +258,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
       return (
         <View style={styles.talkCenter}>
           <Text style={styles.durationText}>{formatDuration(recordingDuration)}</Text>
-          <TouchableOpacity style={styles.stopButton} onPress={stopRecording}>
+          <TouchableOpacity testID="stop-button" style={styles.stopButton} onPress={stopRecording}>
             <Ionicons name="stop" size={32} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -259,7 +267,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     // idle
     return (
       <View style={styles.talkCenter}>
-        <TouchableOpacity style={styles.micButton} onPress={startRecording}>
+        <TouchableOpacity testID="mic-button" style={styles.micButton} onPress={startRecording}>
           <Ionicons name="mic" size={40} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.micHint}>Tap to record</Text>
@@ -277,6 +285,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
       enableDynamicSizing
       enablePanDownToClose
       backdropComponent={renderBackdrop}
+      onDismiss={cleanupRecording}
     >
       <BottomSheetView style={styles.container}>
         {/* Done state */}
