@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
-import { isBlobStorageConfigured } from '@/lib/storage/blob';
+import { isBlobStorageConfigured, parseBlobUrl } from '@/lib/storage/blob';
 import { BlobServiceClient } from '@azure/storage-blob';
 
 export async function DELETE(
@@ -76,17 +76,19 @@ async function deleteBlobFiles(urls: string[]): Promise<void> {
 
   const serviceClient = BlobServiceClient.fromConnectionString(connString);
 
-  for (const url of urls) {
-    try {
-      const parsed = new URL(url);
-      const pathParts = parsed.pathname.split('/').filter(Boolean);
-      const containerName = pathParts[0];
-      const blobName = pathParts.slice(1).join('/');
-
+  // Delete all blobs in parallel — one failure does not abort the rest.
+  const results = await Promise.allSettled(
+    urls.map((url) => {
+      const { containerName, blobName } = parseBlobUrl(url);
       const containerClient = serviceClient.getContainerClient(containerName);
-      await containerClient.deleteBlob(blobName, { deleteSnapshots: 'include' });
-    } catch (err) {
-      console.warn('[delete] blob file cleanup failed:', url, err);
+      return containerClient.deleteBlob(blobName, { deleteSnapshots: 'include' });
+    }),
+  );
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'rejected') {
+      console.warn('[delete] blob file cleanup failed:', urls[i], result.reason);
     }
   }
 }

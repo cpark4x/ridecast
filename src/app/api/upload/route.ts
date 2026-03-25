@@ -28,24 +28,21 @@ export async function POST(request: Request) {
       });
       if (byUrl) {
         if (byUrl.sourceType === 'pocket' && byUrl.rawText === '') {
-          // Stub — fetch and populate it now so the caller gets a real preview
-          try {
-            const fetched = await extractUrl(url);
-            const hash = contentHash(fetched.text);
-            const updated = await prisma.content.update({
-              where: { id: byUrl.id },
-              data: {
-                rawText: fetched.text,
-                wordCount: fetched.wordCount,
-                title: fetched.title || byUrl.title,
-                sourceType: 'url',
-                contentHash: hash,
-              },
-            });
-            return NextResponse.json(updated);
-          } catch {
-            // Fetch failed — fall through to normal upload flow
-          }
+          // Stub — fetch and populate it now so the caller gets a real preview.
+          // If extraction fails, let it propagate to the outer handler (no double-fetch).
+          const fetched = await extractUrl(url);
+          const hash = contentHash(fetched.text);
+          const updated = await prisma.content.update({
+            where: { id: byUrl.id },
+            data: {
+              rawText: fetched.text,
+              wordCount: fetched.wordCount,
+              title: fetched.title || byUrl.title,
+              sourceType: 'url',
+              contentHash: hash,
+            },
+          });
+          return NextResponse.json(updated);
         } else {
           // Already fully populated — return as 409 dedup
           return NextResponse.json(

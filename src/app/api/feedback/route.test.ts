@@ -359,6 +359,27 @@ describe('POST /api/feedback', () => {
     expect(callOrder[0]).toBe('telemetry');
   });
 
+  it('does NOT return 500 when the telemetry query rejects (graceful degradation)', async () => {
+    // The telemetry query is best-effort context for Claude.
+    // A DB error must not bring down the user's feedback submission.
+    mockTelemetryFindMany.mockRejectedValue(new Error('DB connection lost'));
+
+    const request = createJsonRequest({
+      text: 'Something is broken',
+      screenContext: 'Home',
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+
+    // Feedback must still be stored even without telemetry context.
+    expect(mockFeedbackCreate).toHaveBeenCalled();
+    // categorizeFeedback receives an empty array, not a rejection.
+    expect(categorizeFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({ telemetryEvents: [] }),
+    );
+  });
+
   it('starts blob upload and transcription concurrently for voice feedback', async () => {
     // When uploadAudio is called (synchronously inside Promise.all), we fire a
     // signal. Since Promise.all evaluates all its arguments synchronously before

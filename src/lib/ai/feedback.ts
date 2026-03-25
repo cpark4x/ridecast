@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CLAUDE_MODEL } from './types';
 import { retryWithBackoff } from '@/lib/utils/retry';
-import { stripJsonMarkdownFences, asRecord } from '@/lib/utils/json';
+import { asRecord } from '@/lib/utils/json';
+import { parseClaudeJson } from './utils';
 
 let _client: Anthropic | undefined;
 function getClient(): Anthropic {
@@ -64,19 +65,7 @@ export async function categorizeFeedback(input: FeedbackInput): Promise<Feedback
     }],
   }));
 
-  const content = response.content[0];
-  if (!content || content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
-  }
-
-  const cleaned = stripJsonMarkdownFences(content.text);
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    throw new Error(`Failed to parse feedback analysis: ${cleaned.slice(0, 200)}`);
-  }
+  const parsed = parseClaudeJson(response, 'feedback analysis');
 
   if (!isFeedbackAnalysis(parsed)) {
     throw new Error('Invalid feedback analysis: missing required fields');

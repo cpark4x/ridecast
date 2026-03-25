@@ -54,19 +54,16 @@ async function fetchJSON<T>(
 
 // --- Upload ---
 
-export async function uploadUrl(
-  url: string,
-  options?: Pick<RequestInit, "signal">,
+async function uploadFormData(
+  formData: FormData,
+  signal?: AbortSignal,
 ): Promise<UploadResponse> {
-  const formData = new FormData();
-  formData.append("url", url);
-
   const auth = await authHeaders();
   const res = await fetch(`${API_URL}/api/upload`, {
     method: "POST",
     headers: auth,
     body: formData,
-    signal: options?.signal,
+    signal,
   });
   const data = await res.json();
   if (!res.ok && res.status !== 409) {
@@ -75,6 +72,15 @@ export async function uploadUrl(
     throw err;
   }
   return data as UploadResponse;
+}
+
+export async function uploadUrl(
+  url: string,
+  options?: Pick<RequestInit, "signal">,
+): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append("url", url);
+  return uploadFormData(formData, options?.signal);
 }
 
 export async function uploadFile(
@@ -88,20 +94,7 @@ export async function uploadFile(
     name: fileName,
     type: mimeType,
   } as unknown as Blob);
-
-  const auth = await authHeaders();
-  const res = await fetch(`${API_URL}/api/upload`, {
-    method: "POST",
-    headers: auth,
-    body: formData,
-  });
-  const data = await res.json();
-  if (!res.ok && res.status !== 409) {
-    const err = new Error(data.error ?? "Upload failed");
-    (err as Error & { statusCode: number }).statusCode = res.status;
-    throw err;
-  }
-  return data as UploadResponse;
+  return uploadFormData(formData);
 }
 
 // --- Process ---

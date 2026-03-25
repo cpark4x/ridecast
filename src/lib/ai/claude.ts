@@ -3,7 +3,8 @@ import { CLAUDE_MODEL } from './types';
 import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from './types';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { retryWithBackoff } from '@/lib/utils/retry';
-import { stripJsonMarkdownFences, asRecord } from '@/lib/utils/json';
+import { asRecord } from '@/lib/utils/json';
+import { extractClaudeText, parseClaudeJson } from './utils';
 
 const ANALYSIS_MAX_TOKENS = 1024;
 const MAX_ANALYSIS_CHARS = 3000;
@@ -67,21 +68,7 @@ ${truncated}`,
       ],
     }));
 
-    const content = response.content[0];
-    if (!content || content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
-
-    // Claude often wraps JSON in markdown fences (```json ... ```) despite
-    // being asked for raw JSON. Strip them before parsing.
-    const cleaned = stripJsonMarkdownFences(content.text);
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      throw new Error('Invalid JSON response from Claude');
-    }
+    const parsed = parseClaudeJson(response, 'analysis');
 
     if (!isContentAnalysis(parsed)) {
       throw new Error('Invalid analysis response: missing required fields');
@@ -101,7 +88,7 @@ ${truncated}`,
       ? text.slice(0, MAX_SCRIPT_SOURCE_CHARS) + '\n\n[Content truncated for length]'
       : text;
 
-    const prompt = this.buildScriptPrompt(config, targetWords, sourceText);
+    const prompt = this.buildScriptPrompt(config, targetWords, minWords, maxWords, sourceText);
 
     let result = await this.callGenerateScript(prompt, targetWords);
 
@@ -165,10 +152,10 @@ HARD CONSTRAINT — DO NOT EXCEED OR FALL SHORT: Your script must contain betwee
   private buildScriptPrompt(
     config: ScriptConfig,
     targetWords: number,
+    minWords: number,
+    maxWords: number,
     sourceText: string,
   ): string {
-    const minWords = Math.round(targetWords * 0.85);
-    const maxWords = Math.round(targetWords * 1.15);
 
     return config.format === 'narrator'
       ? `Create a spoken-word podcast script summarizing the following content.
@@ -213,12 +200,7 @@ ${sourceText}`;
       ],
     }));
 
-    const content = response.content[0];
-    if (!content || content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
-
-    const text = content.text.trim();
+    const text = extractClaudeText(response).trim();
     const wordCount = text.split(/\s+/).filter(Boolean).length;
 
     return { text, wordCount };

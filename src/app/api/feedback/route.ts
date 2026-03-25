@@ -41,9 +41,6 @@ export async function POST(request: Request) {
     // both paths. Invalid requests may fire this bounded query early — that is
     // an intentional tradeoff for simpler, more effective concurrency.
     const telemetryPromise = startTelemetryQuery(userId);
-    // Guard against unhandled rejections on early 400 returns; the main path
-    // still awaits and surfaces the error normally.
-    void telemetryPromise.catch((err) => { console.warn('[feedback] Telemetry pre-fetch failed:', err); });
 
     const contentType = request.headers.get('content-type') || '';
 
@@ -97,8 +94,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // Await telemetry result (started concurrently with body parsing above)
-    const recentTelemetry = await telemetryPromise;
+    // Await telemetry result (started concurrently with body parsing above).
+    // Telemetry is best-effort context for Claude — degrade gracefully on DB failure.
+    const recentTelemetry = await telemetryPromise.catch((err) => {
+      console.warn('[feedback] Telemetry pre-fetch failed:', err);
+      return [];
+    });
 
     // Categorize with Claude (graceful failure — store raw feedback even if AI fails)
     let category: FeedbackCategory | null = null;

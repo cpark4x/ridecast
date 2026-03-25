@@ -7,6 +7,7 @@ vi.mock('@/lib/db', () => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -39,6 +40,7 @@ import { POST } from './route';
 const mockFindFirst = prisma.content.findFirst as ReturnType<typeof vi.fn>;
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
 const mockCreate = prisma.content.create as ReturnType<typeof vi.fn>;
+const mockUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
 const mockExtractContent = extractContent as ReturnType<typeof vi.fn>;
 const mockExtractUrl = extractUrl as ReturnType<typeof vi.fn>;
 
@@ -146,6 +148,67 @@ describe('POST /api/upload', () => {
     const response = await POST(request);
 
     expect(response.status).toBe(401);
+  });
+
+  it('pocket stub: calls extractUrl exactly once and returns outer-handler error when extraction fails', async () => {
+    // When a pocket stub exists and extractUrl throws, the error must propagate
+    // to the outer handler (returning a 500 with a message) rather than falling
+    // through and calling extractUrl a second time.
+    mockFindFirst.mockResolvedValue({
+      id: 'stub-1',
+      userId: 'user_test123',
+      sourceType: 'pocket',
+      rawText: '',
+      title: 'Saved Article',
+    });
+
+    mockExtractUrl.mockRejectedValue(new Error('Failed to fetch URL: 403'));
+
+    const request = createMockRequest({ url: 'https://example.com/pocket-article' });
+    const response = await POST(request);
+
+    // extractUrl must have been called exactly once — no second attempt
+    expect(mockExtractUrl).toHaveBeenCalledTimes(1);
+
+    // The outer handler must return 500 with the translated message
+    expect(response.status).toBe(500);
+    const data = await response.json();
+    expect(data.error).toContain('blocked our request');
+  });
+
+  it('pocket stub: updates stub record and returns populated content when extraction succeeds', async () => {
+    mockFindFirst.mockResolvedValue({
+      id: 'stub-1',
+      userId: 'user_test123',
+      sourceType: 'pocket',
+      rawText: '',
+      title: 'Saved Article',
+    });
+
+    mockExtractUrl.mockResolvedValue({
+      title: 'Real Title',
+      text: 'Full article body',
+      wordCount: 3,
+    });
+
+    mockUpdate.mockResolvedValue({
+      id: 'stub-1',
+      title: 'Real Title',
+      rawText: 'Full article body',
+      sourceType: 'url',
+    });
+
+    const request = createMockRequest({ url: 'https://example.com/pocket-article' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockExtractUrl).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'stub-1' },
+        data: expect.objectContaining({ sourceType: 'url' }),
+      }),
+    );
   });
 
   it('associates uploaded content with authenticated user ID', async () => {

@@ -86,6 +86,19 @@ export function generateSasUrl(blobUrl: string): string {
 }
 
 /**
+ * Parse a blob storage URL into its container name and blob name components.
+ * Example: https://account.blob.core.windows.net/container/path/to/blob.mp3
+ *   → { containerName: 'container', blobName: 'path/to/blob.mp3' }
+ */
+export function parseBlobUrl(url: string): { containerName: string; blobName: string } {
+  const pathParts = new URL(url).pathname.split('/').filter(Boolean);
+  return {
+    containerName: pathParts[0],
+    blobName: pathParts.slice(1).join('/'),
+  };
+}
+
+/**
  * Returns true if Azure Blob Storage is configured.
  * Falls back to local filesystem when false (development).
  */

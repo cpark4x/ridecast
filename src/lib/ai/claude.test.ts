@@ -121,7 +121,7 @@ describe('ClaudeProvider', () => {
       });
 
       await expect(provider.analyze('Some text')).rejects.toThrow(
-        'Invalid JSON response from Claude',
+        'Failed to parse analysis response from Claude',
       );
     });
 
