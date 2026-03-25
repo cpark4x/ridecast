@@ -10,6 +10,7 @@ import { setTokenProvider } from "../lib/api";
 import { setupPlayer } from "../lib/player";
 import { PlaybackService } from "../lib/player";
 import { PlayerProvider, usePlayer } from "../lib/usePlayer";
+import { TelemetryProvider } from "../lib/useTelemetry";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import PlayerBar from "../components/PlayerBar";
 import ExpandedPlayer from "../components/ExpandedPlayer";
@@ -95,6 +96,7 @@ export default function RootLayout() {
         <StatusBar style="dark" />
         <AuthGate>
           <PlayerProvider>
+            <TelemetryProvider>
             <AppShell>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(tabs)" />
@@ -121,6 +123,7 @@ export default function RootLayout() {
                 />
               </Stack>
             </AppShell>
+            </TelemetryProvider>
           </PlayerProvider>
         </AuthGate>
       </ClerkLoaded>
