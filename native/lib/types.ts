@@ -117,3 +117,20 @@ export interface PlayableItem {
 }
 
 export type LibraryFilter = "active" | "all" | "in_progress" | "completed" | "generating";
+
+// --- Feedback API types ---
+
+export interface FeedbackResponse {
+  id: string;
+  summary: string;
+  category: string;
+}
+
+export interface TelemetryEventPayload {
+  eventType: "api_error" | "playback_failure" | "processing_timeout" | "upload_failure";
+  metadata: Record<string, unknown>;
+}
+
+export interface TelemetryResponse {
+  id: string;
+}
