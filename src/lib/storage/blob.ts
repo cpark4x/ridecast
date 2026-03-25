@@ -64,10 +64,7 @@ export function generateSasUrl(blobUrl: string): string {
   if (!accountName || !accountKey) throw new Error("Invalid connection string");
 
   // Extract container and blob name from the URL
-  const url = new URL(blobUrl);
-  const pathParts = url.pathname.split("/").filter(Boolean);
-  const containerName = pathParts[0];
-  const blobName = pathParts.slice(1).join("/");
+  const { containerName, blobName } = parseBlobUrl(blobUrl);
 
   const credential = new StorageSharedKeyCredential(accountName, accountKey);
   const expiresOn = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
