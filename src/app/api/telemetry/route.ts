@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 
 const VALID_EVENT_TYPES = [
   'api_error',
@@ -33,17 +33,26 @@ export async function POST(request: Request) {
 
     if (events.length === 1) {
       const [eventInput] = events;
-      const event = await prisma.telemetryEvent.create({
-        data: {
-          userId,
-          eventType: eventInput.eventType,
-          metadata: eventInput.metadata || {},
-          surfaced: false,
-          clientEventId: eventInput.clientEventId ?? null,
-        },
-      });
-
-      return NextResponse.json({ id: event.id });
+      try {
+        const event = await prisma.telemetryEvent.create({
+          data: {
+            userId,
+            eventType: eventInput.eventType,
+            metadata: eventInput.metadata || {},
+            surfaced: false,
+            clientEventId: eventInput.clientEventId ?? null,
+          },
+        });
+        return NextResponse.json({ id: event.id });
+      } catch (err) {
+        // P2002 = unique constraint violation: clientEventId already exists.
+        // This is an idempotent duplicate from a client retry — treat as success
+        // so the client stops retrying instead of looping on 500 forever.
+        if ((err as { code?: string }).code === 'P2002') {
+          return NextResponse.json({ id: null });
+        }
+        throw err;
+      }
     }
 
     const result = await prisma.telemetryEvent.createMany({
@@ -61,7 +70,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Telemetry error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthenticated') {
+    if (error instanceof AuthenticationError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

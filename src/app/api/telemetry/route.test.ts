@@ -2,8 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // --- Mocks ---
 
+// vi.hoisted runs before vi.mock factories, making the class available inside the factory
+// and in the test body without a top-level variable that vi.mock hoisting can't reach.
+const { MockAuthenticationError } = vi.hoisted(() => {
+  class MockAuthenticationError extends Error {
+    constructor() {
+      super('Unauthenticated');
+      this.name = 'AuthenticationError';
+    }
+  }
+  return { MockAuthenticationError };
+});
+
 vi.mock('@/lib/auth', () => ({
   getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
+  AuthenticationError: MockAuthenticationError,
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -148,7 +161,7 @@ describe('POST /api/telemetry', () => {
   });
 
   it('returns 401 for unauthenticated requests', async () => {
-    vi.mocked(getCurrentUserId).mockRejectedValue(new Error('Unauthenticated'));
+    vi.mocked(getCurrentUserId).mockRejectedValue(new MockAuthenticationError());
 
     const request = createJsonRequest({
       eventType: 'api_error',
@@ -157,5 +170,25 @@ describe('POST /api/telemetry', () => {
 
     const response = await POST(request);
     expect(response.status).toBe(401);
+  });
+
+  it('returns 200 on duplicate single-event clientEventId (idempotent retry)', async () => {
+    // Simulate Prisma P2002 unique constraint violation on the second attempt
+    const p2002 = Object.assign(new Error('Unique constraint failed'), {
+      code: 'P2002',
+    });
+    mockCreate.mockRejectedValueOnce(p2002);
+
+    const request = createJsonRequest({
+      eventType: 'api_error',
+      metadata: { status: 500 },
+      clientEventId: 'test-idempotency-key-abc123',
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    // Client should not loop on 500; duplicate is silently accepted
+    const data = await response.json();
+    expect(data).not.toHaveProperty('error');
   });
 });

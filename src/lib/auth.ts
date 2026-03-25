@@ -2,6 +2,18 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 
 /**
+ * Typed authentication error thrown when a request is made without valid
+ * credentials. Use `instanceof AuthenticationError` instead of checking
+ * error.message so that message changes don't silently break callers.
+ */
+export class AuthenticationError extends Error {
+  constructor() {
+    super("Unauthenticated");
+    this.name = "AuthenticationError";
+  }
+}
+
+/**
  * Stable synthetic user ID injected when E2E_TEST_MODE=true.
  * All E2E test data is owned by this identity so the DB stays coherent
  * across the suite (global-setup can target it for cleanup if needed).
@@ -42,7 +54,7 @@ export async function getCurrentUserId(): Promise<string> {
 
   const { userId } = await auth();
   if (!userId) {
-    throw new Error("Unauthenticated");
+    throw new AuthenticationError();
   }
 
   // Upsert User record — Clerk IDs are stable, so this is idempotent

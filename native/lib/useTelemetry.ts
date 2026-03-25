@@ -44,7 +44,8 @@ export function TelemetryProvider({
     if (queueRef.current.length === 0) return;
     const events = queueRef.current;
     queueRef.current = [];
-    sendTelemetryBatch(events).catch(() => {
+    sendTelemetryBatch(events).catch((err: unknown) => {
+      console.warn('[TelemetryProvider] flush failed — events requeued for next attempt:', err);
       queueRef.current = [...events, ...queueRef.current];
     });
   }, []);
