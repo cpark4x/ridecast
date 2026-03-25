@@ -24,6 +24,10 @@ beforeEach(() => {
   setTokenProvider(async () => "test-token-123");
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe("submitTextFeedback", () => {
   it("sends JSON body with text, screenContext, and episodeId", async () => {
     mockFetch.mockResolvedValueOnce({
