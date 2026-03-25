@@ -5,6 +5,8 @@ import type {
   GenerateResponse,
   LibraryItem,
   PlaybackState,
+  FeedbackResponse,
+  TelemetryEventPayload,
 } from "./types";
 
 let _getToken: (() => Promise<string | null>) | null = null;
@@ -177,4 +179,66 @@ export async function deleteEpisode(contentId: string): Promise<void> {
   await fetchJSON<{ ok: boolean }>(`/api/library/${contentId}`, {
     method: "DELETE",
   });
+}
+
+// --- Feedback ---
+
+export async function submitTextFeedback(params: {
+  text: string;
+  screenContext: string;
+  episodeId?: string;
+}): Promise<FeedbackResponse> {
+  return fetchJSON<FeedbackResponse>("/api/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+}
+
+export async function submitVoiceFeedback(params: {
+  fileUri: string;
+  screenContext: string;
+  episodeId?: string;
+}): Promise<FeedbackResponse> {
+  const formData = new FormData();
+  formData.append("audioFile", {
+    uri: params.fileUri,
+    name: "feedback.m4a",
+    type: "audio/m4a",
+  } as unknown as Blob);
+  formData.append("screenContext", params.screenContext);
+  if (params.episodeId !== undefined) {
+    formData.append("episodeId", params.episodeId);
+  }
+
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/api/feedback`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? `Request failed: ${res.status}`);
+  }
+  return data as FeedbackResponse;
+}
+
+// --- Telemetry ---
+
+export async function sendTelemetryBatch(
+  events: TelemetryEventPayload[],
+): Promise<void> {
+  if (events.length === 0) return;
+
+  await Promise.allSettled(
+    events.map((event) =>
+      fetchJSON<{ id: string }>("/api/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+      }),
+    ),
+  );
 }
