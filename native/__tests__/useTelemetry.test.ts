@@ -69,7 +69,6 @@ describe("useTelemetry", () => {
   });
 
   it("does not send when queue is empty at interval", async () => {
-    makeWrapper();
     renderHook(() => useTelemetry(), { wrapper: makeWrapper() });
 
     await act(async () => {
