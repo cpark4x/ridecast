@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AppState, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -18,6 +18,9 @@ import OfflineBanner from "../components/OfflineBanner";
 import TrackPlayer from "react-native-track-player";
 import { initializeCarPlay } from "../lib/carplay";
 import { syncLibrary, syncPlayback } from "../lib/sync";
+import FeedbackSheet from "../components/FeedbackSheet";
+import type { FeedbackSheetRef } from "../components/FeedbackSheet";
+import { FeedbackSheetContext } from "../lib/useFeedbackSheet";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 if (!CLERK_KEY) {
@@ -55,6 +58,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const { expandedPlayerVisible, setExpandedPlayerVisible } = usePlayer();
+  const feedbackRef = useRef<FeedbackSheetRef>(null);
+  const feedbackCtx = useMemo(
+    () => ({ openFeedbackSheet: () => feedbackRef.current?.open() }),
+    [],
+  );
 
   // Set up RNTP once on mount, then initialize CarPlay (fire-and-forget)
   useEffect(() => {
@@ -75,15 +83,18 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <View style={{ flex: 1 }}>
-      <OfflineBanner />
-      {children}
-      <PlayerBar />
-      <ExpandedPlayer
-        visible={expandedPlayerVisible}
-        onDismiss={() => setExpandedPlayerVisible(false)}
-      />
-    </View>
+    <FeedbackSheetContext.Provider value={feedbackCtx}>
+      <View style={{ flex: 1 }}>
+        <OfflineBanner />
+        {children}
+        <PlayerBar />
+        <ExpandedPlayer
+          visible={expandedPlayerVisible}
+          onDismiss={() => setExpandedPlayerVisible(false)}
+        />
+        <FeedbackSheet ref={feedbackRef} />
+      </View>
+    </FeedbackSheetContext.Provider>
   );
 }
 
