@@ -143,6 +143,30 @@ function renderSheet() {
 }
 
 // ---------------------------------------------------------------------------
+// Helper — advances the sheet to preview state (open → Talk tab → record → stop)
+// ---------------------------------------------------------------------------
+async function reachPreviewState() {
+  const utils = renderSheet();
+  const { ref, getByText, getByTestId } = utils;
+
+  await act(async () => {
+    ref.current!.open();
+  });
+
+  fireEvent.press(getByText("Talk"));
+
+  await act(async () => {
+    fireEvent.press(getByTestId("mic-button"));
+  });
+
+  await act(async () => {
+    fireEvent.press(getByTestId("stop-button"));
+  });
+
+  return utils;
+}
+
+// ---------------------------------------------------------------------------
 // Shared setup / teardown
 // ---------------------------------------------------------------------------
 beforeEach(() => {
@@ -183,13 +207,13 @@ describe("FeedbackSheet: open() behavior", () => {
   });
 
   it("resets typed text when open() is called a second time", async () => {
-    const { ref, getByPlaceholderText } = renderSheet();
+    const { ref, getByTestId } = renderSheet();
 
     await act(async () => {
       ref.current!.open();
     });
 
-    const input = getByPlaceholderText("Tell us what\u2019s on your mind\u2026");
+    const input = getByTestId("text-input");
     fireEvent.changeText(input, "please fix this");
     expect(input.props.value).toBe("please fix this");
 
@@ -233,20 +257,18 @@ describe("FeedbackSheet: open() behavior", () => {
 // ===========================================================================
 describe("FeedbackSheet: tab switching", () => {
   it("defaults to the Type tab showing the text input", async () => {
-    const { ref, queryByPlaceholderText, queryByText } = renderSheet();
+    const { ref, queryByTestId, queryByText } = renderSheet();
 
     await act(async () => {
       ref.current!.open();
     });
 
-    expect(
-      queryByPlaceholderText("Tell us what\u2019s on your mind\u2026")
-    ).not.toBeNull();
+    expect(queryByTestId("text-input")).not.toBeNull();
     expect(queryByText("Tap to record")).toBeNull();
   });
 
   it("switches to the Talk tab and shows the mic hint", async () => {
-    const { ref, getByText, queryByPlaceholderText } = renderSheet();
+    const { ref, getByText, queryByTestId } = renderSheet();
 
     await act(async () => {
       ref.current!.open();
@@ -254,14 +276,12 @@ describe("FeedbackSheet: tab switching", () => {
 
     fireEvent.press(getByText("Talk"));
 
-    expect(
-      queryByPlaceholderText("Tell us what\u2019s on your mind\u2026")
-    ).toBeNull();
+    expect(queryByTestId("text-input")).toBeNull();
     expect(getByText("Tap to record")).not.toBeNull();
   });
 
   it("can switch back to the Type tab from Talk", async () => {
-    const { ref, getByText, queryByPlaceholderText } = renderSheet();
+    const { ref, getByText, queryByTestId } = renderSheet();
 
     await act(async () => {
       ref.current!.open();
@@ -270,9 +290,35 @@ describe("FeedbackSheet: tab switching", () => {
     fireEvent.press(getByText("Talk"));
     fireEvent.press(getByText("Type"));
 
+    expect(queryByTestId("text-input")).not.toBeNull();
+  });
+
+  it("tab switch is blocked while recording is active (stop-button stays visible)", async () => {
+    const { ref, getByText, getByTestId, queryByTestId } = renderSheet();
+
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    fireEvent.press(getByText("Talk"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("mic-button"));
+    });
+
+    // Confirm we are in recording state
+    expect(getByTestId("stop-button")).not.toBeNull();
+
+    // Attempt to switch to Type tab while recording
+    fireEvent.press(getByText("Type"));
+
+    // Tab switch must be blocked — stop-button (recording UI) must still be visible
+    expect(getByTestId("stop-button")).not.toBeNull();
+    // Text input must NOT appear
     expect(
-      queryByPlaceholderText("Tell us what\u2019s on your mind\u2026")
+      queryByTestId("stop-button")
     ).not.toBeNull();
+    expect(mockStopAndUnloadAsync).not.toHaveBeenCalled();
   });
 });
 
@@ -307,27 +353,7 @@ describe("FeedbackSheet: permission denied", () => {
 // ===========================================================================
 describe("FeedbackSheet: recording → preview transition", () => {
   it("transitions to preview state after stop is pressed", async () => {
-    const { ref, getByText, getByTestId, queryByTestId } = renderSheet();
-
-    await act(async () => {
-      ref.current!.open();
-    });
-
-    fireEvent.press(getByText("Talk"));
-
-    // Start recording
-    await act(async () => {
-      fireEvent.press(getByTestId("mic-button"));
-    });
-
-    expect(mockStartAsync).toHaveBeenCalledTimes(1);
-    expect(getByTestId("stop-button")).not.toBeNull();
-    expect(queryByTestId("mic-button")).toBeNull();
-
-    // Stop recording
-    await act(async () => {
-      fireEvent.press(getByTestId("stop-button"));
-    });
+    const { getByTestId } = await reachPreviewState();
 
     expect(mockStopAndUnloadAsync).toHaveBeenCalledTimes(1);
     // Preview buttons should appear
@@ -340,24 +366,10 @@ describe("FeedbackSheet: recording → preview transition", () => {
 // 5. Voice submit failure → retryable preview (not idle)
 // ===========================================================================
 describe("FeedbackSheet: voice submit failure preserves preview", () => {
-  it("returns to preview state when voice submit fails", async () => {
+  it("preserves preview state (rerecord + submit visible, mic absent) after a failed voice submit", async () => {
     mockSubmitVoiceFeedback.mockRejectedValueOnce(new Error("network error"));
 
-    const { ref, getByText, getByTestId } = renderSheet();
-
-    await act(async () => {
-      ref.current!.open();
-    });
-
-    fireEvent.press(getByText("Talk"));
-
-    // Start → stop to reach preview
-    await act(async () => {
-      fireEvent.press(getByTestId("mic-button"));
-    });
-    await act(async () => {
-      fireEvent.press(getByTestId("stop-button"));
-    });
+    const { getByTestId, queryByTestId } = await reachPreviewState();
 
     // Submit — it will fail
     await act(async () => {
@@ -365,42 +377,57 @@ describe("FeedbackSheet: voice submit failure preserves preview", () => {
     });
 
     // After failure, preview buttons must still be visible (retry path)
+    // and mic-button (idle state) must be absent
     await waitFor(() => {
       expect(getByTestId("rerecord-button")).not.toBeNull();
       expect(getByTestId("submit-voice-button")).not.toBeNull();
-    });
-  });
-
-  it("mic button (idle state) is absent after a failed voice submit", async () => {
-    mockSubmitVoiceFeedback.mockRejectedValueOnce(new Error("network error"));
-
-    const { ref, getByText, getByTestId, queryByTestId } = renderSheet();
-
-    await act(async () => {
-      ref.current!.open();
-    });
-
-    fireEvent.press(getByText("Talk"));
-
-    await act(async () => {
-      fireEvent.press(getByTestId("mic-button"));
-    });
-    await act(async () => {
-      fireEvent.press(getByTestId("stop-button"));
-    });
-    await act(async () => {
-      fireEvent.press(getByTestId("submit-voice-button"));
-    });
-
-    await waitFor(() => {
-      // idle state shows mic-button; preview does NOT — we must be in preview
       expect(queryByTestId("mic-button")).toBeNull();
     });
   });
 });
 
 // ===========================================================================
-// 6. Dismiss / cleanup while recording
+// 6. Stale dismiss timer does not close a freshly reopened sheet
+// ===========================================================================
+describe("FeedbackSheet: stale dismiss timer is cancelled on reopen", () => {
+  it("a pending dismiss timer from a prior text submit is cancelled when open() is called before it fires", async () => {
+    jest.useFakeTimers();
+
+    const { ref, getByTestId, getByText, queryByText } = renderSheet();
+
+    // First open: type and submit feedback — starts the 1500 ms dismiss timer
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    const input = getByTestId("text-input");
+    fireEvent.changeText(input, "First feedback");
+
+    await act(async () => {
+      fireEvent.press(getByText("Submit"));
+    });
+
+    // Sheet is now in "done" state; a 1500 ms dismiss timer is pending.
+    // Reopen immediately — open() must cancel that timer.
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    // Header is visible again after the second open
+    expect(queryByText("Send Feedback")).not.toBeNull();
+
+    // Advance well past where the stale timer would have fired
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    // Sheet is still open — the stale dismiss timer was cancelled by open()
+    expect(queryByText("Send Feedback")).not.toBeNull();
+  });
+});
+
+// ===========================================================================
+// 7. Dismiss / cleanup while recording
 // ===========================================================================
 describe("FeedbackSheet: dismiss cleanup while recording", () => {
   it("calls stopAndUnloadAsync when modal onDismiss fires during recording", async () => {

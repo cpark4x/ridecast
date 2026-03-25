@@ -54,6 +54,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   const modalRef = useRef<BottomSheetModal>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [tab, setTab] = useState<Tab>("type");
   const [text, setText] = useState("");
@@ -68,20 +69,31 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   const episodeTitle = currentItem?.title ?? null;
 
   // -------------------------------------------------------------------------
-  // Cleanup helper — stops any active timer + recording without resetting UI
+  // Cleanup helpers — stops any active timer + recording without resetting UI
   // state (UI reset is the caller's responsibility).
   // -------------------------------------------------------------------------
 
-  const cleanupRecording = useCallback(() => {
+  /** Cancel the recording duration interval. Shared by stopRecording and cleanupRecording. */
+  const clearDurationTimer = useCallback(() => {
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+  }, []);
+
+  const cleanupRecording = useCallback(() => {
+    clearDurationTimer();
+    // Cancel any pending auto-dismiss so a stale timer from a prior session
+    // cannot dismiss a freshly reopened sheet.
+    if (dismissTimerRef.current !== null) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
     }
     if (recordingRef.current) {
       recordingRef.current.stopAndUnloadAsync().catch(() => {});
       recordingRef.current = null;
     }
-  }, []);
+  }, [clearDurationTimer]);
 
   // -------------------------------------------------------------------------
   // Imperative handle
@@ -89,6 +101,12 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
 
   useImperativeHandle(ref, () => ({
     open() {
+      // Cancel any pending dismiss timer from a prior submit before resetting
+      // state, so a stale timer cannot later dismiss this freshly opened sheet.
+      if (dismissTimerRef.current !== null) {
+        clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
       cleanupRecording();
       setTab("type");
       setText("");
@@ -100,6 +118,19 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   }));
 
   // -------------------------------------------------------------------------
+  // Guarded tab change: blocked while a recording is active so the mic never
+  // stays live behind a hidden UI.
+  // -------------------------------------------------------------------------
+
+  const handleTabChange = useCallback(
+    (newTab: Tab) => {
+      if (state === "recording") return;
+      setTab(newTab);
+    },
+    [state]
+  );
+
+  // -------------------------------------------------------------------------
   // Handlers: text tab
   // -------------------------------------------------------------------------
 
@@ -109,7 +140,8 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     try {
       await submitTextFeedback({ text, screenContext, episodeId });
       setState("done");
-      setTimeout(() => {
+      dismissTimerRef.current = setTimeout(() => {
+        dismissTimerRef.current = null;
         modalRef.current?.dismiss();
       }, 1500);
     } catch {
@@ -150,10 +182,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   }, []);
 
   const stopRecording = useCallback(async () => {
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    clearDurationTimer();
     try {
       const recording = recordingRef.current;
       if (!recording) return;
@@ -165,7 +194,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     } catch {
       setState("idle");
     }
-  }, []);
+  }, [clearDurationTimer]);
 
   const discardRecording = useCallback(() => {
     setRecordingUri(null);
@@ -179,7 +208,8 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     try {
       await submitVoiceFeedback({ fileUri: recordingUri, screenContext, episodeId });
       setState("done");
-      setTimeout(() => {
+      dismissTimerRef.current = setTimeout(() => {
+        dismissTimerRef.current = null;
         modalRef.current?.dismiss();
       }, 1500);
     } catch {
@@ -208,6 +238,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     return (
       <View>
         <TextInput
+          testID="text-input"
           style={styles.textInput}
           multiline
           placeholder={"Tell us what\u2019s on your mind\u2026"}
@@ -319,7 +350,8 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={[styles.tabButton, tab === "type" && styles.tabButtonActive]}
-                onPress={() => setTab("type")}
+                onPress={() => handleTabChange("type")}
+                disabled={state === "recording"}
               >
                 <Text
                   style={[
@@ -332,7 +364,8 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tabButton, tab === "talk" && styles.tabButtonActive]}
-                onPress={() => setTab("talk")}
+                onPress={() => handleTabChange("talk")}
+                disabled={state === "recording"}
               >
                 <Text
                   style={[
