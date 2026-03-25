@@ -104,12 +104,13 @@ model Feedback {
 }
 
 model TelemetryEvent {
-  id        String   @id @default(uuid())
-  userId    String
-  eventType String   // "api_error" | "playback_failure" | "processing_timeout" | "upload_failure"
-  metadata  Json
-  surfaced  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  eventType      String   // "api_error" | "playback_failure" | "processing_timeout" | "upload_failure"
+  metadata       Json
+  surfaced       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  clientEventId  String?  @unique // client-generated id for retry deduplication
 
   user User @relation(fields: [userId], references: [id])
 }

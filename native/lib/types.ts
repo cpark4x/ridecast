@@ -129,6 +129,8 @@ export interface FeedbackResponse {
 export interface TelemetryEventPayload {
   eventType: "api_error" | "playback_failure" | "processing_timeout" | "upload_failure";
   metadata: Record<string, unknown>;
+  /** Client-generated id for server-side deduplication on retry. */
+  clientEventId?: string;
 }
 
 export interface TelemetryResponse {

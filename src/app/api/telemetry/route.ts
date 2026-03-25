@@ -13,25 +13,51 @@ export async function POST(request: Request) {
   try {
     const userId = await getCurrentUserId();
     const body = await request.json();
-    const { eventType, metadata } = body;
+    const events = Array.isArray(body) ? body : [body];
 
-    if (!eventType || !VALID_EVENT_TYPES.includes(eventType)) {
+    if (events.length === 0) {
       return NextResponse.json(
-        { error: `Invalid eventType. Must be one of: ${VALID_EVENT_TYPES.join(', ')}` },
+        { error: 'At least one telemetry event is required' },
         { status: 400 },
       );
     }
 
-    const event = await prisma.telemetryEvent.create({
-      data: {
+    for (const event of events) {
+      if (!event?.eventType || !VALID_EVENT_TYPES.includes(event.eventType)) {
+        return NextResponse.json(
+          { error: `Invalid eventType. Must be one of: ${VALID_EVENT_TYPES.join(', ')}` },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (events.length === 1) {
+      const [eventInput] = events;
+      const event = await prisma.telemetryEvent.create({
+        data: {
+          userId,
+          eventType: eventInput.eventType,
+          metadata: eventInput.metadata || {},
+          surfaced: false,
+          clientEventId: eventInput.clientEventId ?? null,
+        },
+      });
+
+      return NextResponse.json({ id: event.id });
+    }
+
+    const result = await prisma.telemetryEvent.createMany({
+      data: events.map((event) => ({
         userId,
-        eventType,
-        metadata: metadata || {},
+        eventType: event.eventType,
+        metadata: event.metadata || {},
         surfaced: false,
-      },
+        clientEventId: event.clientEventId ?? null,
+      })),
+      skipDuplicates: true,
     });
 
-    return NextResponse.json({ id: event.id });
+    return NextResponse.json({ count: result.count });
   } catch (error) {
     console.error('Telemetry error:', error);
 

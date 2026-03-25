@@ -11,6 +11,10 @@ import type { TelemetryEventPayload } from "./types";
 
 const BATCH_INTERVAL_MS = 60_000;
 
+function generateClientEventId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 interface TelemetryContextType {
   trackEvent(
     eventType: TelemetryEventPayload["eventType"],
@@ -50,7 +54,7 @@ export function TelemetryProvider({
       eventType: TelemetryEventPayload["eventType"],
       metadata: Record<string, unknown>,
     ) => {
-      queueRef.current.push({ eventType, metadata });
+      queueRef.current.push({ eventType, metadata, clientEventId: generateClientEventId() });
     },
     [],
   );

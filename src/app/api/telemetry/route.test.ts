@@ -10,6 +10,7 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     telemetryEvent: {
       create: vi.fn(),
+      createMany: vi.fn(),
     },
   },
 }));
@@ -21,6 +22,7 @@ import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
 
 const mockCreate = prisma.telemetryEvent.create as ReturnType<typeof vi.fn>;
+const mockCreateMany = prisma.telemetryEvent.createMany as ReturnType<typeof vi.fn>;
 
 function createJsonRequest(body: Record<string, unknown>): Request {
   return new Request('http://localhost/api/telemetry', {
@@ -41,6 +43,7 @@ describe('POST /api/telemetry', () => {
       metadata: { status: 500 },
       surfaced: false,
     });
+    mockCreateMany.mockResolvedValue({ count: 2 });
   });
 
   it('creates telemetry event and returns id', async () => {
@@ -109,6 +112,39 @@ describe('POST /api/telemetry', () => {
         }),
       }),
     );
+  });
+
+  it('accepts a batch of telemetry events in one request', async () => {
+    const request = createJsonRequest([
+      { eventType: 'api_error', metadata: { status: 500 } },
+      { eventType: 'playback_failure', metadata: { error: 'buffer underrun' } },
+    ] as unknown as Record<string, unknown>);
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.count).toBe(2);
+    expect(mockCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: 'user_test123',
+          eventType: 'api_error',
+          metadata: { status: 500 },
+          surfaced: false,
+          clientEventId: null,
+        },
+        {
+          userId: 'user_test123',
+          eventType: 'playback_failure',
+          metadata: { error: 'buffer underrun' },
+          surfaced: false,
+          clientEventId: null,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('returns 401 for unauthenticated requests', async () => {
