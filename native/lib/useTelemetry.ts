@@ -9,7 +9,7 @@ import { AppState } from "react-native";
 import { sendTelemetryBatch } from "./api";
 import type { TelemetryEventPayload } from "./types";
 
-export const BATCH_INTERVAL_MS = 60_000;
+const BATCH_INTERVAL_MS = 60_000;
 
 interface TelemetryContextType {
   trackEvent(
