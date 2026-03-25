@@ -39,14 +39,12 @@ health_gates:
     '
 - id: test
   command: npm run test
-  status: FAIL
-  duration: 5.01s
-  notes: 'Vitest: 310/323 tests passing, 6 failing, 7 skipped.
+  status: PASS
+  duration: 3.35s
+  notes: 'Vitest: 316/323 tests passing, 7 skipped, 0 failures.
 
-    6 failures in src/app/api/process/route.test.ts:
-    - 4 tests: mockScriptCreate called 0 times (mock wiring broke after process route refactor)
-    - 2 tests: error message mismatch ("AI provider not configured" vs "Something went wrong")
-    Fix before starting Phase 5 features.'
+    Previously failing 6 tests in src/app/api/process/route.test.ts now all pass (8/8).
+    Skipped: 1 in db.test.ts, 6 in seed.test.ts (intentional).'
 - id: build
   command: npm run build
   status: PASS
@@ -164,7 +162,7 @@ recently_shipped:
 phase: 5
 phase_name: phase-5-platform-expansion
 epoch: 19
-next_action: "Phase 4 complete. Fix 6 failing tests in src/app/api/process/route.test.ts (mock wiring + error message mismatch). Then pick Phase 5 feature: pocket-refugee-capture (time-sensitive), source-author-following (fully specced), or episode-sharing (no spec yet, high growth leverage). Close stale GitHub issues (#24-#32 dupes, #33-#41 already shipped)."
+next_action: "All health gates green. Pick first Phase 5 feature: in-app-feedback-system (fully designed, supports TestFlight cycle), pocket-refugee-capture (time-sensitive, specced), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), ios-share-extension (specced, M), browser-extension (fully specced, L), content-type-expansion (specced, M). Close stale GitHub issues (#24-#32 dupes, #33-#41 already shipped)."
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -431,20 +429,17 @@ features:
 proposed_features: []
 next_steps:
 - step: 1
-  task: "Fix 6 failing tests in src/app/api/process/route.test.ts"
-  action: "Mock wiring broke after process route refactor (ElevenLabs→OpenAI switch). Fix mockScriptCreate path + update error message assertions."
-- step: 2
   task: "Close stale GitHub issues"
   action: "Close #24-#32 (dupes of #33-#41). Close #33-#41 (all shipped). Close #3,#6,#7,#9 (already implemented)."
-- step: 3
+- step: 2
   task: "Pick first Phase 5 feature"
-  action: "Options: pocket-refugee-capture (time-sensitive, specced), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M)."
+  action: "Options: in-app-feedback-system (fully designed, supports active TestFlight cycle), pocket-refugee-capture (time-sensitive, specced), ios-share-extension (specced, M), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M)."
 last_session: '2026-03-15'
 meta:
   project: ridecast2
   created: '2026-03-05'
   total_features_completed: 49
-  last_updated: '2026-03-13'
-  session_count: 17
+  last_updated: '2026-03-25'
+  session_count: 18
   zero_change_sessions: 0
-  last_session_head: 653c1a4
+  last_session_head: e957906
