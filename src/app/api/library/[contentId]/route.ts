@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { isBlobStorageConfigured } from '@/lib/storage/blob';
 import { BlobServiceClient } from '@azure/storage-blob';
 
@@ -59,7 +59,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Delete error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthenticated') {
+    if (error instanceof AuthenticationError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

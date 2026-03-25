@@ -1,10 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// --- Hoisted mock refs (must be before any vi.mock calls) ---
+
+const { mockUploadAudio, mockTranscriptionCreate } = vi.hoisted(() => {
+  return {
+    mockUploadAudio: vi.fn().mockResolvedValue('https://blob.example.com/feedback-123.webm'),
+    mockTranscriptionCreate: vi.fn().mockResolvedValue({ text: 'Transcribed voice feedback' }),
+  };
+});
+
 // --- Mocks (must be before imports) ---
 
-vi.mock('@/lib/auth', () => ({
-  getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
-}));
+vi.mock('@/lib/auth', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/auth')>('@/lib/auth');
+  return {
+    ...actual,
+    getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
+  };
+});
 
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -27,7 +40,7 @@ vi.mock('@/lib/ai/feedback', () => ({
 }));
 
 vi.mock('@/lib/storage/blob', () => ({
-  uploadAudio: vi.fn().mockResolvedValue('https://blob.example.com/feedback-123.webm'),
+  uploadAudio: mockUploadAudio,
   isBlobStorageConfigured: vi.fn().mockReturnValue(true),
 }));
 
@@ -35,7 +48,7 @@ vi.mock('openai', () => ({
   default: class MockOpenAI {
     audio = {
       transcriptions: {
-        create: vi.fn().mockResolvedValue({ text: 'Transcribed voice feedback' }),
+        create: mockTranscriptionCreate,
       },
     };
   },
@@ -44,7 +57,7 @@ vi.mock('openai', () => ({
 // --- Imports (after mocks) ---
 
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { categorizeFeedback } from '@/lib/ai/feedback';
 import { POST } from './route';
 
@@ -59,10 +72,43 @@ function createJsonRequest(body: Record<string, unknown>): Request {
   });
 }
 
+function createVoiceRequest(opts?: { screenContext?: string; episodeId?: string | null }): Request {
+  const audioFile = new File([new ArrayBuffer(16)], 'recording.webm', { type: 'audio/webm' });
+  const screenContext = opts?.screenContext ?? 'Player';
+  const episodeId = opts?.episodeId ?? null;
+  return {
+    headers: new Headers({ 'content-type': 'multipart/form-data; boundary=test' }),
+    formData: async () => ({
+      get: (key: string) => {
+        if (key === 'screenContext') return screenContext;
+        if (key === 'audioFile') return audioFile;
+        if (key === 'episodeId') return episodeId;
+        return null;
+      },
+    }),
+  } as unknown as Request;
+}
+
+function makeDeferredVoiceOps() {
+  let resolveUpload!: (url: string) => void;
+  let resolveTranscription!: (result: { text: string }) => void;
+  const uploadPromise = new Promise<string>((resolve) => { resolveUpload = resolve; });
+  const transcriptionPromise = new Promise<{ text: string }>((resolve) => { resolveTranscription = resolve; });
+  return { uploadPromise, transcriptionPromise, resolveUpload, resolveTranscription };
+}
+
 describe('POST /api/feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
+    vi.mocked(categorizeFeedback).mockResolvedValue({
+      category: 'Bug',
+      summary: 'App crashes on library screen',
+      priority: 'High',
+      duplicateOf: null,
+    });
+    mockUploadAudio.mockResolvedValue('https://blob.example.com/feedback-123.webm');
+    mockTranscriptionCreate.mockResolvedValue({ text: 'Transcribed voice feedback' });
     mockTelemetryFindMany.mockResolvedValue([]);
     mockFeedbackCreate.mockResolvedValue({
       id: 'fb-1',
@@ -117,6 +163,8 @@ describe('POST /api/feedback', () => {
 
     const response = await POST(request);
     expect(response.status).toBe(400);
+    // Telemetry is started eagerly after auth (before body parsing) — a bounded
+    // query on invalid requests is an intentional tradeoff for concurrency.
 
     const data = await response.json();
     expect(data.error).toContain('text and screenContext are required');
@@ -127,6 +175,23 @@ describe('POST /api/feedback', () => {
 
     const response = await POST(request);
     expect(response.status).toBe(400);
+    // Telemetry is started eagerly after auth (before body parsing) — a bounded
+    // query on invalid requests is an intentional tradeoff for concurrency.
+  });
+
+  it('telemetry query selects only the fields consumed by categorizeFeedback', async () => {
+    const request = createJsonRequest({
+      text: 'Something went wrong',
+      screenContext: 'Library',
+    });
+
+    await POST(request);
+
+    expect(mockTelemetryFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { eventType: true, metadata: true },
+      }),
+    );
   });
 
   it('passes recent telemetry events to categorization', async () => {
@@ -169,24 +234,7 @@ describe('POST /api/feedback', () => {
   });
 
   it('handles voice feedback via FormData with audio transcription', async () => {
-    const audioBlob = new Blob(['fake-audio-data'], { type: 'audio/webm' });
-    const audioFile = Object.assign(audioBlob, {
-      name: 'recording.webm',
-      lastModified: Date.now(),
-      arrayBuffer: async () => new ArrayBuffer(16),
-    });
-
-    const request = {
-      headers: new Headers({ 'content-type': 'multipart/form-data; boundary=test' }),
-      formData: async () => ({
-        get: (key: string) => {
-          if (key === 'screenContext') return 'Player';
-          if (key === 'audioFile') return audioFile;
-          if (key === 'episodeId') return null;
-          return null;
-        },
-      }),
-    } as unknown as Request;
+    const request = createVoiceRequest();
 
     const response = await POST(request);
     expect(response.status).toBe(200);
@@ -221,7 +269,7 @@ describe('POST /api/feedback', () => {
   });
 
   it('returns 401 for unauthenticated requests', async () => {
-    vi.mocked(getCurrentUserId).mockRejectedValue(new Error('Unauthenticated'));
+    vi.mocked(getCurrentUserId).mockRejectedValue(new AuthenticationError());
 
     const request = createJsonRequest({
       text: 'Test feedback',
@@ -230,5 +278,117 @@ describe('POST /api/feedback', () => {
 
     const response = await POST(request);
     expect(response.status).toBe(401);
+  });
+
+  it('starts telemetry lookup before upload and transcription resolve for voice feedback (regression: telemetry concurrency)', async () => {
+    // Track the order in which async work is kicked off. Telemetry is started
+    // immediately after getCurrentUserId resolves; upload/transcription are
+    // started only after formData() + arrayBuffer() also resolve — so telemetry
+    // must always appear first in the call order.
+    const callOrder: string[] = [];
+    const { uploadPromise, transcriptionPromise, resolveUpload, resolveTranscription } = makeDeferredVoiceOps();
+
+    mockTelemetryFindMany.mockImplementationOnce(() => {
+      callOrder.push('telemetry');
+      return Promise.resolve([]);
+    });
+    mockUploadAudio.mockImplementationOnce(() => {
+      callOrder.push('upload');
+      return uploadPromise;
+    });
+    mockTranscriptionCreate.mockImplementationOnce(() => {
+      callOrder.push('transcription');
+      return transcriptionPromise;
+    });
+
+    const request = createVoiceRequest();
+
+    const postPromise = POST(request);
+    resolveUpload('https://blob.example.com/feedback-concurrent.webm');
+    resolveTranscription({ text: 'Voice feedback transcribed concurrently' });
+    const response = await postPromise;
+    expect(response.status).toBe(200);
+
+    // Telemetry must have been kicked off before upload/transcription were called
+    expect(callOrder[0]).toBe('telemetry');
+    expect(callOrder).toContain('upload');
+    expect(callOrder).toContain('transcription');
+  });
+
+  it('starts telemetry lookup before JSON body parsing resolves for text feedback (regression: telemetry concurrency)', async () => {
+    // Prove that the telemetry DB query is kicked off before request.json()
+    // resolves. With the pre-fix implementation telemetry was only started
+    // after validation passed (i.e., after json resolved + body was checked),
+    // so callOrder[0] would never be 'telemetry' while json was still pending.
+    // After the fix startTelemetryQuery fires right after getCurrentUserId()
+    // resolves, so it must appear first regardless of when the body arrives.
+    const callOrder: string[] = [];
+
+    let resolveJson!: (body: Record<string, unknown>) => void;
+    const jsonPromise = new Promise<Record<string, unknown>>((resolve) => {
+      resolveJson = resolve;
+    });
+
+    mockTelemetryFindMany.mockImplementationOnce(() => {
+      callOrder.push('telemetry');
+      return Promise.resolve([]);
+    });
+
+    const deferredRequest = {
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: vi.fn().mockReturnValue(jsonPromise),
+    } as unknown as Request;
+
+    const postPromise = POST(deferredRequest);
+
+    // Yield until getCurrentUserId() resolves and the handler's next
+    // synchronous block runs (startTelemetryQuery + request.json() call).
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Telemetry must be in flight even though the json body has not resolved.
+    expect(callOrder).toContain('telemetry');
+    expect(mockFeedbackCreate).not.toHaveBeenCalled(); // handler still suspended
+
+    // Let the body resolve so the handler can complete.
+    resolveJson({ text: 'Concurrent text feedback', screenContext: 'Library' });
+
+    const response = await postPromise;
+    expect(response.status).toBe(200);
+
+    expect(callOrder[0]).toBe('telemetry');
+  });
+
+  it('starts blob upload and transcription concurrently for voice feedback', async () => {
+    // When uploadAudio is called (synchronously inside Promise.all), we fire a
+    // signal. Since Promise.all evaluates all its arguments synchronously before
+    // awaiting, transcriptions.create must also have been called by the time
+    // that signal resolves — proving both were started in the same tick.
+    let notifyUploadCalled!: () => void;
+    const uploadCalledSignal = new Promise<void>((resolve) => { notifyUploadCalled = resolve; });
+    const { uploadPromise, transcriptionPromise, resolveUpload, resolveTranscription } = makeDeferredVoiceOps();
+
+    mockUploadAudio.mockImplementationOnce(() => {
+      notifyUploadCalled();
+      return uploadPromise;
+    });
+    mockTranscriptionCreate.mockReturnValueOnce(transcriptionPromise);
+
+    const request = createVoiceRequest();
+
+    const postPromise = POST(request);
+
+    // Wait until the handler reaches Promise.all (signalled by uploadAudio being called).
+    // At this point transcriptions.create must also have been called — it's in the
+    // same synchronous Promise.all argument list.
+    await uploadCalledSignal;
+    expect(mockTranscriptionCreate).toHaveBeenCalledTimes(1);
+
+    // Resolve both deferred operations and confirm the request completes
+    resolveUpload('https://blob.example.com/feedback-concurrent.webm');
+    resolveTranscription({ text: 'Voice feedback transcribed concurrently' });
+
+    const response = await postPromise;
+    expect(response.status).toBe(200);
   });
 });

@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // --- Mocks ---
 
-vi.mock('@/lib/auth', () => ({
-  getCurrentUserId: vi.fn().mockResolvedValue('admin_user_1'),
-}));
+vi.mock('@/lib/auth', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/auth')>('@/lib/auth');
+  return {
+    ...actual,
+    getCurrentUserId: vi.fn().mockResolvedValue('admin_user_1'),
+  };
+});
 
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -17,7 +21,7 @@ vi.mock('@/lib/db', () => ({
 // --- Imports ---
 
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { GET } from './route';
 
 const mockFindMany = prisma.feedback.findMany as ReturnType<typeof vi.fn>;
@@ -130,7 +134,7 @@ describe('GET /api/admin/feedback', () => {
   });
 
   it('returns 401 for unauthenticated requests', async () => {
-    vi.mocked(getCurrentUserId).mockRejectedValue(new Error('Unauthenticated'));
+    vi.mocked(getCurrentUserId).mockRejectedValue(new AuthenticationError());
 
     const request = new Request('http://localhost/api/admin/feedback');
     const response = await GET(request);

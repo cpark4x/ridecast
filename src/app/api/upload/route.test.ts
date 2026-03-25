@@ -18,9 +18,13 @@ vi.mock('@/lib/extractors', () => ({
 }));
 
 // Mock auth
-vi.mock('@/lib/auth', () => ({
-  getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
-}));
+vi.mock('@/lib/auth', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/auth')>('@/lib/auth');
+  return {
+    ...actual,
+    getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
+  };
+});
 
 // Mock subscription gate — pass-through in route tests (subscription logic tested separately)
 vi.mock('@/lib/subscription', () => ({
@@ -29,7 +33,7 @@ vi.mock('@/lib/subscription', () => ({
 
 import { prisma } from '@/lib/db';
 import { extractContent, extractUrl } from '@/lib/extractors';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { POST } from './route';
 
 const mockFindFirst = prisma.content.findFirst as ReturnType<typeof vi.fn>;
@@ -133,6 +137,15 @@ describe('POST /api/upload', () => {
     const request = createMockRequest({ file });
     const response = await POST(request);
     expect(response.status).toBe(409);
+  });
+
+  it('returns 401 for unauthenticated requests', async () => {
+    vi.mocked(getCurrentUserId).mockRejectedValue(new AuthenticationError());
+
+    const request = createMockRequest({ url: 'https://example.com/article' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(401);
   });
 
   it('associates uploaded content with authenticated user ID', async () => {

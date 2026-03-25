@@ -113,4 +113,6 @@ model TelemetryEvent {
   clientEventId  String?  @unique // client-generated id for retry deduplication
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }

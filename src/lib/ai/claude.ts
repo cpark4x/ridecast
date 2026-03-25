@@ -1,9 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from './types';
 import type { AIProvider, ContentAnalysis, ScriptConfig, GeneratedScript } from './types';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { retryWithBackoff } from '@/lib/utils/retry';
+import { stripJsonMarkdownFences, asRecord } from '@/lib/utils/json';
 
-const MODEL = 'claude-sonnet-4-20250514';
 const ANALYSIS_MAX_TOKENS = 1024;
 const MAX_ANALYSIS_CHARS = 3000;
 // Claude's context window is 200K tokens (~800K chars). Reserve space for
@@ -22,11 +23,14 @@ const CONTENT_TYPES = [
 ] as const;
 
 function isContentAnalysis(value: unknown): value is ContentAnalysis {
-  const obj = value as Record<string, unknown>;
+  const obj = asRecord(value);
+  if (!obj) return false;
   return (
     typeof obj.contentType === 'string' &&
+    (CONTENT_TYPES as readonly string[]).includes(obj.contentType) &&
     (obj.format === 'narrator' || obj.format === 'conversation') &&
     Array.isArray(obj.themes) &&
+    (obj.themes as unknown[]).every((t) => typeof t === 'string') &&
     typeof obj.summary === 'string' &&
     typeof obj.suggestedTitle === 'string'
   );
@@ -43,7 +47,7 @@ export class ClaudeProvider implements AIProvider {
     const truncated = text.slice(0, MAX_ANALYSIS_CHARS);
 
     const response = await retryWithBackoff(() => this.client.messages.create({
-      model: MODEL,
+      model: CLAUDE_MODEL,
       max_tokens: ANALYSIS_MAX_TOKENS,
       messages: [
         {
@@ -70,16 +74,13 @@ ${truncated}`,
 
     // Claude often wraps JSON in markdown fences (```json ... ```) despite
     // being asked for raw JSON. Strip them before parsing.
-    const cleaned = content.text
-      .replace(/^```(?:json)?\s*\n?/, "")
-      .replace(/\n?```\s*$/, "")
-      .trim();
+    const cleaned = stripJsonMarkdownFences(content.text);
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error(`Failed to parse analysis response: ${cleaned.slice(0, 200)}`);
+      throw new Error('Invalid JSON response from Claude');
     }
 
     if (!isContentAnalysis(parsed)) {
@@ -202,7 +203,7 @@ ${sourceText}`;
     targetWords: number,
   ): Promise<{ text: string; wordCount: number }> {
     const response = await retryWithBackoff(() => this.client.messages.create({
-      model: MODEL,
+      model: CLAUDE_MODEL,
       max_tokens: Math.max(targetWords * 2, 2048),
       messages: [
         {

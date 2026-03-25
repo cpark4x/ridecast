@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockCreate = vi.fn();
+const { mockCreate } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+}));
 
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class MockAnthropic {
@@ -12,7 +14,7 @@ vi.mock('@/lib/utils/retry', () => ({
   retryWithBackoff: (fn: () => Promise<unknown>) => fn(),
 }));
 
-import { categorizeFeedback } from './feedback';
+import { categorizeFeedback, type FeedbackCategory } from './feedback';
 
 describe('categorizeFeedback', () => {
   beforeEach(() => {
@@ -140,5 +142,53 @@ describe('categorizeFeedback', () => {
       text: 'Test',
       screenContext: 'Home',
     })).rejects.toThrow('Invalid feedback analysis: missing required fields');
+  });
+
+  it.each([
+    ['category', { category: 'InvalidCategory', summary: 'Some summary', priority: 'High', duplicateOf: null }],
+    ['priority', { category: 'Bug', summary: 'Some summary', priority: 'Urgent', duplicateOf: null }],
+  ])('throws when %s is an invalid enum value', async (_field, payload) => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify(payload) }],
+    });
+
+    await expect(categorizeFeedback({
+      text: 'Test',
+      screenContext: 'Home',
+    })).rejects.toThrow('Invalid feedback analysis');
+  });
+
+  it('rejects with validation error when Claude returns literal "null" payload (regression: null-guard crash)', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: 'null' }],
+    });
+
+    await expect(categorizeFeedback({
+      text: 'Test',
+      screenContext: 'Home',
+    })).rejects.toThrow('Invalid feedback analysis');
+  });
+
+  it.each<FeedbackCategory>([
+    'Bug',
+    'UX Friction',
+    'Feature Request',
+    'Content Quality',
+    'Playback Issue',
+  ])('accepts valid category: %s', async (category) => {
+    mockCreate.mockResolvedValue({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          category,
+          summary: 'Some summary',
+          priority: 'High',
+          duplicateOf: null,
+        }),
+      }],
+    });
+
+    const result = await categorizeFeedback({ text: 'Test', screenContext: 'Home' });
+    expect(result.category).toBe(category);
   });
 });

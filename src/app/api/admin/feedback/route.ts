@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Admin feedback query error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthenticated') {
+    if (error instanceof AuthenticationError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

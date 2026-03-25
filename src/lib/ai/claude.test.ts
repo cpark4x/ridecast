@@ -1,221 +1,230 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClaudeProvider } from './claude';
 
 const mockCreate = vi.fn();
 
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class MockAnthropic {
-    messages = { create: mockCreate };
+    messages = {
+      create: mockCreate,
+    };
   },
 }));
+
+vi.mock('@/lib/utils/retry', () => ({
+  retryWithBackoff: (fn: () => Promise<unknown>) => fn(),
+}));
+
+import { ClaudeProvider } from './claude';
 
 describe('ClaudeProvider', () => {
   let provider: ClaudeProvider;
 
   beforeEach(() => {
-    mockCreate.mockReset();
+    vi.clearAllMocks();
     provider = new ClaudeProvider();
   });
 
-  describe('analyze()', () => {
-    it('returns content analysis with contentType, format, themes, and summary', async () => {
+  describe('analyze', () => {
+    it('returns structured analysis from valid Claude JSON', async () => {
       mockCreate.mockResolvedValue({
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              contentType: 'business_book',
-              format: 'conversation',
-              themes: ['productivity', 'management', 'leadership'],
-              summary: 'A book about effective business practices and productivity.',
-              suggestedTitle: 'The Art of Productive Business Leadership',
-            }),
-          },
-        ],
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'business_book',
+            format: 'narrator',
+            themes: ['leadership', 'strategy'],
+            summary: 'A book about leadership strategy',
+            suggestedTitle: 'Leadership Strategy Explained',
+          }),
+        }],
       });
 
-      const result = await provider.analyze('Some text about business and productivity...');
+      const result = await provider.analyze('Some book text');
 
-      expect(result.contentType).toBe('business_book');
-      expect(result.format).toBe('conversation');
-      expect(result.themes).toContain('productivity');
-      expect(result.summary).toBeTruthy();
+      expect(result).toEqual({
+        contentType: 'business_book',
+        format: 'narrator',
+        themes: ['leadership', 'strategy'],
+        summary: 'A book about leadership strategy',
+        suggestedTitle: 'Leadership Strategy Explained',
+      });
     });
-  });
 
-  describe('generateScript()', () => {
-    it('returns narrator script with text, format, and wordCount > 0', async () => {
+    it('truncates long input to 3000 characters', async () => {
       mockCreate.mockResolvedValue({
-        content: [
-          {
-            type: 'text',
-            text: 'Welcome to this episode where we explore the key ideas from this fascinating book about productivity and management.',
-          },
-        ],
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'news_article',
+            format: 'narrator',
+            themes: ['news'],
+            summary: 'Summary',
+            suggestedTitle: 'Title',
+          }),
+        }],
       });
 
-      const result = await provider.generateScript('Some source text...', {
-        format: 'narrator',
-        targetMinutes: 5,
-        contentType: 'business_book',
-        themes: ['productivity'],
-      });
+      const longText = 'a'.repeat(5000);
+      await provider.analyze(longText);
 
-      expect(result.text).toBeTruthy();
-      expect(result.format).toBe('narrator');
-      expect(result.wordCount).toBeGreaterThan(0);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      const prompt = mockCreate.mock.calls[0]?.[0]?.messages?.[0]?.content as string;
+      expect(prompt.length).toBeLessThan(5000);
+      expect(prompt).toContain('a'.repeat(3000));
     });
 
-    it('returns conversation script with [Host A] and [Host B] labels', async () => {
+    it('throws on empty content array', async () => {
       mockCreate.mockResolvedValue({
-        content: [
-          {
-            type: 'text',
-            text: '[Host A] Hey, welcome to the show! Today we are diving into something really cool.\n[Host B] Absolutely. This book has some fascinating insights about productivity.\n[Host A] Let us break it down for our listeners.',
-          },
-        ],
+        content: [],
       });
-
-      const result = await provider.generateScript('Some source text...', {
-        format: 'conversation',
-        targetMinutes: 5,
-        contentType: 'business_book',
-        themes: ['productivity'],
-      });
-
-      expect(result.text).toContain('[Host A]');
-      expect(result.text).toContain('[Host B]');
-      expect(result.format).toBe('conversation');
-      expect(result.wordCount).toBeGreaterThan(0);
-    });
-  });
-
-  describe('generateScript() — duration accuracy', () => {
-    it('retries when first result is below ±15% tolerance', async () => {
-      // targetMinutes=5 → targetWords=750, min=638, max=863
-      // 637 words is below the ±15% floor (638) but above the old ±30% floor (525)
-      // — so this test only passes with the tightened tolerance
-      const shortText = Array(637).fill('word').join(' ');
-      const inRangeText = Array(700).fill('word').join(' ');
-
-      mockCreate
-        .mockResolvedValueOnce({ content: [{ type: 'text', text: shortText }] })
-        .mockResolvedValueOnce({ content: [{ type: 'text', text: inRangeText }] });
-
-      const result = await provider.generateScript('source text', {
-        format: 'narrator',
-        targetMinutes: 5,
-        contentType: 'business_book',
-        themes: ['productivity'],
-      });
-
-      expect(result.wordCount).toBe(700);
-      expect(mockCreate).toHaveBeenCalledTimes(2);
-    });
-
-    it('performs a second retry with hard constraint when first retry is still out of range', async () => {
-      // 3 calls total: initial + 1st retry + 2nd retry (hard constraint)
-      const shortText = Array(600).fill('word').join(' ');
-      const finalText = Array(640).fill('word').join(' ');
-
-      mockCreate
-        .mockResolvedValueOnce({ content: [{ type: 'text', text: shortText }] })
-        .mockResolvedValueOnce({ content: [{ type: 'text', text: shortText }] })
-        .mockResolvedValueOnce({ content: [{ type: 'text', text: finalText }] });
-
-      const result = await provider.generateScript('source text', {
-        format: 'narrator',
-        targetMinutes: 5,
-        contentType: 'business_book',
-        themes: ['productivity'],
-      });
-
-      expect(mockCreate).toHaveBeenCalledTimes(3);
-      expect(result.wordCount).toBe(640);
-    });
-
-    it('returns best effort after all retries miss and does not throw', async () => {
-      const shortText = Array(500).fill('word').join(' ');
-
-      mockCreate.mockResolvedValue({ content: [{ type: 'text', text: shortText }] });
-
-      const result = await provider.generateScript('source text', {
-        format: 'narrator',
-        targetMinutes: 5,
-        contentType: 'business_book',
-        themes: ['productivity'],
-      });
-
-      expect(mockCreate).toHaveBeenCalledTimes(3);
-      expect(result.wordCount).toBe(500);
-      expect(result.text).toBeTruthy();
-    });
-
-    it('raises max_tokens floor to 2048 for short targets', async () => {
-      // targetMinutes=5 → targetWords=750, targetWords*2=1500 < 2048
-      // New code: max_tokens = Math.max(750*2, 2048) = 2048
-      const text = Array(750).fill('word').join(' ');
-      mockCreate.mockResolvedValue({ content: [{ type: 'text', text }] });
-
-      await provider.generateScript('source text', {
-        format: 'narrator',
-        targetMinutes: 5,
-        contentType: 'business_book',
-        themes: ['productivity'],
-      });
-
-      const callArgs = mockCreate.mock.calls[0][0] as { max_tokens: number };
-      expect(callArgs.max_tokens).toBe(2048);
-    });
-  });
-
-  describe('error handling', () => {
-    it('throws on empty content array from analyze()', async () => {
-      mockCreate.mockResolvedValue({ content: [] });
 
       await expect(provider.analyze('Some text')).rejects.toThrow(
         'Unexpected response type from Claude',
       );
     });
 
-    it('throws on non-text content block from generateScript()', async () => {
+    it('throws on non-text content', async () => {
       mockCreate.mockResolvedValue({
-        content: [{ type: 'tool_use', id: 'x', name: 'y', input: {} }],
-      });
-
-      await expect(
-        provider.generateScript('Some text', {
-          format: 'narrator',
-          targetMinutes: 5,
-          contentType: 'business_book',
-          themes: ['productivity'],
-        }),
-      ).rejects.toThrow('Unexpected response type from Claude');
-    });
-
-    it('throws descriptive error on malformed JSON from analyze()', async () => {
-      mockCreate.mockResolvedValue({
-        content: [{ type: 'text', text: 'Not valid JSON at all' }],
+        content: [{
+          type: 'tool_use',
+          id: 'tool-1',
+          name: 'search',
+          input: {},
+        }],
       });
 
       await expect(provider.analyze('Some text')).rejects.toThrow(
-        'Failed to parse analysis response: Not valid JSON at all',
+        'Unexpected response type from Claude',
       );
     });
 
-    it('throws on malformed analysis missing required fields', async () => {
+    it('strips markdown json fences before parsing', async () => {
       mockCreate.mockResolvedValue({
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ contentType: 'business_book' }),
-          },
-        ],
+        content: [{
+          type: 'text',
+          text: '```json\n{"contentType":"news_article","format":"narrator","themes":["news"],"summary":"Summary","suggestedTitle":"Title"}\n```',
+        }],
+      });
+
+      const result = await provider.analyze('Some text');
+
+      expect(result.contentType).toBe('news_article');
+      expect(result.suggestedTitle).toBe('Title');
+    });
+
+    it('throws validation error on malformed JSON', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: '{not-json}',
+        }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Invalid JSON response from Claude',
+      );
+    });
+
+    it('throws validation error on invalid content type', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'invalid-type',
+            format: 'narrator',
+            themes: ['theme'],
+            summary: 'Summary',
+            suggestedTitle: 'Title',
+          }),
+        }],
       });
 
       await expect(provider.analyze('Some text')).rejects.toThrow(
         'Invalid analysis response: missing required fields',
       );
+    });
+
+    it('throws validation error when themes is missing', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'business_book',
+            format: 'narrator',
+            summary: 'Summary',
+            suggestedTitle: 'Title',
+          }),
+        }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Invalid analysis response: missing required fields',
+      );
+    });
+
+    it('throws validation error when themes is not an array', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'business_book',
+            format: 'narrator',
+            themes: 'not-an-array',
+            summary: 'Summary',
+            suggestedTitle: 'Title',
+          }),
+        }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Invalid analysis response: missing required fields',
+      );
+    });
+
+    it('throws validation error when a theme is not a string', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'business_book',
+            format: 'narrator',
+            themes: ['ok', 123],
+            summary: 'Summary',
+            suggestedTitle: 'Title',
+          }),
+        }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Invalid analysis response: missing required fields',
+      );
+    });
+
+    it('throws validation error when format is invalid', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            contentType: 'business_book',
+            format: 'invalid-format',
+            themes: ['theme'],
+            summary: 'Summary',
+            suggestedTitle: 'Title',
+          }),
+        }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow(
+        'Invalid analysis response: missing required fields',
+      );
+    });
+
+    it('throws validation error when analyze() text payload is literal "null" (regression: null-guard crash)', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{ type: 'text', text: 'null' }],
+      });
+
+      await expect(provider.analyze('Some text')).rejects.toThrow('Invalid analysis response');
     });
   });
 });

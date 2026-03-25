@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { extractContent, extractUrl } from '@/lib/extractors';
 import { contentHash } from '@/lib/utils/hash';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { requireSubscription } from '@/lib/subscription';
 
 // Max chars sent to Claude for script generation (~600K = ~150K words / ~500 pages)
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     console.error('Upload error:', error);
 
     // Auth failure should be 401, not 500
-    if (error instanceof Error && error.message === 'Unauthenticated') {
+    if (error instanceof AuthenticationError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
