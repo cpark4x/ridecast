@@ -127,7 +127,11 @@ jest.mock("@react-native-community/slider", () => "Slider");
 // ---------------------------------------------------------------------------
 import React, { createRef } from "react";
 import { render, fireEvent, act, waitFor } from "@testing-library/react-native";
+import { Alert } from "react-native";
 import type { FeedbackSheetRef } from "../components/FeedbackSheet";
+
+// Alert spy — set up in beforeEach so it is fresh for each test
+let alertSpy: jest.SpyInstance;
 
 // ---------------------------------------------------------------------------
 // Helper — renders FeedbackSheet with a forwarded ref via React.createElement
@@ -183,10 +187,12 @@ beforeEach(() => {
     category: "Bug",
   });
   mockRequestPermissionsAsync.mockResolvedValue({ granted: true });
+  alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
 });
 
 afterEach(() => {
   jest.useRealTimers();
+  alertSpy.mockRestore();
 });
 
 // ===========================================================================
@@ -486,5 +492,112 @@ describe("FeedbackSheet: dismiss cleanup while recording", () => {
     expect(clearIntervalSpy).toHaveBeenCalled();
 
     clearIntervalSpy.mockRestore();
+  });
+});
+
+// ===========================================================================
+// 8. Done state renders plain apostrophe (not HTML entity)
+// ===========================================================================
+describe("FeedbackSheet: done state text", () => {
+  it("shows 'We\u2019ll' with a real apostrophe, not the HTML entity &apos;", async () => {
+    jest.useFakeTimers();
+
+    const { ref, getByTestId, getByText } = renderSheet();
+
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    const input = getByTestId("text-input");
+    fireEvent.changeText(input, "Great app!");
+
+    await act(async () => {
+      fireEvent.press(getByText("Submit"));
+    });
+
+    // The done state must show the confirmation message with a real apostrophe.
+    // React Native does NOT decode HTML entities — &apos; renders literally.
+    expect(getByText("Thanks! We'll look into this.")).not.toBeNull();
+  });
+});
+
+// ===========================================================================
+// 9. User-visible error on text submit failure
+// ===========================================================================
+describe("FeedbackSheet: text submit failure shows Alert", () => {
+  it("calls Alert.alert when submitTextFeedback throws", async () => {
+    mockSubmitTextFeedback.mockRejectedValueOnce(new Error("network error"));
+
+    const { ref, getByTestId, getByText } = renderSheet();
+
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    const input = getByTestId("text-input");
+    fireEvent.changeText(input, "Something is broken");
+
+    await act(async () => {
+      fireEvent.press(getByText("Submit"));
+    });
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+// ===========================================================================
+// 10. User-visible error on recording start failure
+// ===========================================================================
+describe("FeedbackSheet: recording start failure shows Alert", () => {
+  it("calls Alert.alert when Audio.Recording.startAsync throws", async () => {
+    mockStartAsync.mockRejectedValueOnce(new Error("mic unavailable"));
+
+    const { ref, getByText, getByTestId } = renderSheet();
+
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    fireEvent.press(getByText("Talk"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("mic-button"));
+    });
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+// ===========================================================================
+// 11. User-visible error on recording stop failure
+// ===========================================================================
+describe("FeedbackSheet: recording stop failure shows Alert", () => {
+  it("calls Alert.alert when stopAndUnloadAsync throws during stop", async () => {
+    const { ref, getByText, getByTestId } = renderSheet();
+
+    await act(async () => {
+      ref.current!.open();
+    });
+
+    fireEvent.press(getByText("Talk"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("mic-button"));
+    });
+
+    // Now make stopAndUnloadAsync throw on the next call (stop recording)
+    mockStopAndUnloadAsync.mockRejectedValueOnce(new Error("hardware error"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("stop-button"));
+    });
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledTimes(1);
+    });
   });
 });

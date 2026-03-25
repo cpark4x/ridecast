@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -145,6 +146,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         modalRef.current?.dismiss();
       }, 1500);
     } catch {
+      Alert.alert("Submission Failed", "Your feedback could not be sent. Please try again.");
       setState("idle");
     }
   }, [text, screenContext, episodeId]);
@@ -177,6 +179,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         setRecordingDuration((d) => d + 1);
       }, 1000);
     } catch {
+      Alert.alert("Recording Failed", "Could not start recording. Please try again.");
       setState("idle");
     }
   }, []);
@@ -192,6 +195,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
       setRecordingUri(uri);
       setState("preview");
     } catch {
+      Alert.alert("Recording Failed", "Could not stop recording. Please try again.");
       setState("idle");
     }
   }, [clearDurationTimer]);
@@ -323,7 +327,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         {state === "done" ? (
           <View style={styles.doneContainer}>
             <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
-            <Text style={styles.doneText}>Thanks! We&apos;ll look into this.</Text>
+            <Text style={styles.doneText}>{"Thanks! We'll look into this."}</Text>
           </View>
         ) : (
           <>
