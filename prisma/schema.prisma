@@ -15,8 +15,10 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  content       Content[]
-  playbackState PlaybackState[]
+  content        Content[]
+  playbackState  PlaybackState[]
+  feedback       Feedback[]
+  telemetryEvent TelemetryEvent[]
 }
 
 model Content {
@@ -81,4 +83,33 @@ model PlaybackState {
   audio Audio @relation(fields: [audioId], references: [id])
 
   @@unique([userId, audioId])
+}
+
+model Feedback {
+  id                String   @id @default(uuid())
+  userId            String
+  type              String   // "text" | "voice"
+  rawText           String
+  audioUrl          String?
+  screenContext     String
+  category          String?  // AI-assigned: Bug, UX Friction, Feature Request, Content Quality, Playback Issue (nullable for categorization failure)
+  summary           String?  // AI-generated one-line summary (nullable for categorization failure)
+  priority          String?  // AI-assigned: Critical, High, Medium, Low (nullable for categorization failure)
+  status            String   @default("new") // "new" | "reviewed" | "addressed" | "dismissed"
+  relatedEpisodeId  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model TelemetryEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  eventType String   // "api_error" | "playback_failure" | "processing_timeout" | "upload_failure"
+  metadata  Json
+  surfaced  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
