@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
-import { categorizeFeedback, type FeedbackAnalysis } from '@/lib/ai/feedback';
+import { categorizeFeedback, type FeedbackAnalysis, type FeedbackInput } from '@/lib/ai/feedback';
 import { WHISPER_MODEL } from '@/lib/ai/types';
 import { uploadAudio, isBlobStorageConfigured } from '@/lib/storage/blob';
 import OpenAI from 'openai';
@@ -22,7 +22,9 @@ function getOpenAI(): OpenAI {
   return (_openai ??= new OpenAI());
 }
 
-function startTelemetryQuery(userId: string) {
+type RecentTelemetry = NonNullable<FeedbackInput['telemetryEvents']>;
+
+function startTelemetryQuery(userId: string): Promise<RecentTelemetry> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   return prisma.telemetryEvent.findMany({
     where: { userId, createdAt: { gte: oneHourAgo } },
@@ -40,7 +42,13 @@ export async function POST(request: Request) {
     // Start telemetry immediately so it runs concurrently with body parsing in
     // both paths. Invalid requests may fire this bounded query early — that is
     // an intentional tradeoff for simpler, more effective concurrency.
-    const telemetryPromise = startTelemetryQuery(userId);
+    // The .catch() is attached here at creation time so that a DB rejection is
+    // always handled — even when the route returns early (e.g. 400) before the
+    // later `await telemetryPromise` is reached.
+    const telemetryPromise = startTelemetryQuery(userId).catch((err: unknown): RecentTelemetry => {
+      console.warn('[feedback] Telemetry pre-fetch failed:', err);
+      return [];
+    });
 
     const contentType = request.headers.get('content-type') || '';
 
@@ -95,11 +103,9 @@ export async function POST(request: Request) {
     }
 
     // Await telemetry result (started concurrently with body parsing above).
-    // Telemetry is best-effort context for Claude — degrade gracefully on DB failure.
-    const recentTelemetry = await telemetryPromise.catch((err) => {
-      console.warn('[feedback] Telemetry pre-fetch failed:', err);
-      return [];
-    });
+    // Telemetry is best-effort context for Claude — the .catch() was already
+    // attached at creation time, so this plain await always resolves.
+    const recentTelemetry = await telemetryPromise;
 
     // Categorize with Claude (graceful failure — store raw feedback even if AI fails)
     let analysis: FeedbackAnalysis | null = null;

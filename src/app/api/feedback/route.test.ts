@@ -380,6 +380,45 @@ describe('POST /api/feedback', () => {
     );
   });
 
+  it('no unhandled rejection when telemetry rejects and request body is invalid (early-400 regression)', async () => {
+    // Regression: the telemetry promise was created without an attached .catch(),
+    // so if the route returned early (400) before reaching the later
+    // `await telemetryPromise.catch(...)`, the rejection was unhandled and
+    // console.warn was never called.
+    // After the fix, .catch() is attached at creation time so the warning fires
+    // even on early returns, and no unhandled rejection escapes.
+    const rejections: unknown[] = [];
+    const onUnhandled = (reason: unknown) => { rejections.push(reason); };
+    process.on('unhandledRejection', onUnhandled);
+
+    // Spy on console.warn: the .catch() must fire at creation time so the warning
+    // appears even when the route returns 400 before reaching the later await.
+    // This gives a reliable RED signal for the buggy code path in this environment.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      mockTelemetryFindMany.mockRejectedValue(new Error('DB error'));
+
+      // Missing `text` triggers the early 400 return before the telemetry await.
+      const request = createJsonRequest({ screenContext: 'Home' });
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      // Wait one macrotask tick so any unhandled rejection has a chance to surface.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+      // .catch() must fire at creation time so the warning appears even on early-400.
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[feedback] Telemetry pre-fetch failed:',
+        expect.any(Error),
+      );
+      expect(rejections).toHaveLength(0);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+      warnSpy.mockRestore();
+    }
+  });
+
   it('starts blob upload and transcription concurrently for voice feedback', async () => {
     // When uploadAudio is called (synchronously inside Promise.all), we fire a
     // signal. Since Promise.all evaluates all its arguments synchronously before

@@ -67,11 +67,7 @@ const mockDefaultPrefs = {
   notificationsEnabled: false,
 };
 jest.mock("../lib/prefs", () => ({
-  getPrefs: jest.fn().mockResolvedValue({
-    defaultDuration: 15,
-    hapticsEnabled: true,
-    notificationsEnabled: false,
-  }),
+  getPrefs: jest.fn().mockResolvedValue(mockDefaultPrefs),
   setPrefs: jest.fn().mockResolvedValue(undefined),
   DEFAULT_PREFS: mockDefaultPrefs,
 }));
