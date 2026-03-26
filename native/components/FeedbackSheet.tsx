@@ -91,7 +91,14 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
       dismissTimerRef.current = null;
     }
     if (recordingRef.current) {
-      recordingRef.current.stopAndUnloadAsync().catch(() => {});
+      // Intentionally fire-and-forget: cleanup runs on sheet dismiss / reopen
+      // where we can't surface errors to the user.  Log in dev so native
+      // resource issues remain visible during development.
+      recordingRef.current.stopAndUnloadAsync().catch((err: unknown) => {
+        if (__DEV__) {
+          console.warn("[FeedbackSheet] cleanup stopAndUnloadAsync failed:", err);
+        }
+      });
       recordingRef.current = null;
     }
   }, [clearDurationTimer]);
