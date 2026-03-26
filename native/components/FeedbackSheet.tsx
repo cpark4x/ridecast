@@ -1,6 +1,7 @@
 import React, {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -25,6 +26,7 @@ import { Audio } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
 import { submitTextFeedback, submitVoiceFeedback } from "../lib/api";
+import { formatDuration } from "../lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,22 +40,19 @@ type Tab = "type" | "talk";
 type SheetState = "idle" | "recording" | "preview" | "submitting" | "done";
 
 // ---------------------------------------------------------------------------
-// Helper: format seconds as mm:ss
-// ---------------------------------------------------------------------------
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   const modalRef = useRef<BottomSheetModal>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingVersionRef = useRef(0);
+  const startRecordingPromiseRef = useRef<Promise<void> | null>(null);
+  const stopRecordingPromisesRef = useRef<WeakMap<Audio.Recording, Promise<void>>>(
+    new WeakMap()
+  );
+  // Invalidate pending async UI transitions whenever the sheet session resets.
+  const uiGenerationRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -82,7 +81,95 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     }
   }, []);
 
+  const isStaleUiGeneration = useCallback(
+    (uiGeneration: number) => uiGenerationRef.current !== uiGeneration,
+    []
+  );
+
+  const completeSubmission = useCallback(
+    (uiGeneration: number) => {
+      setState("done");
+      if (dismissTimerRef.current !== null) {
+        clearTimeout(dismissTimerRef.current);
+      }
+      dismissTimerRef.current = setTimeout(() => {
+        if (isStaleUiGeneration(uiGeneration)) {
+          dismissTimerRef.current = null;
+          return;
+        }
+        dismissTimerRef.current = null;
+        modalRef.current?.dismiss();
+      }, 1500);
+    },
+    [isStaleUiGeneration]
+  );
+
+  const startDurationTimer = useCallback(() => {
+    clearDurationTimer();
+    timerRef.current = setInterval(() => {
+      setRecordingDuration((duration) => duration + 1);
+    }, 1000);
+  }, [clearDurationTimer]);
+
+  const setCurrentRecording = useCallback((recording: Audio.Recording | null) => {
+    if (recordingRef.current === recording) {
+      return;
+    }
+
+    recordingRef.current = recording;
+    recordingVersionRef.current += 1;
+  }, []);
+
+  const stopCurrentRecording = useCallback((recording: Audio.Recording) => {
+    const inFlightStopPromise =
+      stopRecordingPromisesRef.current.get(recording);
+    if (inFlightStopPromise) {
+      return inFlightStopPromise;
+    }
+
+    const wasActiveRecording = recordingRef.current === recording;
+    const clearedRecordingVersion = wasActiveRecording
+      ? recordingVersionRef.current + 1
+      : null;
+    if (wasActiveRecording) {
+      setCurrentRecording(null);
+    }
+
+    const stopPromise = (async () => {
+      try {
+        await recording.stopAndUnloadAsync();
+      } catch (error: unknown) {
+        if (
+          wasActiveRecording &&
+          recordingRef.current === null &&
+          recordingVersionRef.current === clearedRecordingVersion
+        ) {
+          setCurrentRecording(recording);
+        }
+        throw error;
+      } finally {
+        stopRecordingPromisesRef.current.delete(recording);
+      }
+    })();
+
+    stopRecordingPromisesRef.current.set(recording, stopPromise);
+    return stopPromise;
+  }, [setCurrentRecording]);
+
+  const cleanupStaleRecording = useCallback(
+    (recording: Audio.Recording, logPrefix: string) => {
+      stopCurrentRecording(recording).catch((error: unknown) => {
+        if (__DEV__) {
+          console.warn(logPrefix, error);
+        }
+      });
+    },
+    [stopCurrentRecording]
+  );
+
   const cleanupRecording = useCallback(() => {
+    uiGenerationRef.current += 1;
+    startRecordingPromiseRef.current = null;
     clearDurationTimer();
     // Cancel any pending auto-dismiss so a stale timer from a prior session
     // cannot dismiss a freshly reopened sheet.
@@ -90,40 +177,53 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
       clearTimeout(dismissTimerRef.current);
       dismissTimerRef.current = null;
     }
-    if (recordingRef.current) {
-      // Intentionally fire-and-forget: cleanup runs on sheet dismiss / reopen
-      // where we can't surface errors to the user.  Log in dev so native
-      // resource issues remain visible during development.
-      recordingRef.current.stopAndUnloadAsync().catch((err: unknown) => {
-        if (__DEV__) {
-          console.warn("[FeedbackSheet] cleanup stopAndUnloadAsync failed:", err);
-        }
-      });
-      recordingRef.current = null;
+
+    const recording = recordingRef.current;
+    if (!recording) {
+      return;
     }
-  }, [clearDurationTimer]);
+
+    // Intentionally fire-and-forget: cleanup runs on sheet dismiss / reopen
+    // where we can't surface errors to the user. Log in dev so native
+    // resource issues remain visible during development.
+    stopCurrentRecording(recording).catch((err: unknown) => {
+      if (__DEV__) {
+        console.warn("[FeedbackSheet] cleanup stopAndUnloadAsync failed:", err);
+      }
+    });
+  }, [clearDurationTimer, stopCurrentRecording]);
+
+  const discardRecording = useCallback(() => {
+    setRecordingUri(null);
+    setRecordingDuration(0);
+    setState("idle");
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupRecording();
+    };
+  }, [cleanupRecording]);
 
   // -------------------------------------------------------------------------
   // Imperative handle
   // -------------------------------------------------------------------------
 
-  useImperativeHandle(ref, () => ({
-    open() {
-      // Cancel any pending dismiss timer from a prior submit before resetting
-      // state, so a stale timer cannot later dismiss this freshly opened sheet.
-      if (dismissTimerRef.current !== null) {
-        clearTimeout(dismissTimerRef.current);
-        dismissTimerRef.current = null;
-      }
-      cleanupRecording();
-      setTab("type");
-      setText("");
-      setState("idle");
-      setRecordingUri(null);
-      setRecordingDuration(0);
-      modalRef.current?.present();
-    },
-  }));
+  useImperativeHandle(
+    ref,
+    () => ({
+      open() {
+        // Reuse the shared cleanup path so stale timers or recordings from a
+        // prior session cannot leak into this freshly opened sheet.
+        cleanupRecording();
+        setTab("type");
+        setText("");
+        discardRecording();
+        modalRef.current?.present();
+      },
+    }),
+    [cleanupRecording, discardRecording]
+  );
 
   // -------------------------------------------------------------------------
   // Guarded tab change: blocked while a recording is active so the mic never
@@ -144,90 +244,172 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
 
   const handleSubmitText = useCallback(async () => {
     if (!text.trim()) return;
+    const uiGeneration = uiGenerationRef.current;
     setState("submitting");
     try {
       await submitTextFeedback({ text, screenContext, episodeId });
-      setState("done");
-      dismissTimerRef.current = setTimeout(() => {
-        dismissTimerRef.current = null;
-        modalRef.current?.dismiss();
-      }, 1500);
+      if (isStaleUiGeneration(uiGeneration)) {
+        return;
+      }
+      completeSubmission(uiGeneration);
     } catch {
+      if (isStaleUiGeneration(uiGeneration)) {
+        return;
+      }
       Alert.alert("Submission Failed", "Your feedback could not be sent. Please try again.");
       setState("idle");
     }
-  }, [text, screenContext, episodeId]);
+  }, [completeSubmission, episodeId, isStaleUiGeneration, screenContext, text]);
 
   // -------------------------------------------------------------------------
   // Handlers: talk tab
   // -------------------------------------------------------------------------
 
   const startRecording = useCallback(async () => {
-    try {
-      const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) return;
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      await recording.startAsync();
-      recordingRef.current = recording;
-      setRecordingDuration(0);
-      setState("recording");
-
-      // Duration timer
-      timerRef.current = setInterval(() => {
-        setRecordingDuration((d) => d + 1);
-      }, 1000);
-    } catch {
-      Alert.alert("Recording Failed", "Could not start recording. Please try again.");
-      setState("idle");
+    const inFlightStartPromise = startRecordingPromiseRef.current;
+    if (inFlightStartPromise) {
+      return inFlightStartPromise;
     }
-  }, []);
+
+    const uiGeneration = uiGenerationRef.current;
+    const isStale = () => uiGenerationRef.current !== uiGeneration;
+
+    const startPromise = (async () => {
+      try {
+        const existingRecording = recordingRef.current;
+        if (existingRecording) {
+          clearDurationTimer();
+          await stopCurrentRecording(existingRecording);
+          if (isStale()) {
+            return;
+          }
+        }
+
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (isStale()) {
+          return;
+        }
+        if (!granted) return;
+
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+        if (isStale()) {
+          return;
+        }
+
+        const recording = new Audio.Recording();
+        await recording.prepareToRecordAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        if (isStale()) {
+          cleanupStaleRecording(
+            recording,
+            "[FeedbackSheet] stale prepare cleanup failed:"
+          );
+          return;
+        }
+        await recording.startAsync();
+        if (isStale()) {
+          cleanupStaleRecording(
+            recording,
+            "[FeedbackSheet] stale start cleanup failed:"
+          );
+          return;
+        }
+        setCurrentRecording(recording);
+        setRecordingDuration(0);
+        setState("recording");
+        startDurationTimer();
+      } catch {
+        if (isStale()) {
+          return;
+        }
+        Alert.alert("Recording Failed", "Could not start recording. Please try again.");
+        setState("idle");
+      } finally {
+        if (uiGenerationRef.current === uiGeneration) {
+          startRecordingPromiseRef.current = null;
+        }
+      }
+    })();
+
+    startRecordingPromiseRef.current = startPromise;
+    return startPromise;
+  }, [
+    cleanupStaleRecording,
+    clearDurationTimer,
+    setCurrentRecording,
+    startDurationTimer,
+    stopCurrentRecording,
+  ]);
 
   const stopRecording = useCallback(async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+
     clearDurationTimer();
+    const uiGeneration = uiGenerationRef.current;
+
     try {
-      const recording = recordingRef.current;
-      if (!recording) return;
-      await recording.stopAndUnloadAsync();
+      await stopCurrentRecording(recording);
+      if (isStaleUiGeneration(uiGeneration)) {
+        return;
+      }
+
       const uri = recording.getURI();
-      recordingRef.current = null;
+      if (!uri) {
+        Alert.alert("Recording Failed", "Could not access the recording. Please try again.");
+        discardRecording();
+        return;
+      }
+
       setRecordingUri(uri);
       setState("preview");
     } catch {
-      Alert.alert("Recording Failed", "Could not stop recording. Please try again.");
-      setState("idle");
-    }
-  }, [clearDurationTimer]);
+      if (isStaleUiGeneration(uiGeneration)) {
+        return;
+      }
 
-  const discardRecording = useCallback(() => {
-    setRecordingUri(null);
-    setRecordingDuration(0);
-    setState("idle");
-  }, []);
+      if (recordingRef.current === recording) {
+        startDurationTimer();
+      }
+      Alert.alert("Recording Failed", "Could not stop recording. Please try again.");
+      setState("recording");
+    }
+  }, [
+    clearDurationTimer,
+    discardRecording,
+    isStaleUiGeneration,
+    startDurationTimer,
+    stopCurrentRecording,
+  ]);
 
   const handleSubmitVoice = useCallback(async () => {
     if (!recordingUri) return;
+    const uiGeneration = uiGenerationRef.current;
     setState("submitting");
     try {
       await submitVoiceFeedback({ fileUri: recordingUri, screenContext, episodeId });
-      setState("done");
-      dismissTimerRef.current = setTimeout(() => {
-        dismissTimerRef.current = null;
-        modalRef.current?.dismiss();
-      }, 1500);
+      if (isStaleUiGeneration(uiGeneration)) {
+        return;
+      }
+      completeSubmission(uiGeneration);
     } catch {
+      if (isStaleUiGeneration(uiGeneration)) {
+        return;
+      }
       // Return to preview so the user can retry or discard intentionally.
       setState("preview");
     }
-  }, [recordingUri, screenContext, episodeId]);
+  }, [
+    completeSubmission,
+    episodeId,
+    isStaleUiGeneration,
+    recordingUri,
+    screenContext,
+  ]);
 
   // -------------------------------------------------------------------------
   // Render helpers
