@@ -80,7 +80,7 @@ export async function uploadUrl(
 ): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("url", url);
-  return uploadFormData(formData, options?.signal);
+  return uploadFormData(formData, options?.signal ?? undefined);
 }
 
 export async function uploadFile(

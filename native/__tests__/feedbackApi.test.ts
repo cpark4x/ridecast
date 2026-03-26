@@ -1,23 +1,12 @@
+import {
+  submitTextFeedback,
+  submitVoiceFeedback,
+  sendTelemetryBatch,
+  setTokenProvider,
+} from "../lib/api";
+
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let submitTextFeedback: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let submitVoiceFeedback: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let sendTelemetryBatch: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let setTokenProvider: any;
-
-beforeAll(async () => {
-  // Dynamic import so the module picks up global.fetch = mockFetch
-  const api = await import("../lib/api");
-  submitTextFeedback = (api as Record<string, unknown>).submitTextFeedback;
-  submitVoiceFeedback = (api as Record<string, unknown>).submitVoiceFeedback;
-  sendTelemetryBatch = (api as Record<string, unknown>).sendTelemetryBatch;
-  setTokenProvider = api.setTokenProvider;
-});
 
 beforeEach(() => {
   mockFetch.mockReset();
