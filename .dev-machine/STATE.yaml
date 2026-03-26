@@ -499,6 +499,16 @@ next_steps:
   task: "Pick first Phase 5 feature"
   action: "Options: in-app-feedback-system (fully designed, supports active TestFlight cycle), pocket-refugee-capture (time-sensitive, specced), ios-share-extension (specced, M), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M)."
 last_session: '2026-03-15'
+quality_cadences:
+  smoke_test:
+    interval: 5
+    last_run_session: 18
+  performance_profile:
+    interval: 15
+    last_run_session: 15
+  state_pruning:
+    interval: 20
+    last_run_session: 0
 meta:
   project: ridecast2
   created: '2026-03-05'

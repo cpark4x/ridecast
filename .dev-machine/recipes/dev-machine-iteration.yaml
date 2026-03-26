@@ -1,0 +1,1059 @@
+# =============================================================================
+# ridecast2-session-iteration: Single iteration of the development machine loop
+# =============================================================================
+#
+# Called by build.yaml in a while loop. Each invocation:
+#   1. Reads STATE.yaml to orient (bash)
+#   2. Dispatches a fresh working session (agent)
+#   3. Runs build/type-check as a structural gate (bash)
+#   4. Archives completed features + old sessions, checks health (bash)
+#
+# Returns structured JSON so the outer loop can update_context.
+#
+# =============================================================================
+
+name: "ridecast2-session-iteration"
+description: "Single iteration of the ridecast2 development machine -- orient, work, check health."
+version: "1.0.0"
+tags: ["ridecast2", "iteration", "working-session"]
+
+context:
+  state_file: ".dev-machine/STATE.yaml"
+  context_file: ".dev-machine/CONTEXT-TRANSFER.md"
+  specs_dir: "specs"
+  session_count: "0"
+
+steps:
+  # Step 1: Orient -- read STATE.yaml before dispatching the working session
+  - id: "orient"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, yaml
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+          blockers = state.get("blockers", [])
+          # Support factored state (completed_features list)
+          completed_list = set(state.get("completed_features", []))
+          features = state.get("features", {})
+          ready = in_progress = 0
+          for fid, fd in features.items():
+              s = fd.get("status", "")
+              if s == "ready":
+                  deps = fd.get("depends_on", [])
+                  if all(d in completed_list or features.get(d, {}).get("status") in ("completed", "done") for d in deps):
+                      ready += 1
+              elif s == "in-progress":
+                  in_progress += 1
+          print(json.dumps({
+              "phase": state.get("phase", 0),
+              "phase_name": state.get("phase_name", "unknown"),
+              "epoch": state.get("epoch", 0),
+              "next_action": state.get("next_action", ""),
+              "ready_count": ready,
+              "completed_count": len(completed_list),
+              "status": "blocked" if blockers else "healthy"
+          }))
+      except Exception as e:
+          print(json.dumps({"status": "blocked", "error": str(e)}))
+      PYEOF
+    output: "orient_state"
+    parse_json: true
+
+
+  # Step 1.3: Spec drift check -- compare spec file mtimes against implementation file mtimes
+  #
+  # INTENT: If implementation files are significantly newer than their paired spec files,
+  # the spec has drifted (implementation changed but spec was not updated). These candidates
+  # are flagged as housekeeping tasks to be addressed at the start of the next epoch,
+  # prioritized before new feature work.
+  #
+  # Heuristic: for each .md file in specs, find implementation files whose stem
+  # contains the spec stem. If any impl file is >=7 days newer, flag as drift.
+  # Fast and non-blocking: on_error: continue.
+  - id: "spec-drift-check"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      python3 << 'SPECEOF'
+      import os, json
+      from pathlib import Path
+
+      specs_dir = Path("specs")
+      STALE_THRESHOLD = 7 * 86400  # 7 days in seconds
+      drift_flags = []
+
+      if specs_dir.exists():
+          for spec_file in sorted(specs_dir.rglob("*.md")):
+              spec_mtime = spec_file.stat().st_mtime
+              stem = spec_file.stem
+              for suffix in ("-spec", "-module", "-feature", "-design"):
+                  stem = stem.replace(suffix, "")
+              stem = stem.lower()
+              if len(stem) < 4:
+                  continue  # too short -- too many false positives
+              for pattern in ("*.ts", "*.tsx", "*.py", "*.rs", "*.js"):
+                  for impl_file in Path(".").rglob(pattern):
+                      parts = str(impl_file).split(os.sep)
+                      if any(skip in parts for skip in ("node_modules", ".git", "dist", "__pycache__", ".venv", "target")):
+                          continue
+                      if specs_dir.name in parts:
+                          continue  # don't compare spec against spec
+                      if stem in impl_file.stem.lower():
+                          impl_mtime = impl_file.stat().st_mtime
+                          age_diff_s = impl_mtime - spec_mtime
+                          if age_diff_s > STALE_THRESHOLD:
+                              drift_flags.append((str(spec_file), str(impl_file), round(age_diff_s / 86400, 1)))
+      if drift_flags:
+          print(f"=== SPEC DRIFT DETECTED ({len(drift_flags)} candidate(s)) ===")
+          for spec_f, impl_f, days in drift_flags[:10]:
+              print(f"  HOUSEKEEPING: {spec_f} is {days}d older than {impl_f}")
+          if len(drift_flags) > 10:
+              print(f"  ... ({len(drift_flags) - 10} more candidates)")
+          print("  Add spec-sync tasks to the next epoch, prioritized before new feature work.")
+      else:
+          print("=== SPEC DRIFT CHECK: OK (no significant drift detected) ===")
+      SPECEOF
+    output: "spec_drift_result"
+    on_error: continue
+
+
+  # Step 1.4: API inventory -- scan project source for public types/APIs, write to SCRATCH.md
+  #
+  # INTENT: Give the working session a concrete map of what actually exists before it starts
+  # coding. This feeds the Platform Grounding step -- the agent should read SCRATCH.md to
+  # find real type names instead of hallucinating from training data.
+  #
+  # Covers: TypeScript/JS (exports), Python (classes/functions), Rust (pub items).
+  # Writes to SCRATCH.md (append with timestamp header so stale runs are visible).
+  # Fast and non-blocking: on_error: continue (missing tooling must not block work).
+  - id: "api-inventory"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      echo "=== API INVENTORY ==="
+      SCRATCH_FILE="SCRATCH.md"
+      {
+        echo ""
+        echo "## API Inventory (auto-generated $(date -u '+%Y-%m-%d %H:%M UTC'))"
+        echo ""
+        echo "### TypeScript / JavaScript public exports"
+        # Exported interfaces, types, classes, functions, consts, enums
+        grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
+            -E "^export (default )?(interface|type|class|function|async function|const|enum|abstract class)" \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git --exclude-dir=build \
+            . 2>/dev/null | head -60 || echo "(none found)"
+        echo ""
+        echo "### Python public classes / functions"
+        # Top-level class/def that are not private (_) and not in test files
+        grep -rn --include="*.py" \
+            -E "^(class [A-Z]|def [a-z][^_]|async def [a-z][^_])" \
+            --exclude-dir=__pycache__ --exclude-dir=.git --exclude-dir=.venv \
+            --exclude="test_*" --exclude="*_test.py" \
+            . 2>/dev/null | head -60 || echo "(none found)"
+        echo ""
+        echo "### Rust public items"
+        grep -rn --include="*.rs" \
+            -E "^pub (struct|enum|fn|trait|type|const)" \
+            --exclude-dir=target --exclude-dir=.git \
+            . 2>/dev/null | head -60 || echo "(none found)"
+        echo ""
+        echo "---"
+      } >> "$SCRATCH_FILE"
+      echo "API inventory appended to $SCRATCH_FILE"
+    output: "api_inventory_result"
+    on_error: continue
+
+  # Step 1.5: Test environment preflight -- validate the test runner itself works
+  #
+  # INTENT: If the test RUNNER is broken (missing deps, import error, syntax error in
+  # test infrastructure), no amount of retrying will fix it. Detect this BEFORE wasting
+  # a working session. This is NOT about failing tests -- it's about the runner being
+  # non-functional. If preflight fails: write postmortem, write sentinel, halt.
+  #
+  # Uses `npm run test --collect-only` (pytest syntax). Adapt for other runners by
+  # changing to an equivalent dry-run / list-only flag for your test framework.
+  - id: "test-env-preflight"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      echo "=== TEST ENVIRONMENT PREFLIGHT ==="
+      set +e
+      COLLECT_OUTPUT=$(npm run test --collect-only -q 2>&1)
+      COLLECT_EXIT=$?
+      set -e
+      echo "$COLLECT_OUTPUT" | head -40
+      if [ $COLLECT_EXIT -eq 0 ] || [ $COLLECT_EXIT -eq 5 ]; then
+        # Exit 0: tests listed successfully
+        # Exit 5: no tests found (normal during bootstrap)
+        echo "Test runner is functional (exit code $COLLECT_EXIT)."
+        echo '{"test_env": "ok"}'
+      elif echo "$COLLECT_OUTPUT" | grep -qiE "No module named|command not found|no such file or directory"; then
+        # Test runner not yet installed -- bootstrap phase
+        echo ""
+        echo "Test environment not yet bootstrapped (exit $COLLECT_EXIT)."
+        echo "This is normal before the first feature scaffolds the project."
+        echo '{"test_env": "not_bootstrapped"}'
+      else
+        echo ""
+        echo "TEST RUNNER FAILED (exit $COLLECT_EXIT) -- structural failure, not a test failure."
+        echo "Retrying will NOT fix a broken test runner. Writing postmortem and halting."
+        POSTMORTEM_FILE="/Users/chrispark/Projects/ridecast2/.dev-machine-postmortem"
+        {
+          echo "=== Dev Machine Post-Mortem: Test Environment Broken ==="
+          echo "Date:   $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "Reason: test-env-preflight failed -- npm run test --listTests exited $COLLECT_EXIT"
+          echo ""
+          echo "The test runner itself is broken. This is NOT a test failure -- it is a"
+          echo "structural failure (e.g. missing dependency, import error, syntax error in"
+          echo "test infrastructure). Retrying will not fix this."
+          echo ""
+          echo "To resume: fix the test runner error shown above, delete this file and"
+          echo ".dev-machine-test-env-broken, then restart the container."
+          echo ""
+          echo "=== Preflight output ==="
+          echo "$COLLECT_OUTPUT"
+        } > "$POSTMORTEM_FILE"
+        # Sentinel file: entrypoint.sh checks for this and skips the retry loop
+        touch "/Users/chrispark/Projects/ridecast2/.dev-machine-test-env-broken"
+        echo '{"test_env": "broken"}'
+        exit 99
+      fi
+    output: "test_env_result"
+    parse_json: true
+    on_error: fail
+
+  # Step 1.6: Module health check -- flag oversized packages before working session
+  #
+  # Content-aware bypass: if next_action already mentions an oversized module by
+  # name, the machine has a plan for it (e.g. a refactoring epoch). In that case
+  # we warn but do NOT write a blocker. Only genuinely *unplanned* oversized
+  # modules trigger a hard block.
+  #
+  # This prevents the "blocker-rewrite loop" where the health check keeps
+  # re-blocking modules that the machine is actively decomposing.
+  - id: "module-health-check"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      echo "=== MODULE HEALTH CHECK ==="
+      THRESHOLD=2000
+      OVERSIZED=""
+      # Scan all packages with src/ directories
+      for pkg in packages/*/; do
+        name=$(basename "$pkg")
+        if [ -d "$pkg/src" ]; then
+          loc=$(find "$pkg/src" -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.rs" | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+          if [ "$loc" -gt "$THRESHOLD" ]; then
+            OVERSIZED="$OVERSIZED $name($loc)"
+          fi
+        fi
+      done
+      if [ -n "$OVERSIZED" ]; then
+        echo "OVERSIZED PACKAGES:$OVERSIZED"
+        # Content-aware bypass: only block modules NOT mentioned in next_action.
+        # If next_action already names the module, the machine knows about it.
+        UNPLANNED=$(python3 << 'PYCHECK'
+      import yaml
+      with open(".dev-machine/STATE.yaml") as f:
+          state = yaml.safe_load(f)
+      next_action = state.get("next_action", "")
+      oversized = "$OVERSIZED"
+      unplanned = []
+      for token in oversized.split():
+          pkg_name = token.split("(")[0].strip()
+          if pkg_name and pkg_name not in next_action:
+              unplanned.append(token)
+      print(" ".join(unplanned))
+      PYCHECK
+        )
+        if [ -z "$UNPLANNED" ]; then
+          echo "All oversized modules acknowledged in next_action -- warn only."
+          echo '{"health": "warn-oversized", "oversized": "'"$OVERSIZED"'", "planned": true}'
+        else
+          echo "Unplanned oversized modules: $UNPLANNED -- blocking."
+          python3 -c "import yaml,datetime;f=open('.dev-machine/STATE.yaml');s=yaml.safe_load(f);f.close();b=s.get('blockers') or [];b.append({'description':'Module size threshold exceeded:$UNPLANNED -- refactoring epoch needed','since':datetime.datetime.now().isoformat(),'severity':'high'});s['blockers']=b;f=open('.dev-machine/STATE.yaml','w');yaml.dump(s,f,default_flow_style=False,sort_keys=False);f.close()"
+          echo '{"health": "needs-refactoring", "oversized": "'"$UNPLANNED"'"}'
+        fi
+      else
+        echo "All packages within size limits."
+        echo '{"health": "ok"}'
+      fi
+    output: "health_result"
+    parse_json: true
+    on_error: continue
+
+  # Step 1.7: Quality cadence check -- determine if any periodic cadences are due
+  #
+  # INTENT: Quality cadences (smoke tests, performance profiling, state pruning) run on
+  # a periodic schedule based on session count. Due cadences take priority over feature
+  # work -- the working session must complete them before picking up features.
+  #
+  # This step reads quality_cadences from STATE.yaml and outputs which cadences are due
+  # so the working session prompt can include them as priority work.
+  - id: "cadence-check"
+    type: "bash"
+    command: |
+      python3 << 'CADEOF'
+      import json, yaml
+
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+
+          session_count = state.get("meta", {}).get("session_count", 0)
+          cadences = state.get("quality_cadences", {})
+          due = []
+
+          for name, cfg in cadences.items():
+              if not isinstance(cfg, dict):
+                  continue
+              interval = cfg.get("interval", 0)
+              if interval <= 0:
+                  continue  # disabled cadence
+              last_run = cfg.get("last_run_session", 0)
+              if session_count >= last_run + interval:
+                  due.append({
+                      "name": name,
+                      "interval": interval,
+                      "last_run_session": last_run,
+                      "sessions_overdue": session_count - (last_run + interval),
+                      "description": cfg.get("description", "").strip()
+                  })
+
+          # Sort by most overdue first
+          due.sort(key=lambda d: d["sessions_overdue"], reverse=True)
+
+          if due:
+              print(f"=== QUALITY CADENCES DUE ({len(due)} cadence(s)) ===")
+              for d in due:
+                  print(f"  DUE: {d['name']} (every {d['interval']} sessions, last run: session {d['last_run_session']}, {d['sessions_overdue']} overdue)")
+              print("  These cadences take PRIORITY over feature work.")
+          else:
+              print("=== QUALITY CADENCES: none due ===")
+
+          print(json.dumps({"due_cadences": due, "cadence_count": len(due)}))
+      except Exception as e:
+          print(json.dumps({"due_cadences": [], "cadence_count": 0, "error": str(e)}))
+      CADEOF
+    output: "cadence_result"
+    parse_json: true
+    on_error: continue
+
+
+  # Step 2: Dispatch fresh working session
+  - id: "working-session"
+    agent: "self"
+    prompt: |
+      You are a WORKING SESSION of the ridecast2 development machine.
+      You start with ZERO prior context. Your job: read state, do work, persist state, exit.
+
+      START BY READING THESE FILES (in this order):
+      1. .dev-machine/STATE.yaml -- current phase, what's done, what's next
+      2. .dev-machine/CONTEXT-TRANSFER.md -- recent decisions and handoff context
+      3. .dev-machine/working-session-instructions.md -- your detailed operating procedure
+
+      THEN READ THE RELEVANT SPECS:
+      4. specs/architecture.md -- the overall architecture (always read this)
+      5. Module specs for whatever module you're working on (check .dev-machine/STATE.yaml module_specs)
+      6. Feature specs marked "ready" in .dev-machine/STATE.yaml features section
+
+      ## Platform Grounding (MANDATORY before writing any code)
+
+      Before writing ANY code that uses project-internal APIs, types, or interfaces:
+      1. **Enumerate actual types/interfaces**: Read source files to find what actually exists.
+         For each module you're working in, grep or read for: `interface `, `type `, `class `,
+         `export type`, `export function`, `def `, `pub struct`, `pub fn` (use the language-
+         appropriate patterns). DO NOT rely on your training data -- read what's actually there.
+      2. **Map each requirement to an existing type**: For each feature requirement, identify the
+         actual type/API you will call. Write this mapping as a comment before coding.
+      3. **If a requirement cannot be mapped to an existing type**: Do NOT invent an API.
+         Add a blocker to .dev-machine/STATE.yaml describing the missing type/interface, then stop.
+         Hallucinating APIs is worse than stopping -- it creates non-functional code that
+         looks correct and wastes the next session's time.
+
+      ## Quality Cadences (check BEFORE picking features)
+
+      The cadence check step found: {{cadence_result.cadence_count}} cadence(s) due.
+      If any cadences are due, they take PRIORITY over feature work. Read the
+      quality_cadences section of .dev-machine/STATE.yaml and follow the procedures in
+      .dev-machine/working-session-instructions.md under "Quality Cadences".
+      After completing each cadence, update its last_run_session in .dev-machine/STATE.yaml.
+
+      YOUR MISSION THIS SESSION:
+      - First: complete any due quality cadences (see above)
+      - Then: determine what work is ready from .dev-machine/STATE.yaml (next_action + ready features)
+      - Pick the next batch of ready work (5 features or the current next_action)
+      - For each piece of work:
+        * Update .dev-machine/STATE.yaml to mark it in-progress with timestamp
+        * Apply Platform Grounding (above) -- enumerate actual APIs before writing code
+        * Write failing tests first (TDD)
+        * Implement minimal code to pass tests
+        * Run: npm run test
+        * Run: npm run build
+        * BOTH must pass before proceeding.
+        * Verify integration: confirm completed features are reachable through actual entry
+          points (not just tested in isolation), and that no stub/mock implementations
+          remain in production code paths.
+        * Spawn a fresh sub-agent for antagonistic review (give it the spec + your diff)
+        * Fix any review issues found
+        * Update .dev-machine/STATE.yaml to mark it done with timestamp
+        * Update .dev-machine/CONTEXT-TRANSFER.md with a brief note of what was completed
+        * Commit everything together: git add -A && git commit -m "feat(<module>): <description>"
+          (This commit includes code + state + context as a complete checkpoint)
+      - (Context file is updated per-feature above; no separate end-of-session update needed)
+
+      ## Important: Files are Factored (Do NOT Read Archives)
+
+      STATE.yaml and CONTEXT-TRANSFER.md are kept slim (~300 lines each).
+      - STATE.yaml: only active features. Completed features archived in FEATURE-ARCHIVE.yaml.
+      - CONTEXT-TRANSFER.md: only last 5 sessions. Older sessions archived in SESSION-ARCHIVE.md.
+      - Do NOT read FEATURE-ARCHIVE.yaml or SESSION-ARCHIVE.md -- they are append-only archives.
+      - The post-session step auto-archives completed features and old sessions.
+
+      IF BLOCKED: add blocker to .dev-machine/STATE.yaml blockers list, update .dev-machine/CONTEXT-TRANSFER.md, stop.
+      IF DEGRADATION DETECTED (repeating yourself, losing coherence): commit work, update state, stop.
+
+      You are one session in a long chain. Persist everything to files.
+      What you don't write down is lost forever.
+
+      ## Critical: State in Every Commit
+      Every git commit MUST include .dev-machine/STATE.yaml and .dev-machine/CONTEXT-TRANSFER.md. Update state
+      BEFORE committing so each commit is a complete checkpoint. If your session is
+      killed after commit N, the next session must find accurate state through feature N.
+
+      ## SAFETY CONSTRAINTS (MANDATORY -- NEVER VIOLATE)
+      - Your working directory is /Users/chrispark/Projects/ridecast2. Do NOT read, write, or execute commands on files outside this directory.
+      - FORBIDDEN commands: rm -rf, find -delete, any command targeting paths outside your working directory
+      - Do NOT cd to .., ~, /, or any path outside /Users/chrispark/Projects/ridecast2
+      - Do NOT access: ~/.ssh/, ~/.amplifier/keys.env, .env files, *.pem, *.key, or any credential files
+      - Do NOT run: git push, git remote add, or any command that sends code to a remote repository
+      - Do NOT start background processes with &, nohup, or disown unless the recipe infrastructure started them
+      - Do NOT install global packages (pip install without venv, npm install -g)
+      - If you need something outside these boundaries, add a blocker to .dev-machine/STATE.yaml and STOP.
+      - VIOLATION OF THESE CONSTRAINTS MAY CAUSE DATA LOSS ACROSS THE ENTIRE DEVELOPMENT ENVIRONMENT.
+    output: "session_result"
+    timeout: 3600
+
+  # Step 3: Structural build + regression gate -- catches errors the agent may have missed
+  #
+  # TASK 4 (Regression Detection): Runs the FULL test suite with NO file filters.
+  # Any test that was passing before this session and now fails is a REGRESSION BLOCKER.
+  # Regressions take priority over new feature work.
+  #
+  # TASK 2 (Integration Verification): After build+tests pass, the checklist echoed
+  # below instructs the next working session to verify integration reachability. This
+  # guidance lives in this step (not a separate recipe step) so the structural gate and
+  # integration check are colocated.
+  #
+  # NOTE: build_timeout must be long enough to cover both build AND full test suite.
+  - id: "build-check"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      echo "=== POST-SESSION BUILD + REGRESSION CHECK ==="
+      BUILD_FAILED=0
+      TEST_FAILED=0
+
+      # --- 1. Build / type-check ---
+      echo "--- Build: npm run build ---"
+      set +e
+      npm run build 2>&1
+      BUILD_EXIT=$?
+      set -e
+      if [ $BUILD_EXIT -eq 0 ]; then
+        echo "BUILD: clean"
+      else
+        echo "BUILD FAILED (exit $BUILD_EXIT)"
+        BUILD_FAILED=1
+      fi
+
+      # --- 2. Full test suite (regression detection) ---
+      # Run npm run test with NO file filters. This catches regressions across the
+      # entire codebase, not just the files touched this session. If any previously-
+      # passing test now fails, that is a REGRESSION BLOCKER -- fix before new features.
+      echo ""
+      echo "--- Full test suite: npm run test (no file filters -- regression check) ---"
+      set +e
+      npm run test 2>&1
+      TEST_EXIT=$?
+      set -e
+      if [ $TEST_EXIT -eq 0 ]; then
+        echo "TESTS: all passing"
+      else
+        echo "TESTS FAILED (exit $TEST_EXIT) -- check for regressions in previously-passing tests"
+        TEST_FAILED=1
+      fi
+
+      # --- 3. Integration verification checklist ---
+      # The next working session MUST confirm these before marking any feature complete:
+      echo ""
+      echo "=== INTEGRATION VERIFICATION CHECKLIST (next session must confirm) ==="
+      echo "  [1] Completed features are reachable through actual entry points -- not just"
+      echo "      unit-tested in isolation. Verify the wiring from top-level to implementation."
+      echo "  [2] No stub/mock implementations remain in production code paths."
+      echo "      grep for: TODO, FIXME, 'stub', 'mock', 'placeholder', 'not implemented'"
+      echo "      in non-test source files. Each hit is a candidate blocker."
+      echo "  [3] If the project has a schema or type registry, verify all referenced types"
+      echo "      exist in it. No dangling references to unregistered/undefined types."
+
+      # --- 4. Paper tiger detection -- verify completed features are actually functional ---
+      # A "paper tiger" feature exists in tests and state but is unreachable or hollow in production.
+      # These automated checks flag the most common patterns.
+      echo ""
+      echo "=== PAPER TIGER DETECTION ==="
+      PT_FLAGS=0
+
+      # PT-1: Stub signatures in production source (non-test files)
+      echo "--- PT-1: Stub/placeholder implementations in production code ---"
+      set +e
+      STUB_HITS=$(grep -rn \
+          --include="*.ts" --include="*.tsx" --include="*.py" --include="*.rs" --include="*.js" \
+          --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=__pycache__ \
+          -E "(raise NotImplementedError|pass$|return \{\}$|return \[\]$|TODO: implement|FIXME: implement|stub implementation|not yet implemented)" \
+          . 2>/dev/null \
+          | grep -v "test_" | grep -v "_test\." | grep -v "\.test\." | grep -v "\.spec\." \
+          | head -20)
+      set -e
+      if [ -n "$STUB_HITS" ]; then
+          echo "WARNING: Possible stub implementations in production paths:"
+          echo "$STUB_HITS"
+          PT_FLAGS=$((PT_FLAGS + 1))
+      else
+          echo "OK: No obvious stub patterns found in production source."
+      fi
+
+      # PT-2: Route/entry-point registration check (common patterns)
+      echo ""
+      echo "--- PT-2: Entry-point registration check ---"
+      # Check if new modules/routes are actually imported/registered at the app root.
+      # Heuristic: count 'import' or 'include' statements in root entry files.
+      ENTRY_FILES="main.py app.py index.ts index.js server.ts server.js app.ts"
+      ENTRY_FOUND=0
+      for ef in $ENTRY_FILES; do
+          if [ -f "$ef" ]; then
+              echo "Entry file found: $ef ($(wc -l < "$ef") lines)"
+              ENTRY_FOUND=1
+          fi
+      done
+      if [ $ENTRY_FOUND -eq 0 ]; then
+          echo "INFO: No standard entry file found at project root (may use non-standard structure)."
+      fi
+
+      # PT-3: Summary
+      echo ""
+      if [ $PT_FLAGS -gt 0 ]; then
+          echo "PAPER TIGER CHECK: $PT_FLAGS warning(s). Review stub hits above before marking features complete."
+      else
+          echo "PAPER TIGER CHECK: clean (no obvious stubs detected)."
+      fi
+
+      # --- 4. Write blockers and output status ---
+      if [ $BUILD_FAILED -eq 1 ]; then
+        echo ""
+        echo "Adding build blocker to .dev-machine/STATE.yaml..."
+        python3 -c "import yaml,datetime;f=open('.dev-machine/STATE.yaml');s=yaml.safe_load(f);f.close();b=s.get('blockers') or [];b.append({'description':'npm run build failed after working session -- fix build errors before resuming','since':datetime.datetime.now().isoformat(),'severity':'high'});s['blockers']=b;f=open('.dev-machine/STATE.yaml','w');yaml.dump(s,f,default_flow_style=False,sort_keys=False);f.close()"
+      fi
+      if [ $TEST_FAILED -eq 1 ]; then
+        echo ""
+        echo "Adding regression blocker to .dev-machine/STATE.yaml..."
+        python3 -c "import yaml,datetime;f=open('.dev-machine/STATE.yaml');s=yaml.safe_load(f);f.close();b=s.get('blockers') or [];b.append({'description':'npm run test failed after working session -- run full test suite with no file filters to identify regressions','since':datetime.datetime.now().isoformat(),'severity':'high'});s['blockers']=b;f=open('.dev-machine/STATE.yaml','w');yaml.dump(s,f,default_flow_style=False,sort_keys=False);f.close()"
+      fi
+
+      if [ $BUILD_FAILED -eq 1 ] || [ $TEST_FAILED -eq 1 ]; then
+        echo '{"build_status": "failed"}'
+      else
+        echo '{"build_status": "clean"}'
+      fi
+    output: "build_result"
+    timeout: 300
+
+  # Step 4: Post-session -- archive completed features + old sessions, check health
+  - id: "post-session"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, yaml, re, os, subprocess
+      from datetime import datetime, timezone
+
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+
+          session_num = int("{{session_count}}") + 1
+
+          # --- Archive completed features (if using completed_features list pattern) ---
+          features = state.get("features", {})
+          completed_list = state.get("completed_features", [])
+          if isinstance(completed_list, list):
+              newly_completed = {fid: fd for fid, fd in features.items() if fd.get("status") in ("completed", "done")}
+              if newly_completed:
+                  archive_path = os.path.join(os.path.dirname(".dev-machine/STATE.yaml") or ".", "FEATURE-ARCHIVE.yaml")
+                  try:
+                      with open(archive_path) as f:
+                          archive = yaml.safe_load(f) or {}
+                  except FileNotFoundError:
+                      archive = {"description": "Completed feature archive. Append-only.", "features": {}}
+                  arch_feats = archive.get("features", {})
+                  for fid, fd in newly_completed.items():
+                      if fid not in completed_list:
+                          completed_list.append(fid)
+                      arch_feats[fid] = fd
+                      del features[fid]
+                  archive["features"] = arch_feats
+                  state["completed_features"] = completed_list
+                  state["features"] = features
+                  with open(archive_path, "w") as f:
+                      yaml.dump(archive, f, default_flow_style=False, sort_keys=False, width=120)
+
+          # --- Archive old session summaries from context-transfer (keep last 5) ---
+          KEEP_SESSIONS = 5
+          ctx_path = ".dev-machine/CONTEXT-TRANSFER.md"
+          session_archive = os.path.join(os.path.dirname(ctx_path) or ".", "SESSION-ARCHIVE.md")
+          if os.path.exists(ctx_path):
+              with open(ctx_path) as f:
+                  ctx = f.read()
+              sess = list(re.finditer(r'^### Session \d+ Summary', ctx, re.MULTILINE))
+              if len(sess) > KEEP_SESSIONS:
+                  header = ctx[:sess[0].start()]
+                  keep_from = sess[-KEEP_SESSIONS]
+                  to_archive = ctx[sess[0].start():keep_from.start()]
+                  keep = ctx[keep_from.start():]
+                  if to_archive.strip():
+                      existing = ""
+                      if os.path.exists(session_archive):
+                          with open(session_archive) as f:
+                              existing = f.read()
+                      if not existing:
+                          existing = "# Session Archive\n\n> Archived session summaries. Append-only.\n\n"
+                      if to_archive[:50] not in existing:
+                          with open(session_archive, "a") as f:
+                              f.write(to_archive)
+                  with open(ctx_path, "w") as f:
+                      f.write(header)
+                      f.write(f"> **Note**: Older sessions archived in SESSION-ARCHIVE.md.\n")
+                      f.write(f"> Only the last {KEEP_SESSIONS} sessions kept here.\n\n")
+                      f.write(keep)
+
+          # --- Session count and zero-change tracking (Task 8: Cost & Progress Visibility) ---
+          # Increment meta.session_count on every iteration so humans can monitor cumulative usage.
+          # Compare git HEAD to detect sessions that produced no code commits (zero-change).
+          meta = state.setdefault("meta", {})
+          meta["session_count"] = meta.get("session_count", 0) + 1
+          try:
+              current_head = subprocess.run(
+                  ["git", "-C", "/Users/chrispark/Projects/ridecast2", "rev-parse", "HEAD"],
+                  capture_output=True, text=True, timeout=5
+              ).stdout.strip()
+              last_head = meta.get("last_session_head", "")
+              if last_head and current_head == last_head:
+                  meta["zero_change_sessions"] = meta.get("zero_change_sessions", 0) + 1
+                  print(f"ZERO-CHANGE SESSION #{meta['zero_change_sessions']}: no code commits this session (HEAD: {current_head[:8]})")
+              else:
+                  meta["zero_change_sessions"] = 0
+              meta["last_session_head"] = current_head
+          except Exception:
+              pass  # non-fatal: git unavailable or not a repo
+
+          # --- Stale state metadata reconciliation (Task 21) ---
+          # Verify meta.total_features_completed matches len(completed_features) exactly.
+          # If they diverge (e.g. manual edits, archiving errors), fix before writing STATE.yaml.
+          actual_completed = len(state.get("completed_features", []))
+          recorded = meta.get("total_features_completed", 0)
+          if recorded != actual_completed:
+              print(f"RECONCILIATION: total_features_completed {recorded} != actual {actual_completed}. Fixing.")
+              meta["total_features_completed"] = actual_completed
+          state["meta"] = meta
+
+          # --- Context-transfer hard size enforcement ---
+          # If CONTEXT-TRANSFER.md exceeds 50KB, force-truncate to last 5 sessions.
+          # Also validate per-summary line count and cap Lessons Learned at 10 patterns.
+          if os.path.exists(ctx_path):
+              ctx_size = os.path.getsize(ctx_path)
+              if ctx_size > 50 * 1024:  # 50KB hard limit
+                  print(f"CONTEXT-TRANSFER SIZE LIMIT: {ctx_size} bytes exceeds 50KB. Force-truncating.")
+                  with open(ctx_path) as f:
+                      ctx = f.read()
+                  sess = list(re.finditer(r'^### Session \d+ Summary', ctx, re.MULTILINE))
+                  if len(sess) > KEEP_SESSIONS:
+                      header_end = sess[0].start()
+                      header = ctx[:header_end]
+                      keep_from = sess[-KEEP_SESSIONS]
+                      to_archive = ctx[sess[0].start():keep_from.start()]
+                      keep = ctx[keep_from.start():]
+                      if to_archive.strip():
+                          if os.path.exists(session_archive):
+                              with open(session_archive) as f:
+                                  existing = f.read()
+                          else:
+                              existing = "# Session Archive\n\n> Archived session summaries. Append-only.\n\n"
+                          if to_archive[:50] not in existing:
+                              with open(session_archive, "a") as f:
+                                  f.write(to_archive)
+                      with open(ctx_path, "w") as f:
+                          f.write(header)
+                          f.write(f"> **Note**: Force-truncated from {ctx_size} bytes. Older sessions in SESSION-ARCHIVE.md.\n\n")
+                          f.write(keep)
+                      print(f"  Truncated to last {KEEP_SESSIONS} sessions.")
+
+              # Validate per-summary line count (warn on oversized summaries)
+              with open(ctx_path) as f:
+                  ctx = f.read()
+              sess = list(re.finditer(r'^### Session \d+ Summary', ctx, re.MULTILINE))
+              for i, match in enumerate(sess):
+                  start = match.start()
+                  end = sess[i + 1].start() if i + 1 < len(sess) else len(ctx)
+                  block = ctx[start:end]
+                  line_count = block.count('\n')
+                  if line_count > 25:  # 20 + 5 slack for headers
+                      print(f"  WARNING: {match.group()} is {line_count} lines (limit: 20). Will be trimmed at next pruning cadence.")
+
+              # Cap Lessons Learned at 10 patterns
+              lessons_match = re.search(r'^## Lessons Learned', ctx, re.MULTILINE)
+              if lessons_match:
+                  lessons_section = ctx[lessons_match.start():]
+                  patterns = list(re.finditer(r'^\*\*Pattern\*\*:', lessons_section, re.MULTILINE))
+                  MAX_PATTERNS = 10
+                  if len(patterns) > MAX_PATTERNS:
+                      print(f"  LESSONS LEARNED: {len(patterns)} patterns exceeds cap of {MAX_PATTERNS}. Archiving oldest.")
+                      # Archive the oldest patterns (first N that exceed the cap)
+                      excess_count = len(patterns) - MAX_PATTERNS
+                      excess_end = patterns[excess_count].start()
+                      excess_text = lessons_section[patterns[0].start():excess_end]
+                      keep_text = lessons_section[patterns[excess_count].start():]
+                      # Archive excess patterns
+                      if os.path.exists(session_archive):
+                          with open(session_archive, "a") as f:
+                              f.write(f"\n## Retired Lessons Learned (session {session_num})\n\n")
+                              f.write(excess_text)
+                      # Rewrite context file with trimmed lessons
+                      new_ctx = ctx[:lessons_match.start()] + "## Lessons Learned\n\n" + keep_text
+                      with open(ctx_path, "w") as f:
+                          f.write(new_ctx)
+                      print(f"  Retired {excess_count} oldest patterns to SESSION-ARCHIVE.md.")
+
+          # --- STATE backlog sweeping ---
+          # Clean up accumulated cruft: stale proposed_features, old blockers, dead module_specs.
+          current_epoch = state.get("epoch", 0)
+
+          # Sweep stale proposed_features (older than 10 epochs, never promoted)
+          proposed = state.get("proposed_features", [])
+          if isinstance(proposed, list) and proposed:
+              kept = []
+              swept = []
+              for pf in proposed:
+                  if not isinstance(pf, dict):
+                      kept.append(pf)
+                      continue
+                  proposed_at = pf.get("proposed_at", "")
+                  # Heuristic: if proposed_at contains an epoch marker or is older than ~10 epochs
+                  # Use proposed_at as ISO timestamp, compare age in sessions
+                  proposed_epoch = pf.get("proposed_epoch", 0)
+                  if proposed_epoch > 0 and (current_epoch - proposed_epoch) > 10:
+                      swept.append(pf)
+                  else:
+                      kept.append(pf)
+              if swept:
+                  print(f"  BACKLOG SWEEP: Archiving {len(swept)} stale proposed_features (>10 epochs old).")
+                  archive_path = os.path.join(os.path.dirname(".dev-machine/STATE.yaml") or ".", "FEATURE-ARCHIVE.yaml")
+                  try:
+                      with open(archive_path) as f:
+                          archive = yaml.safe_load(f) or {}
+                  except FileNotFoundError:
+                      archive = {"description": "Completed feature archive. Append-only.", "features": {}}
+                  expired = archive.setdefault("expired_proposals", [])
+                  for pf in swept:
+                      pf["expired_at_epoch"] = current_epoch
+                      expired.append(pf)
+                  archive["expired_proposals"] = expired
+                  with open(archive_path, "w") as f:
+                      yaml.dump(archive, f, default_flow_style=False, sort_keys=False, width=120)
+                  state["proposed_features"] = kept
+
+          # Sweep stale blockers (older than 5 sessions)
+          blockers = state.get("blockers", [])
+          if isinstance(blockers, list) and blockers:
+              current_session = meta.get("session_count", 0)
+              kept_blockers = []
+              swept_blockers = []
+              for b in blockers:
+                  if not isinstance(b, dict):
+                      kept_blockers.append(b)
+                      continue
+                  since = b.get("since", "")
+                  since_session = b.get("since_session", 0)
+                  severity = b.get("severity", "medium")
+                  # Only auto-sweep non-high-severity blockers older than 5 sessions
+                  if since_session > 0 and (current_session - since_session) > 5 and severity not in ("high", "critical"):
+                      swept_blockers.append(b)
+                  else:
+                      kept_blockers.append(b)
+              if swept_blockers:
+                  print(f"  BACKLOG SWEEP: Removing {len(swept_blockers)} stale blockers (>5 sessions, non-critical).")
+                  state["blockers"] = kept_blockers
+
+          # Verify module_specs paths exist on disk (remove dead references)
+          module_specs = state.get("module_specs", {})
+          if isinstance(module_specs, dict) and module_specs:
+              dead_specs = []
+              for mod_name, spec_info in module_specs.items():
+                  if isinstance(spec_info, dict):
+                      spec_path = spec_info.get("path", "")
+                  elif isinstance(spec_info, str):
+                      spec_path = spec_info
+                  else:
+                      continue
+                  if spec_path and not os.path.exists(spec_path):
+                      dead_specs.append(mod_name)
+              if dead_specs:
+                  print(f"  BACKLOG SWEEP: Removing {len(dead_specs)} dead module_specs references: {dead_specs}")
+                  for mod_name in dead_specs:
+                      del module_specs[mod_name]
+                  state["module_specs"] = module_specs
+
+          # Collapse completed_features list to tombstone if > 50 entries
+          completed_list = state.get("completed_features", [])
+          if isinstance(completed_list, list) and len(completed_list) > 50:
+              first_id = completed_list[0] if completed_list else "?"
+              last_id = completed_list[-1] if completed_list else "?"
+              count = len(completed_list)
+              print(f"  BACKLOG SWEEP: Collapsing {count} completed_features to tombstone.")
+              # Keep only the last 10 for quick reference
+              state["completed_features"] = completed_list[-10:]
+              state["completed_features_tombstone"] = f"{count} features completed ({first_id} through {last_id}). Full list in FEATURE-ARCHIVE.yaml."
+
+          # --- Update epoch and check health ---
+          state["epoch"] = state.get("epoch", 0) + 1
+          state["last_session"] = datetime.now(timezone.utc).isoformat()
+          blockers = state.get("blockers", [])
+
+          with open(".dev-machine/STATE.yaml", "w") as f:
+              yaml.dump(state, f, default_flow_style=False, sort_keys=False, width=120)
+
+          remaining = sum(1 for f in features.values() if f.get("status") not in ("completed", "done"))
+          # at_epoch_boundary: all features in this epoch are done -- triggers wiring audit
+          at_epoch_boundary = (remaining == 0 and len(features) > 0)
+          status = "blocked" if blockers else ("complete" if remaining == 0 else "healthy")
+
+          print(json.dumps({
+              "status": status,
+              "session_count": str(session_num),
+              "at_epoch_boundary": at_epoch_boundary,
+              "next_action": state.get("next_action", ""),
+              "total_features": state.get("meta", {}).get("total_features_completed", 0)
+          }))
+      except Exception as e:
+          print(json.dumps({"status": "blocked", "session_count": "{{session_count}}", "error": str(e)}))
+      PYEOF
+
+      # --- Integration wiring audit at epoch boundaries (Task 12) ---
+      # When all features in an epoch are done, scan module pairs to verify A actually
+      # imports/uses B. Unwired connections are written to STATE.yaml next_action as
+      # P0 features, prioritized before new capability work in the next epoch.
+      python3 << 'WIREEOF'
+      import os, subprocess, yaml
+      from pathlib import Path
+
+      try:
+          with open(".dev-machine/STATE.yaml") as f:
+              state = yaml.safe_load(f)
+          features = state.get("features", {})
+          active = [fid for fid, fd in features.items() if fd.get("status") not in ("completed", "done")]
+          if not (len(active) == 0 and features):
+              raise SystemExit(0)  # not at epoch boundary, skip audit
+
+          print("")
+          print("=== EPOCH BOUNDARY: INTEGRATION WIRING AUDIT ===")
+          print("All features complete. Auditing cross-module wiring...")
+
+          # Discover module/package directories
+          pkg_dirs = []
+          for base in ["packages", "src", "lib"]:
+              p = Path(base)
+              if p.exists():
+                  pkg_dirs = [d for d in p.iterdir() if d.is_dir() and not d.name.startswith(".")]
+                  break
+
+          if not pkg_dirs:
+              print("  INFO: No packages/ or src/ directory found -- skipping structural wiring audit.")
+              raise SystemExit(0)
+
+          pkg_names = [d.name for d in pkg_dirs]
+          unwired = []
+          for mod_a in pkg_dirs:
+              for mod_b_name in pkg_names:
+                  if mod_a.name == mod_b_name:
+                      continue
+                  # Check if mod_a source files reference mod_b_name
+                  result = subprocess.run(
+                      ["grep", "-rl",
+                       "--include=*.py", "--include=*.ts", "--include=*.tsx", "--include=*.js",
+                       "--exclude-dir=node_modules", "--exclude-dir=.git", "--exclude-dir=dist",
+                       mod_b_name, str(mod_a)],
+                      capture_output=True, text=True, timeout=10
+                  )
+                  # Only flag as unwired if there's a declared spec dependency (avoids false positives)
+                  specs_dir = Path("specs")
+                  dep_expected = False
+                  if specs_dir.exists():
+                      for spec_f in specs_dir.rglob("*.md"):
+                          txt = spec_f.read_text(errors="ignore").lower()
+                          if mod_a.name.lower() in txt and mod_b_name.lower() in txt:
+                              dep_expected = True
+                              break
+                  if dep_expected and not result.stdout.strip():
+                      unwired.append(f"{mod_a.name} -> {mod_b_name}")
+
+          if unwired:
+              print(f"  UNWIRED CONNECTIONS FOUND ({len(unwired)} pair(s)) -- add as P0 features for next epoch:")
+              for pair in unwired:
+                  print(f"    {pair}")
+              # Prepend wiring reminder to next_action if not already there
+              existing_next = state.get("next_action", "")
+              if "wire" not in existing_next.lower() and "integration" not in existing_next.lower():
+                  state["next_action"] = (
+                      f"[WIRING NEEDED] Connect: {'; '.join(unwired[:3])}. Then: {existing_next}"
+                  )
+                  with open(".dev-machine/STATE.yaml", "w") as f:
+                      yaml.dump(state, f, default_flow_style=False, sort_keys=False, width=120)
+                  print("  Updated STATE.yaml next_action to prioritize wiring tasks.")
+          else:
+              print("  OK: All expected module pairs appear to be wired.")
+          print("=== END INTEGRATION WIRING AUDIT ===")
+      except SystemExit:
+          pass
+      except Exception as e:
+          print(f"  Integration audit incomplete (non-fatal): {e}")
+      WIREEOF
+
+      # --- Periodic clean-room check (Task 22: Test Environment Reproducibility) ---
+      # Every 10 sessions: fresh dependency install + full test run to catch environment drift.
+      # If the test suite fails in a clean environment, pins may have drifted; add a blocker.
+      SESSION_COUNT=$(python3 -c "
+      import yaml
+      with open('.dev-machine/STATE.yaml') as f:
+          s = yaml.safe_load(f)
+      print(s.get('meta', {}).get('session_count', 0))
+      " 2>/dev/null || echo "0")
+      if [ -n "$SESSION_COUNT" ] && [ "$SESSION_COUNT" -gt 0 ] && [ $((SESSION_COUNT % 10)) -eq 0 ]; then
+        echo ""
+        echo "=== PERIODIC CLEAN-ROOM CHECK (session $SESSION_COUNT) ==="
+        echo "Verifying test environment reproducibility with a fresh install + full test run."
+        cd /Users/chrispark/Projects/ridecast2
+        set +e
+        echo "--- Clean install: npm ci ---"
+        npm ci 2>&1
+        echo "--- Full test suite: npm run test ---"
+        npm run test 2>&1
+        CLEANROOM_EXIT=$?
+        set -e
+        if [ $CLEANROOM_EXIT -eq 0 ]; then
+          echo "CLEAN-ROOM CHECK: PASSED (environment is reproducible at session $SESSION_COUNT)"
+        else
+          echo "CLEAN-ROOM CHECK: FAILED (exit $CLEANROOM_EXIT) -- environment drift detected"
+          echo "ACTION: Refresh lock files, pin dependency versions, and fix test failures."
+          python3 -c "
+          import yaml, datetime
+          with open('.dev-machine/STATE.yaml') as f:
+              s = yaml.safe_load(f)
+          b = s.get('blockers') or []
+          b.append({
+              'description': 'Clean-room check failed -- environment drift detected. Refresh lock files and fix test failures.',
+              'since': datetime.datetime.now().isoformat(),
+              'severity': 'medium'
+          })
+          s['blockers'] = b
+          with open('.dev-machine/STATE.yaml', 'w') as f:
+              yaml.dump(s, f, default_flow_style=False, sort_keys=False, width=120)
+          print('Blocker added to STATE.yaml.')
+          "
+        fi
+        echo "=== END CLEAN-ROOM CHECK ==="
+      fi
+
+      # --- Periodic integration test check (Task 24) ---
+      # Every 5 epochs: run integration tests if they exist, or flag missing coverage.
+      # Integration tests catch cross-module breakage that unit tests cannot.
+      EPOCH=$(python3 -c "
+      import yaml
+      with open('.dev-machine/STATE.yaml') as f:
+          s = yaml.safe_load(f)
+      print(s.get('epoch', 0))
+      " 2>/dev/null || echo "0")
+      if [ -n "$EPOCH" ] && [ "$EPOCH" -gt 0 ] && [ $((EPOCH % 5)) -eq 0 ]; then
+        echo ""
+        echo "=== PERIODIC INTEGRATION TEST CHECK (epoch $EPOCH) ==="
+        cd /Users/chrispark/Projects/ridecast2
+        INTEG_FOUND=0
+        for integ_dir in "tests/integration" "tests/e2e" "integration_tests" "e2e"; do
+          if [ -d "$integ_dir" ]; then
+            file_count=$(find "$integ_dir" -name "*.py" -o -name "*.ts" -o -name "*.test.*" 2>/dev/null | wc -l)
+            if [ "$file_count" -gt 0 ]; then
+              INTEG_FOUND=1
+              echo "Integration test directory found: $integ_dir ($file_count files)"
+              echo "--- Running integration tests ---"
+              set +e
+              npm run test "$integ_dir" 2>&1
+              INTEG_EXIT=$?
+              set -e
+              if [ $INTEG_EXIT -eq 0 ]; then
+                echo "INTEGRATION TESTS: PASSED"
+              else
+                echo "INTEGRATION TESTS: FAILED (exit $INTEG_EXIT) -- fix before next epoch."
+              fi
+            fi
+          fi
+        done
+        if [ $INTEG_FOUND -eq 0 ]; then
+          echo "WARNING: No integration test directory found after epoch $EPOCH."
+          echo "Cross-module features lack integration test coverage."
+          echo "HOUSEKEEPING: Add tests/integration/ before epoch $((EPOCH + 5))."
+          python3 -c "
+          import yaml, datetime
+          with open('.dev-machine/STATE.yaml') as f:
+              s = yaml.safe_load(f)
+          pf = s.setdefault('proposed_features', [])
+          if not any('integration-test' in str(p.get('id', '')) for p in pf):
+              pf.append({
+                  'id': 'proposed-integration-tests',
+                  'name': 'Add integration test suite',
+                  'rationale': 'No integration tests found. Cross-module features need coverage.',
+                  'proposed_at': datetime.datetime.now().isoformat()
+              })
+              with open('.dev-machine/STATE.yaml', 'w') as f:
+                  yaml.dump(s, f, default_flow_style=False, sort_keys=False, width=120)
+              print('Added integration test proposal to STATE.yaml proposed_features.')
+          "
+        fi
+        echo "=== END INTEGRATION TEST CHECK ==="
+      fi
+
+      # --- Empty session cleanup ---
+      # Sweep session directories with empty/near-empty transcripts
+      # These accumulate from crashed or instantly-failed sessions
+      SESSIONS_DIR="$HOME/.amplifier/sessions"
+      if [ -d "$SESSIONS_DIR" ]; then
+        CLEANED=0
+        for session_dir in "$SESSIONS_DIR"/*/; do
+          [ -d "$session_dir" ] || continue
+          events_file="$session_dir/events.jsonl"
+          # Remove sessions with no events file or empty events file
+          if [ ! -f "$events_file" ] || [ ! -s "$events_file" ]; then
+            rm -rf "$session_dir"
+            CLEANED=$((CLEANED + 1))
+            continue
+          fi
+          # Remove sessions with very few lines (< 3 lines = no real work done)
+          line_count=$(wc -l < "$events_file" 2>/dev/null || echo "0")
+          if [ "$line_count" -lt 3 ]; then
+            rm -rf "$session_dir"
+            CLEANED=$((CLEANED + 1))
+          fi
+        done
+        if [ "$CLEANED" -gt 0 ]; then
+          echo "Cleaned up $CLEANED empty/near-empty session directories"
+        fi
+      fi
+    output: "iteration_result"
+    parse_json: true

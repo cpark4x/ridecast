@@ -1,0 +1,148 @@
+# =============================================================================
+# ridecast2-qa-iteration: Single iteration of the QA machine loop
+# =============================================================================
+#
+# Called by qa.yaml in a while loop. Each invocation:
+#   1. Reads QA-STATE.yaml to orient -- find the next untested area (bash)
+#   2. Dispatches a fresh QA session to test/fix it (agent: self)
+#   3. Re-reads QA-STATE.yaml to check progress and decide next step (bash)
+#
+# Returns structured JSON so the outer loop can update_context.
+#
+# =============================================================================
+
+name: "ridecast2-qa-iteration"
+description: "Single iteration of the ridecast2 QA machine -- orient, test one area, fix if broken, verify."
+version: "1.0.0"
+tags: ["ridecast2", "qa", "iteration", "testing"]
+
+context:
+  project_dir: "/Users/chrispark/Projects/ridecast2"
+  qa_state_file: ".dev-machine/QA-STATE.yaml"
+  qa_context_file: ".dev-machine/QA-CONTEXT-TRANSFER.md"
+  session_count: "0"
+
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Orient -- read QA-STATE.yaml, find next untested area
+  # ---------------------------------------------------------------------------
+  - id: "orient"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      SESSION=$(({{session_count}} + 1))
+      echo "=== QA ITERATION $SESSION ==="
+
+      python3 << 'PYEOF'
+      import json, yaml, sys
+      try:
+          with open(".dev-machine/QA-STATE.yaml") as f:
+              state = yaml.safe_load(f)
+          test_areas = state.get("test_areas", {})
+          for name, info in test_areas.items():
+              if info.get("status") in ("not-tested", "failing"):
+                  print(json.dumps({
+                      "next_test": name,
+                      "status": "testing",
+                      "all_areas": list(test_areas.keys())
+                  }))
+                  sys.exit(0)
+          # All areas tested
+          print(json.dumps({
+              "next_test": None,
+              "status": "done"
+          }))
+      except Exception as e:
+          print(json.dumps({"status": "blocked", "error": str(e)}))
+      PYEOF
+    output: "orient_state"
+    parse_json: true
+
+  # ---------------------------------------------------------------------------
+  # Step 2: Fresh QA agent session -- test one area, fix if broken
+  # ---------------------------------------------------------------------------
+  - id: "qa-session"
+    agent: "self"
+    condition: "{{orient_state.status}} == 'testing'"
+    prompt: |
+      You are a QA TESTING SESSION for the ridecast2 project.
+      You start with ZERO prior context. Your job: test one area, fix if broken, persist state, exit.
+      Working directory: /Users/chrispark/Projects/ridecast2
+
+      START BY READING THESE FILES (in this order):
+      1. .dev-machine/QA-STATE.yaml -- what's been tested, what's next
+      2. .dev-machine/QA-CONTEXT-TRANSFER.md -- previous QA findings
+
+      ## Current Test Target
+      Area/Case: {{orient_state.next_test}}
+
+      ## Your Mission
+      1. Test the area described in the QA state file
+      2. If broken: read the relevant source files, fix the issue, re-test
+      3. Run npm run test && npm run build after any code changes
+      4. Commit fixes: fix(<module>): QA -- <description>
+
+      ## State Persistence (CRITICAL)
+      After testing the area/case:
+      - Update .dev-machine/QA-STATE.yaml: mark the area as "passing" or "failing" with issues list
+      - Update .dev-machine/QA-CONTEXT-TRANSFER.md with findings
+      - If you fixed code: commit immediately
+
+      ## When to Stop
+      - You've tested the current area and either it passes or you've fixed it
+      - You encounter a blocker you can't resolve -- add it to blockers in .dev-machine/QA-STATE.yaml
+      - Stop gracefully -- the outer recipe will continue with the next area
+
+      ## SAFETY CONSTRAINTS (MANDATORY -- NEVER VIOLATE)
+      - Your working directory is /Users/chrispark/Projects/ridecast2. Do NOT read, write, or execute commands on files outside this directory.
+      - FORBIDDEN commands: rm -rf, find -delete, any command targeting paths outside your working directory
+      - Do NOT cd to .., ~, /, or any path outside /Users/chrispark/Projects/ridecast2
+      - Do NOT access: ~/.ssh/, ~/.amplifier/keys.env, .env files, *.pem, *.key, or any credential files
+      - Do NOT run: git push, git remote add, or any command that sends code to a remote repository
+      - Do NOT start background processes with &, nohup, or disown unless the recipe infrastructure started them
+      - Do NOT install global packages (pip install without venv, npm install -g)
+      - If you need something outside these boundaries, add a blocker to .dev-machine/QA-STATE.yaml and STOP.
+      - VIOLATION OF THESE CONSTRAINTS MAY CAUSE DATA LOSS ACROSS THE ENTIRE DEVELOPMENT ENVIRONMENT.
+    output: "session_result"
+    timeout: 1800
+
+  # ---------------------------------------------------------------------------
+  # Step 3: Post-session -- re-read QA-STATE.yaml, output status for outer loop
+  # ---------------------------------------------------------------------------
+  - id: "post-session"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      python3 << 'PYEOF'
+      import json, yaml
+      try:
+          with open(".dev-machine/QA-STATE.yaml") as f:
+              state = yaml.safe_load(f)
+          blockers = state.get("blockers", [])
+          session_num = int("{{session_count}}") + 1
+          test_areas = state.get("test_areas", {})
+          all_passing = all(a.get("status") == "passing" for a in test_areas.values())
+          any_untested = any(a.get("status") in ("not-tested", "failing") for a in test_areas.values())
+
+          if all_passing:
+              status = "done"
+          elif blockers:
+              status = "blocked"
+          elif any_untested:
+              status = "testing"
+          else:
+              status = "done"
+
+          print(json.dumps({
+              "status": status,
+              "session_count": str(session_num)
+          }))
+      except Exception as e:
+          print(json.dumps({
+              "status": "blocked",
+              "session_count": str(int("{{session_count}}") + 1),
+              "error": str(e)
+          }))
+      PYEOF
+    output: "post_result"
+    parse_json: true

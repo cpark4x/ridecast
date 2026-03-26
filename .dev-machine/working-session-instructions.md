@@ -1,4 +1,4 @@
-# Working Session Instructions — ridecast2 Dev Machine
+# Working Session Instructions
 
 > Read this file at the start of every working session.
 > You are a stateless agent. Everything you need to know is in the files.
@@ -27,18 +27,22 @@ Execute these steps in order before doing any work:
    prior sessions, and any known issues. Pay specific attention to the
    **Lessons Learned** section -- these are recurring error patterns identified
    across prior sessions. Avoid repeating them.
-3. **Read `specs/architecture.md`** -- The overall system architecture. This is
+3. **Check quality cadences** -- Read `quality_cadences` in `.dev-machine/STATE.yaml`.
+   If any cadence is due (`session_count >= last_run_session + interval`),
+   that cadence takes priority over feature work. See "Quality Cadences" below.
+4. **Read `specs/architecture.md`** -- The overall system architecture. This is
    the constitution. All implementation must conform to it.
-4. **Do NOT read feature specs yet.** Read each feature spec lazily -- just before you
-   begin work on that feature (see Work Procedure step 2 below). Reading all specs upfront
-   consumes large context budget before any work begins. Phase 4 specs are 15–55 KB each;
-   loading them all at once will exhaust the context window.
+5. **Read the module spec** for the module you're working on. Check
+   `.dev-machine/STATE.yaml` `module_specs` to see which modules have specs written.
+6. **Read feature specs** marked `ready` in `.dev-machine/STATE.yaml` `features` section.
 
 After orientation, you should know:
 - What phase the project is in
 - What work has been completed
-- What work is ready to start (from `session_features` in the recipe context)
+- Whether any quality cadences are due (these come first)
+- What work is ready to start
 - What decisions have been made
+- What the relevant specs say
 
 ## Module Health Check (Before Starting Work)
 
@@ -63,21 +67,21 @@ features:
     started_at: "<ISO 8601 timestamp>"
 ```
 
-### 2. Read the Feature Spec (LAZY — read NOW, not at session start)
+### 2. Read the Feature Spec
 
-Read the full feature specification now — just before implementing it.
-Understand the acceptance criteria, interfaces, and constraints before writing any code.
-
-The spec path is in `session_features[].spec` from the recipe context.
-Do NOT pre-read specs for features you haven't started yet.
+Read the full feature specification. Understand the acceptance criteria, interfaces,
+and constraints before writing any code.
 
 ### 3. Platform Grounding (MANDATORY -- do this before writing any code)
 
 Before writing ANY code that uses project-internal APIs, types, or interfaces:
 
-1. **Enumerate actual types/interfaces**: Read `.dev-machine/API-INVENTORY.md` to see what
-   public exports exist. Also grep or read source files as needed. Do NOT rely on training data.
+1. **Enumerate actual types/interfaces**: Read source files to find what actually exists.
+   For each module you will touch, grep or read for the language-appropriate patterns:
    - TypeScript/JS: `interface `, `type `, `export type`, `export function`, `export class`
+   - Python: `class `, `def `, `TypedDict`, `Protocol`, type annotations in `__init__.py`
+   - Rust: `pub struct`, `pub enum`, `pub fn`, `pub trait`
+   - Other: use whatever grep finds exported/public symbols in that language.
 2. **Map each requirement to an existing type**: For each feature requirement, write down
    the actual type/API/function you will call. Do this BEFORE writing code.
 3. **If a requirement cannot be mapped to an existing type**: Do NOT invent an API.
@@ -129,7 +133,7 @@ Before writing ANY code that uses project-internal APIs, types, or interfaces:
 
 Before running `git commit`, you MUST complete this checklist in order:
 
-1. Run `npm run build`.
+1. Run `npm run build` (or the language-appropriate lint/typecheck command).
 2. Run `npm run test` (full suite -- no file filters).
 3. **If EITHER fails**: fix the failure before committing. Do NOT commit with known
    failures. A broken commit poisons the next session.
@@ -143,30 +147,37 @@ an entire session on cleanup instead of new work.
 
 ### 9. Commit
 
+**Every commit MUST include STATE.yaml and CONTEXT-TRANSFER.md.** This ensures that
+if your session is hard-killed after a commit, the next session has accurate state.
+A commit without state files is an incomplete checkpoint.
+
+1. Update STATE.yaml: mark the feature done with timestamp (skip commit hash -- it will be backfilled by the post-session step)
+2. Update CONTEXT-TRANSFER.md: add a brief note of what was completed
+3. Stage and commit everything together:
+
 ```bash
 git add -A
-git commit -m "feat(<scope>): <description>
-
-Implements: <spec filename>
-Tests: <what was tested>"
+git commit -m "feat(<module>): <feature-name>"
 ```
 
-Scope examples: `ai`, `tts`, `ui`, `api`, `player`, `pipeline`
+The `git add -A` stages STATE.yaml and CONTEXT-TRANSFER.md along with your code changes.
+This makes every commit a complete checkpoint: code + state + context.
 
-### 10. Mark Done
+### 10. Verify Checkpoint
 
-Update `.dev-machine/STATE.yaml` after the commit:
+The feature should already be marked done in STATE.yaml (you updated it before
+committing in step 9). Verify the commit includes state files:
 
-```yaml
-features:
-  <feature-name>:
-    status: "done"
-    started_at: "<original timestamp>"
-    completed_at: "<ISO 8601 timestamp>"
-    commit: "<commit hash>"
+```bash
+git show --stat HEAD | grep -E "STATE.yaml|CONTEXT-TRANSFER"
 ```
 
-Also update `meta.total_features_completed` and `meta.last_updated`.
+If STATE.yaml is not in the commit, amend it:
+
+```bash
+git add STATE.yaml CONTEXT-TRANSFER.md
+git commit --amend --no-edit
+```
 
 ### 11. Record Decisions
 
@@ -177,23 +188,63 @@ record them in `.dev-machine/CONTEXT-TRANSFER.md` under "Recent Decisions".
 
 These are cardinal rules. Violating them breaks the development machine.
 
-1. **Update .dev-machine/STATE.yaml BEFORE starting work** -- Mark the feature as `in-progress`.
-2. **Update .dev-machine/STATE.yaml AFTER completing work** -- Mark the feature as `done` with commit hash.
-3. **Never work on two features without a state update between them.**
-4. **Design decisions not in spec -> record in .dev-machine/CONTEXT-TRANSFER.md immediately.**
-5. **Update `meta.last_updated` and `meta.last_session`** after each feature completion.
+1. **STATE.yaml and CONTEXT-TRANSFER.md MUST be included in every git commit.** Never
+   commit code without also committing current state. Each commit is a checkpoint --
+   if your session is killed after commit N, the next session must find accurate state
+   through feature N. This is the single most important persistence rule.
+2. **Update .dev-machine/STATE.yaml BEFORE starting work** -- Mark the feature as `in-progress`.
+3. **Update .dev-machine/STATE.yaml AFTER completing work** -- Mark the feature as `done` with timestamp.
+4. **Never work on two features without a state update between them.**
+5. **Design decisions not in spec -> record in .dev-machine/CONTEXT-TRANSFER.md immediately.**
+6. **Update `meta.last_updated` and `meta.last_session`** after each feature completion.
+
+## Blocker Taxonomy (Read Before Filing Any Blocker)
+
+**NEVER file a blocker for these -- fix them yourself:**
+
+| Category | Examples |
+|----------|----------|
+| Build/config broken | tsconfig.json misconfigured, eslint errors, vite config wrong, pyproject.toml |
+| Missing dependency | Package not in package.json / requirements.txt / pyproject.toml |
+| Type errors | Type errors in code from prior sessions |
+| Test infrastructure | Test runner config, missing test deps, vitest/pytest setup |
+| Regression failures | Previously-passing tests now failing -- find the breaking change |
+| Environment drift | Stale lockfile, tool version mismatch |
+| Missing files / wiring | Import/export not connected, file not created |
+
+**Rule of thumb:** If there is only ONE correct fix, implement it. Do NOT file a blocker.
+
+**Genuine blockers (file these):**
+
+| Category | Examples |
+|----------|----------|
+| Spec ambiguity | Two reasonable approaches; spec is silent on which to use |
+| Missing external service | API key needed, external system not configured |
+| Architecture question | Which fundamental approach to take (multiple valid options) |
+| Out-of-scope access | Needs files/creds outside the project directory |
+
+**Before filing a blocker for test failures:**
+
+1. Is this a config/infrastructure issue? → Fix it (not a blocker)
+2. Is this a bug in your implementation? → Try a different approach (up to 3 times)
+3. Is the test itself wrong? → Fix the test
+4. Is the spec genuinely ambiguous? → THEN file a blocker
 
 ## When to Stop
 
 Stop your session gracefully when any of these conditions are true:
 
-- **Blocker you can't resolve** -- Add to `.dev-machine/STATE.yaml` `blockers` list.
-- **Spec ambiguity requiring human judgment** -- Add blocker.
-- **Tests failing after 2-3 attempts** -- Something is wrong. Stop and document.
+- **Genuine blocker requiring human judgment** -- See Blocker Taxonomy above. Only file
+  a blocker if the fix is NOT objective (spec ambiguity, missing external service,
+  fundamental architecture question). If the fix is objective, fix it yourself.
+- **Repeating yourself on a genuine problem after 3 attempts** -- Stop and document.
 - **Repeating yourself or losing coherence** -- Stop immediately.
-- **Reached the session size budget** -- Stop when accumulated feature point total >= 5 points
+- **Reached the session size budget** -- Stop when accumulated feature point total ≥ 8 points
   (S=1, M=2, L=3, XL=5). This replaces a flat feature count cap. An XL feature alone fills
-  a session; five S features also fill a session. Stop even if more features are ready.
+  a session; four S features also fill a session. Stop even if more features are ready.
+- **Quality cadence found regressions** -- If a cadence (smoke test, performance profile)
+  found regressions, you MUST fix ALL regressions before stopping. Do not leave broken
+  cadence results for the next session.
 
 When stopping:
 1. Commit any completed work
@@ -209,11 +260,76 @@ When stopping:
      "urgency": "high"
    }
    ```
-   The host monitor surfaces this file. It is the machine's formal
+   The host monitor surfaces this file in `docker logs`. It is the machine's formal
    signal that human input is required. Write it whenever you cannot start *any*
    ready feature without a human decision. Do NOT write it for partial blockers
    (one feature blocked but others available).
 5. Exit
+
+## Quality Cadences (Mandatory Periodic Maintenance)
+
+Quality cadences are periodic checks that take priority over feature work. They are
+defined in `.dev-machine/STATE.yaml` under `quality_cadences`. Each cadence has an `interval`
+(in sessions) and a `last_run_session` counter.
+
+**When to check**: At orientation (step 3), after reading `.dev-machine/STATE.yaml`.
+
+**How to check**: For each cadence, if `meta.session_count >= last_run_session + interval`,
+the cadence is due.
+
+**Priority**: Due cadences run BEFORE feature selection. They are not optional.
+
+**After completing a cadence**: Update `quality_cadences.<name>.last_run_session` to the
+current `meta.session_count` value in `.dev-machine/STATE.yaml`, then commit.
+
+### Built-in Cadences
+
+**Every 5 sessions -- Smoke / E2E Test (if suite exists)**
+
+1. Check: `meta.session_count mod 5 == 0` (approximately -- use the interval check above)
+2. Look for e2e/smoke test directories (`tests/e2e/`, `tests/smoke/`, `e2e/`)
+3. If found, run the suite. If ANY scenario fails:
+   - STOP all feature work
+   - Create fix tasks with `priority: critical`
+   - Fix ALL regressions and re-run to confirm
+4. If no e2e suite exists yet, note in `.dev-machine/CONTEXT-TRANSFER.md`: "Smoke test cadence: no suite found."
+5. Update `quality_cadences.smoke_test.last_run_session`
+6. Commit: `chore: smoke test cadence (pass/fail/skipped) -- session NNN`
+
+**Every 15 sessions -- Performance Profile (if tooling exists)**
+
+1. Check: `meta.session_count mod 15 == 0`
+2. Look for performance test tooling or benchmarks in the project
+3. If found, run profiling with a realistic workload (large document, many records, etc.)
+4. Compare against previous baseline (if recorded in `.dev-machine/STATE.yaml` or `.dev-machine/CONTEXT-TRANSFER.md`)
+5. If any metric regresses significantly: STOP, identify the regression, fix before continuing
+6. If no perf tooling exists, note in `.dev-machine/CONTEXT-TRANSFER.md`: "Performance cadence: no tooling found."
+7. Update `quality_cadences.performance_profile.last_run_session`
+
+**Every 20 sessions -- State File Pruning**
+
+1. Check: `meta.session_count mod 20 == 0`
+2. **CONTEXT-TRANSFER.md**: If file exceeds 50KB or 200 lines of session summaries,
+   keep only the last 20 session entries. Archive the rest to SESSION-ARCHIVE.md.
+   Cap Lessons Learned to 10 patterns (retire lowest-seen-count to archive).
+3. **STATE.yaml**: Collapse `completed_features` list to a tombstone comment if it
+   exceeds 50 entries. Archive stale `proposed_features` (older than 10 epochs,
+   never promoted). Remove `blockers` older than 5 sessions. Verify `module_specs`
+   paths exist on disk -- remove dead references.
+4. Commit: `chore: state file pruning -- session NNN`
+
+### Regressions Found During Cadences
+
+Regressions found during any cadence are BLOCKING. The machine must:
+1. Stop all feature work immediately
+2. Create fix tasks with appropriate priority
+3. Fix the regressions before the session ends
+4. Only after all regressions are resolved may feature work resume
+
+### Adding Project-Specific Cadences
+
+Append new entries to `quality_cadences` in `.dev-machine/STATE.yaml` following the same format.
+Set `interval` to 0 to disable a cadence.
 
 ## Feature Scope Rule (Hard Rule -- Never Violate)
 
@@ -245,15 +361,44 @@ This rule exists because autonomous sessions compound. What looks like a small a
 architectural drift, undocumented assumptions, and unexpected dependencies that future sessions
 must discover and work around.
 
+## Branching Mode (conditional -- only when false is enabled)
+
+> Skip this section if `branching_mode` is not set or is `false` in the machine config.
+
+When `branching_mode` is enabled, the machine does NOT commit directly to `main`.
+Instead:
+
+1. **At session start**: check out a feature branch if not already on one:
+   ```bash
+   git checkout -b machine/session-<epoch>-<feature-id> 2>/dev/null || git checkout machine/session-<epoch>-<feature-id>
+   ```
+2. **During the session**: commit to the feature branch as normal.
+3. **At session end** (after all work is committed and tests pass): create a pull request:
+   ```bash
+   # Requires gh CLI installed (see Dockerfile / system_packages)
+   git push origin HEAD
+   gh pr create --title "machine: <session summary>" \
+     --body "Automated PR from dev machine session <epoch>. Features completed: <list>." \
+     --base main
+   ```
+4. **Do NOT merge the PR yourself.** The PR is for human review. Add the PR URL to `.dev-machine/CONTEXT-TRANSFER.md` under "Open PRs".
+5. If the PR creation fails (no gh CLI, no push permissions), write an escalation file and stop.
+
 ## Context Transfer Size Cap
 
 Session summaries written to `.dev-machine/CONTEXT-TRANSFER.md` MUST follow these rules:
 
-- **Each session summary MUST be <= 20 lines.** If you have more to say, summarize aggressively.
+- **Each session summary MUST be ≤ 20 lines.** If you have more to say, summarize aggressively.
   Only the most important decisions, blockers, and handoff notes belong here.
+- **Hard size limit: 50KB.** If `.dev-machine/CONTEXT-TRANSFER.md` exceeds 50KB, the post-session step will
+  force-truncate to the last 5 sessions regardless of other rules. Do not let this happen --
+  keep summaries terse so the file stays small naturally.
 - **The post-session step auto-archives** sessions beyond the last 5. You do not need to
   manage this manually. But if you find `.dev-machine/CONTEXT-TRANSFER.md` exceeds 200 lines, truncate older
   summaries to a single line: `### Session N Summary — [date] — [one-line summary]`.
+- **Lessons Learned cap: 10 patterns.** The Lessons Learned section is capped at 10 entries.
+  When a new pattern is added and the count exceeds 10, the post-session step retires the
+  oldest (lowest `Seen` count) pattern to SESSION-ARCHIVE.md.
 - **Prioritize signal over completeness** in context transfer: a future session needs to know
   *what to do next* and *what went wrong*, not a full transcript.
 
@@ -267,47 +412,19 @@ Session summaries written to `.dev-machine/CONTEXT-TRANSFER.md` MUST follow thes
 - Don't assume context from a "previous conversation" -- you have none
 - Don't modify specs without authorization
 
-## Key Project Facts
-
-- **Stack:** Next.js 16 App Router, TypeScript strict, React 19, TailwindCSS 4, Prisma/PostgreSQL
-- **Test runner:** Vitest (unit + integration), Playwright (E2E — don't run unless spec requires it)
-- **DB:** PostgreSQL via Docker on port 5433. Run `docker compose up -d` if DB errors occur.
-- **Schema changes:** Run `npm run db:migrate` then `npm run db:generate` after any `schema.prisma` edit
-- **API routes:** All in `src/app/api/`. Server-side logic in `src/lib/`. Client components in `src/components/`.
-- **AI keys:** In `.env` — `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`. Tests should mock these.
-
-## Boundary Rules (NEVER violate)
-
-- Work only in `/Users/chrispark/Projects/ridecast2`
-- Do NOT `git push` — the outer loop handles commits; pushing is a human decision
-- Do NOT install global packages (`npm install -g`)
-- Do NOT modify `prisma/dev.db` directly
-- Do NOT access: `~/.ssh/`, `~/.amplifier/keys.env`, `.env` files, `*.pem`, `*.key`, or any credential files
-- Do NOT start background processes with &, nohup, or disown unless the recipe infrastructure started them
-- If unsure, add a blocker and stop
-
 ## Factored File Structure
 
 Both STATE.yaml and CONTEXT-TRANSFER.md are kept slim by automatic archiving.
 The post-session step handles this -- you do NOT need to manage archives yourself.
 
 **STATE.yaml** (~300 lines, active state only):
-- Completed features are auto-archived to FEATURE-ARCHIVE.yaml by the post-session step.
+- If the project uses `completed_features` list pattern, completed features are
+  auto-archived to FEATURE-ARCHIVE.yaml by the post-session step.
 - Only active (ready/in_progress) features stay in STATE.yaml.
 
 **CONTEXT-TRANSFER.md** (~300 lines, recent context only):
 - Only the last 5 session summaries are kept.
 - Older sessions are auto-archived to SESSION-ARCHIVE.md.
-
-**API-INVENTORY.md** (auto-generated, overwritten each session):
-- Contains current public exports from the codebase.
-- Read this during Platform Grounding to enumerate real APIs. Do NOT read at session start.
-- Do NOT edit this file -- it is overwritten by the api-inventory recipe step.
-
-**SCRATCH.md** (human working notes):
-- Contains hand-written notes, known issues, and workflow learnings.
-- Do NOT read at session start -- it is not machine state.
-- Do NOT add API inventory blocks here -- use API-INVENTORY.md instead.
 
 **Do NOT read or edit**: FEATURE-ARCHIVE.yaml, SESSION-ARCHIVE.md (append-only archives).
 These exist only for historical reference and disaster recovery.

@@ -1,0 +1,510 @@
+# =============================================================================
+# dev-machine-drift-check: Detect drift between an existing dev machine and
+#                          current template expectations
+# =============================================================================
+#
+# Read-only diagnostic -- does not modify any files. Run against an existing
+# dev machine to discover which patterns have drifted from the current bundle
+# templates. Each step is an independent signal check. All steps run even when
+# earlier ones encounter errors. The final step aggregates results, prints a
+# formatted signal table, and exits non-zero if any drift is detected.
+#
+# Usage:
+#   amplifier recipe execute <bundle-path>/templates/recipes/dev-machine-drift-check.yaml \
+#     context.project_dir=/path/to/project
+#
+# project_dir should be the directory that contains the .dev-machine/ folder.
+#
+# =============================================================================
+
+name: "dev-machine-drift-check"
+description: "Detect drift between an existing dev machine and current template expectations. Read-only diagnostic -- does not modify any files."
+version: "1.0.0"
+author: "amplifier-bundle-dev-machine"
+tags: ["migration", "drift-check", "diagnostic", "dev-machine"]
+
+context:
+  project_dir: ""
+
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 0: Preflight -- verify project_dir is set and contains expected files
+  # ---------------------------------------------------------------------------
+  - id: "preflight"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import os, sys
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+
+      if not project_dir:
+          print("ERROR: project_dir context variable is not set.")
+          print("")
+          print("Provide it at invocation time:")
+          print("  amplifier recipe execute dev-machine-drift-check.yaml \\")
+          print("    context.project_dir=/path/to/project")
+          sys.exit(1)
+
+      if not os.path.isdir(project_dir):
+          print(f"ERROR: project_dir does not exist or is not a directory: {project_dir}")
+          sys.exit(1)
+
+      dm = os.path.join(project_dir, ".dev-machine")
+      if not os.path.isdir(dm):
+          print(f"ERROR: .dev-machine/ directory not found inside {project_dir}")
+          print("Is project_dir pointing at the correct location?")
+          sys.exit(1)
+
+      expected = [
+          os.path.join(project_dir, "docker-compose.dev-machine.yaml"),
+          os.path.join(project_dir, "dev-machine.Dockerfile"),
+          os.path.join(project_dir, "scripts", "entrypoint.sh"),
+      ]
+      missing = []
+      for path in expected:
+          if not os.path.isfile(path):
+              missing.append(path)
+              print(f"  [WARN] Missing: {path}")
+          else:
+              print(f"  [OK]   Found:   {path}")
+
+      if missing:
+          print(f"WARNING: {len(missing)} expected file(s) not found -- those checks will be skipped")
+      else:
+          print(f"Preflight OK: {project_dir} contains a dev machine structure")
+      PYEOF
+    on_error: "fail"
+
+  # ---------------------------------------------------------------------------
+  # Step 1: Amplifier home mount -- bind mount (.dev-machine-amplifier) vs
+  #         named Docker volume (*-amplifier-home)
+  # ---------------------------------------------------------------------------
+  - id: "check-amplifier-home-mount"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os, re
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      compose_path = os.path.join(project_dir, "docker-compose.dev-machine.yaml")
+
+      if not os.path.isfile(compose_path):
+          detail = "compose file not found -- cannot check"
+          print(f"  [SKIP] Amplifier home mount: {detail}")
+          print(json.dumps({"signal": "amplifier_home_mount", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          with open(compose_path) as fh:
+              content = fh.read()
+
+          has_bind_mount  = ".dev-machine-amplifier" in content
+          has_named_vol   = bool(re.search(r'\w+-amplifier-home:', content))
+
+          if has_bind_mount and not has_named_vol:
+              status = "current"
+              detail = "bind mount .dev-machine-amplifier found (current)"
+          elif has_named_vol and not has_bind_mount:
+              status = "drift"
+              detail = "named volume pattern amplifier-home found (old pattern -- risky to fix)"
+          elif has_bind_mount and has_named_vol:
+              status = "unknown"
+              detail = "both bind mount and named volume patterns present"
+          else:
+              status = "unknown"
+              detail = "neither bind mount nor named volume pattern detected"
+
+          print(f"  [{status.upper()}] Amplifier home mount: {detail}")
+          print(json.dumps({"signal": "amplifier_home_mount", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_amplifier_home"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 2: Settings mount -- dev-machine-settings.yaml vs .amplifier/settings.yaml
+  # ---------------------------------------------------------------------------
+  - id: "check-settings-mount"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      compose_path = os.path.join(project_dir, "docker-compose.dev-machine.yaml")
+
+      if not os.path.isfile(compose_path):
+          detail = "compose file not found -- cannot check"
+          print(f"  [SKIP] Settings mount: {detail}")
+          print(json.dumps({"signal": "settings_mount", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          with open(compose_path) as fh:
+              content = fh.read()
+
+          has_current = "dev-machine-settings.yaml:/config/settings.yaml" in content
+          has_drift   = ".amplifier/settings.yaml:/config/settings.yaml" in content
+
+          if has_current and not has_drift:
+              status = "current"
+              detail = "dev-machine-settings.yaml mount found (current)"
+          elif has_drift and not has_current:
+              status = "drift"
+              detail = ".amplifier/settings.yaml mount found (old pattern -- risky to fix)"
+          elif has_current and has_drift:
+              status = "unknown"
+              detail = "both settings mount patterns found in compose file"
+          else:
+              status = "unknown"
+              detail = "no recognisable settings mount pattern found"
+
+          print(f"  [{status.upper()}] Settings mount: {detail}")
+          print(json.dumps({"signal": "settings_mount", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_settings_mount"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 3: Settings file -- dev-machine-settings.yaml present in project dir
+  # ---------------------------------------------------------------------------
+  - id: "check-settings-file"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      settings_path = os.path.join(project_dir, "dev-machine-settings.yaml")
+
+      if os.path.isfile(settings_path):
+          status = "current"
+          detail = "dev-machine-settings.yaml present in project root"
+      else:
+          status = "drift"
+          detail = "dev-machine-settings.yaml missing from project root (safe to create)"
+
+      print(f"  [{status.upper()}] Settings file: {detail}")
+      print(json.dumps({"signal": "settings_file", "status": status, "detail": detail, "risk": "safe"}))
+      PYEOF
+    output: "check_settings_file"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 4: Amplifier home directory -- .dev-machine-amplifier/ present and
+  #         owned by the current user (not root)
+  # ---------------------------------------------------------------------------
+  - id: "check-amplifier-dir"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      amp_dir = os.path.join(project_dir, ".dev-machine-amplifier")
+
+      if not os.path.isdir(amp_dir):
+          status = "drift"
+          detail = ".dev-machine-amplifier/ directory missing (safe to create)"
+      else:
+          st = os.stat(amp_dir)
+          uid = st.st_uid
+          current_uid = os.getuid()
+          if uid == 0:
+              status = "drift"
+              detail = ".dev-machine-amplifier/ is root-owned -- container will have permission errors"
+          elif uid != current_uid:
+              status = "unknown"
+              detail = f".dev-machine-amplifier/ exists but owned by uid={uid} not current uid={current_uid}"
+          else:
+              status = "current"
+              detail = f".dev-machine-amplifier/ present and user-owned (uid={uid})"
+
+      print(f"  [{status.upper()}] Amplifier home directory: {detail}")
+      print(json.dumps({"signal": "amplifier_home_dir", "status": status, "detail": detail, "risk": "safe"}))
+      PYEOF
+    output: "check_amplifier_dir"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 5: Git URL rewrite -- pushInsteadOf (current, push-only) vs plain
+  #         insteadOf (drift, rewrites all git operations including fetch/pull)
+  # ---------------------------------------------------------------------------
+  - id: "check-git-rewrite"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      dockerfile_path = os.path.join(project_dir, "dev-machine.Dockerfile")
+
+      if not os.path.isfile(dockerfile_path):
+          detail = "Dockerfile not found -- cannot check"
+          print(f"  [SKIP] Git URL rewrite: {detail}")
+          print(json.dumps({"signal": "git_rewrite", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          with open(dockerfile_path) as fh:
+              content = fh.read()
+
+          # pushInsteadOf uses capital I; plain insteadOf uses lowercase i -- they are distinct strings
+          has_push_instead  = "pushInsteadOf" in content
+          has_plain_instead = "insteadOf" in content  # 'insteadOf' does not appear in 'pushInsteadOf'
+
+          if has_push_instead and not has_plain_instead:
+              status = "current"
+              detail = "pushInsteadOf found (push-only URL rewrite, current)"
+          elif has_plain_instead and not has_push_instead:
+              status = "drift"
+              detail = "plain insteadOf found (rewrites all git operations -- risky to fix, needs image rebuild)"
+          elif has_push_instead and has_plain_instead:
+              status = "unknown"
+              detail = "both pushInsteadOf and plain insteadOf found in Dockerfile"
+          else:
+              status = "unknown"
+              detail = "no git URL rewrite config found in Dockerfile"
+
+          print(f"  [{status.upper()}] Git URL rewrite: {detail}")
+          print(json.dumps({"signal": "git_rewrite", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_git_rewrite"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 6: Stale session cancellation -- recipes operation=list loop present
+  #         in entrypoint (cancels orphaned recipe sessions on startup)
+  # ---------------------------------------------------------------------------
+  - id: "check-stale-session-cancel"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      entrypoint_path = os.path.join(project_dir, "scripts", "entrypoint.sh")
+
+      if not os.path.isfile(entrypoint_path):
+          detail = "entrypoint not found -- cannot check"
+          print(f"  [SKIP] Stale session cancellation: {detail}")
+          print(json.dumps({"signal": "stale_session_cancel", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          with open(entrypoint_path) as fh:
+              content = fh.read()
+
+          if "recipes operation=list" in content:
+              status = "current"
+              detail = "stale session cancellation block present (current)"
+          else:
+              status = "drift"
+              detail = "recipes operation=list not found -- orphaned sessions will not be cancelled on startup"
+
+          print(f"  [{status.upper()}] Stale session cancellation: {detail}")
+          print(json.dumps({"signal": "stale_session_cancel", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_stale_cancel"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 7: Postmortem auto-delete -- rm POSTMORTEM_FILE on STATE.yaml resume.
+  #         Expect 2+ occurrences: one for idle halt path, one for structural halt.
+  #         1 occurrence = partial drift; 0 = full drift.
+  # ---------------------------------------------------------------------------
+  - id: "check-postmortem-autodelete"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os, re
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      entrypoint_path = os.path.join(project_dir, "scripts", "entrypoint.sh")
+
+      if not os.path.isfile(entrypoint_path):
+          detail = "entrypoint not found -- cannot check"
+          print(f"  [SKIP] Postmortem auto-delete: {detail}")
+          print(json.dumps({"signal": "postmortem_autodelete", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          with open(entrypoint_path) as fh:
+              content = fh.read()
+
+          matches = re.findall(r'rm\b.*POSTMORTEM', content)
+          count = len(matches)
+
+          if count >= 2:
+              status = "current"
+              detail = f"postmortem auto-delete found {count} times (idle + structural halt paths, current)"
+          elif count == 1:
+              status = "drift"
+              detail = "postmortem auto-delete found only once -- one halt path is missing the cleanup"
+          else:
+              status = "drift"
+              detail = "postmortem auto-delete not found -- stale postmortems will block future sessions"
+
+          print(f"  [{status.upper()}] Postmortem auto-delete: {detail}")
+          print(json.dumps({"signal": "postmortem_autodelete", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_postmortem"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 8: Recipe sub-call paths -- ./ relative (current) vs ./.dev-machine/
+  #         prefix (drift). Checks all recipe files in .dev-machine/ directly.
+  # ---------------------------------------------------------------------------
+  - id: "check-recipe-paths"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os, glob, re
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      recipe_dir = os.path.join(project_dir, ".dev-machine")
+
+      if not os.path.isdir(recipe_dir):
+          detail = "recipe directory not found -- cannot check"
+          print(f"  [SKIP] Recipe sub-call paths: {detail}")
+          print(json.dumps({"signal": "recipe_paths", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          recipe_files = sorted(glob.glob(os.path.join(recipe_dir, "*.yaml")))
+          if not recipe_files:
+              detail = f"no .yaml files found in {recipe_dir}"
+              print(f"  [SKIP] Recipe sub-call paths: {detail}")
+              print(json.dumps({"signal": "recipe_paths", "status": "skip", "detail": detail, "risk": "risky"}))
+          else:
+              drift_files = []
+              for recipe_file in recipe_files:
+                  with open(recipe_file) as fh:
+                      content = fh.read()
+                  if re.search(r'\./.dev-machine/', content):
+                      drift_files.append(os.path.basename(recipe_file))
+
+              if drift_files:
+                  status = "drift"
+                  detail = f"./.dev-machine/ prefix found in: {', '.join(drift_files)}"
+              else:
+                  status = "current"
+                  detail = f"no ./.dev-machine/ prefixes in {len(recipe_files)} recipe file(s) (current)"
+
+              print(f"  [{status.upper()}] Recipe sub-call paths: {detail}")
+              print(json.dumps({"signal": "recipe_paths", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_recipe_paths"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 9: Container log tee -- exec tee to CONTAINER_LOG present in entrypoint
+  #         (captures all container output to a persistent log file)
+  # ---------------------------------------------------------------------------
+  - id: "check-container-log-tee"
+    type: "bash"
+    command: |
+      python3 << 'PYEOF'
+      import json, os
+
+      project_dir = "/Users/chrispark/Projects/ridecast2"
+      entrypoint_path = os.path.join(project_dir, "scripts", "entrypoint.sh")
+
+      if not os.path.isfile(entrypoint_path):
+          detail = "entrypoint not found -- cannot check"
+          print(f"  [SKIP] Container log tee: {detail}")
+          print(json.dumps({"signal": "container_log_tee", "status": "skip", "detail": detail, "risk": "risky"}))
+      else:
+          with open(entrypoint_path) as fh:
+              content = fh.read()
+
+          has_container_log = "CONTAINER_LOG" in content
+          has_recipe_log_tee = "tee" in content and "RECIPE_LOG" in content
+
+          if has_container_log:
+              status = "current"
+              detail = "CONTAINER_LOG tee pattern found (current)"
+          elif has_recipe_log_tee:
+              status = "drift"
+              detail = "RECIPE_LOG tee found (only recipe output captured, not full entrypoint) -- old pattern, missing container-level log tee"
+          else:
+              status = "drift"
+              detail = "container log tee not present -- startup output not persisted to log file"
+
+          print(f"  [{status.upper()}] Container log tee: {detail}")
+          print(json.dumps({"signal": "container_log_tee", "status": status, "detail": detail, "risk": "risky"}))
+      PYEOF
+    output: "check_log_tee"
+    parse_json: true
+    on_error: "continue"
+
+  # ---------------------------------------------------------------------------
+  # Step 10: Drift summary -- aggregate all signal results, print report,
+  #          exit 1 if any drift detected
+  # ---------------------------------------------------------------------------
+  - id: "drift-summary"
+    type: "bash"
+    command: |
+      echo ""
+      echo "============================================================"
+      echo "  DEV MACHINE DRIFT CHECK"
+      echo "  Project: /Users/chrispark/Projects/ridecast2"
+      echo "============================================================"
+      echo ""
+      printf "  %-32s  %-8s  %s\n" "Signal" "Status" "Detail"
+      printf "  %-32s  %-8s  %s\n" "------" "------" "------"
+      echo ""
+
+      DRIFT_COUNT=0
+      CURRENT_COUNT=0
+      SKIP_COUNT=0
+      UNKNOWN_COUNT=0
+
+      report_signal() {
+        local label="$1"
+        local status="$2"
+        local detail="$3"
+        case "$status" in
+          current)
+            printf "  %-32s  CURRENT  %s\n" "$label" "$detail"
+            CURRENT_COUNT=$((CURRENT_COUNT + 1))
+            ;;
+          drift)
+            printf "  %-32s  DRIFT    %s\n" "$label" "$detail"
+            DRIFT_COUNT=$((DRIFT_COUNT + 1))
+            ;;
+          skip)
+            printf "  %-32s  SKIP     %s\n" "$label" "$detail"
+            SKIP_COUNT=$((SKIP_COUNT + 1))
+            ;;
+          *)
+            printf "  %-32s  UNKNOWN  %s\n" "$label" "$detail"
+            UNKNOWN_COUNT=$((UNKNOWN_COUNT + 1))
+            ;;
+        esac
+      }
+
+      report_signal "Amplifier home mount"    "{{check_amplifier_home.status}}"   "{{check_amplifier_home.detail}}"
+      report_signal "Settings mount"          "{{check_settings_mount.status}}"   "{{check_settings_mount.detail}}"
+      report_signal "Settings file"           "{{check_settings_file.status}}"    "{{check_settings_file.detail}}"
+      report_signal "Amplifier home dir"      "{{check_amplifier_dir.status}}"    "{{check_amplifier_dir.detail}}"
+      report_signal "Git URL rewrite"         "{{check_git_rewrite.status}}"      "{{check_git_rewrite.detail}}"
+      report_signal "Stale session cancel"    "{{check_stale_cancel.status}}"     "{{check_stale_cancel.detail}}"
+      report_signal "Postmortem auto-delete"  "{{check_postmortem.status}}"       "{{check_postmortem.detail}}"
+      report_signal "Recipe sub-call paths"   "{{check_recipe_paths.status}}"     "{{check_recipe_paths.detail}}"
+      report_signal "Container log tee"       "{{check_log_tee.status}}"          "{{check_log_tee.detail}}"
+
+      echo ""
+      echo "------------------------------------------------------------"
+      echo "  Totals: DRIFT=$DRIFT_COUNT  CURRENT=$CURRENT_COUNT  SKIP=$SKIP_COUNT  UNKNOWN=$UNKNOWN_COUNT"
+      echo "------------------------------------------------------------"
+      echo ""
+
+      if [ "$DRIFT_COUNT" -gt 0 ]; then
+          echo "  RESULT: $DRIFT_COUNT drift signal(s) detected"
+          echo ""
+          echo "  For guided remediation, run the operator-advisor agent:"
+          echo "    amplifier ask @dev-machine:operator-advisor 'assess migration for /Users/chrispark/Projects/ridecast2'"
+          echo ""
+          exit 1
+      else
+          echo "  RESULT: No drift detected -- dev machine matches current template"
+          echo ""
+      fi
+    on_error: "fail"
