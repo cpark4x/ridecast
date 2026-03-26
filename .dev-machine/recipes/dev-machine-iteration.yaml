@@ -72,19 +72,40 @@ steps:
   # Heuristic: for each .md file in specs, find implementation files whose stem
   # contains the spec stem. If any impl file is >=7 days newer, flag as drift.
   # Fast and non-blocking: on_error: continue.
+  #
+  # PERF FIX: Build the impl file index ONCE with os.walk + in-place dir pruning (O(N)).
+  # The original used Path.rglob inside the spec loop — O(S × P × N) — which traversed
+  # the full filesystem (including node_modules) once per spec file per extension, causing
+  # 600s+ timeouts on projects with large node_modules trees.
   - id: "spec-drift-check"
     type: "bash"
     command: |
       cd /Users/chrispark/Projects/ridecast2
       python3 << 'SPECEOF'
-      import os, json
+      import os
       from pathlib import Path
 
       specs_dir = Path("specs")
       STALE_THRESHOLD = 7 * 86400  # 7 days in seconds
+      SKIP_DIRS = {"node_modules", ".git", "dist", "__pycache__", ".venv", "target", "build", ".next", ".cache"}
+      IMPL_EXTS = {".ts", ".tsx", ".py", ".rs", ".js"}
       drift_flags = []
 
       if specs_dir.exists():
+          # --- Build impl file index exactly once using os.walk with directory pruning ---
+          # dirs[:] mutation tells os.walk to skip excluded subtrees entirely (not just filter output).
+          # This is O(N) over source files only -- node_modules is never entered.
+          impl_files = []
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+              # Also skip the specs dir itself so we never compare spec against spec
+              if specs_dir.name in dirs:
+                  dirs.remove(specs_dir.name)
+              for fname in files:
+                  if os.path.splitext(fname)[1] in IMPL_EXTS:
+                      impl_files.append(Path(root) / fname)
+
+          # --- Match each spec against the pre-built index (O(S × M) in memory) ---
           for spec_file in sorted(specs_dir.rglob("*.md")):
               spec_mtime = spec_file.stat().st_mtime
               stem = spec_file.stem
@@ -93,18 +114,13 @@ steps:
               stem = stem.lower()
               if len(stem) < 4:
                   continue  # too short -- too many false positives
-              for pattern in ("*.ts", "*.tsx", "*.py", "*.rs", "*.js"):
-                  for impl_file in Path(".").rglob(pattern):
-                      parts = str(impl_file).split(os.sep)
-                      if any(skip in parts for skip in ("node_modules", ".git", "dist", "__pycache__", ".venv", "target")):
-                          continue
-                      if specs_dir.name in parts:
-                          continue  # don't compare spec against spec
-                      if stem in impl_file.stem.lower():
-                          impl_mtime = impl_file.stat().st_mtime
-                          age_diff_s = impl_mtime - spec_mtime
-                          if age_diff_s > STALE_THRESHOLD:
-                              drift_flags.append((str(spec_file), str(impl_file), round(age_diff_s / 86400, 1)))
+              for impl_file in impl_files:
+                  if stem in impl_file.stem.lower():
+                      impl_mtime = impl_file.stat().st_mtime
+                      age_diff_s = impl_mtime - spec_mtime
+                      if age_diff_s > STALE_THRESHOLD:
+                          drift_flags.append((str(spec_file), str(impl_file), round(age_diff_s / 86400, 1)))
+
       if drift_flags:
           print(f"=== SPEC DRIFT DETECTED ({len(drift_flags)} candidate(s)) ===")
           for spec_f, impl_f, days in drift_flags[:10]:
@@ -172,21 +188,25 @@ steps:
   # a working session. This is NOT about failing tests -- it's about the runner being
   # non-functional. If preflight fails: write postmortem, write sentinel, halt.
   #
-  # Uses `npm run test --collect-only` (pytest syntax). Adapt for other runners by
-  # changing to an equivalent dry-run / list-only flag for your test framework.
+  # Uses `npx jest --listTests` (lists test files without running them, ~1-2s).
+  # This is a read-only probe — it does NOT execute any tests.
+  #
+  # PERF FIX: The original used `npm run test --collect-only -q` which:
+  #   (a) --collect-only is a pytest flag, not a Jest flag
+  #   (b) without -- separator, flags go to npm not Jest
+  #   Effect: Jest ran the full test suite every preflight. Fixed to npx jest --listTests.
   - id: "test-env-preflight"
     type: "bash"
     command: |
       cd /Users/chrispark/Projects/ridecast2
       echo "=== TEST ENVIRONMENT PREFLIGHT ==="
       set +e
-      COLLECT_OUTPUT=$(npm run test --collect-only -q 2>&1)
+      COLLECT_OUTPUT=$(npx jest --listTests 2>&1)
       COLLECT_EXIT=$?
       set -e
       echo "$COLLECT_OUTPUT" | head -40
-      if [ $COLLECT_EXIT -eq 0 ] || [ $COLLECT_EXIT -eq 5 ]; then
-        # Exit 0: tests listed successfully
-        # Exit 5: no tests found (normal during bootstrap)
+      if [ $COLLECT_EXIT -eq 0 ]; then
+        # Exit 0: test files listed successfully (or no tests yet -- also fine)
         echo "Test runner is functional (exit code $COLLECT_EXIT)."
         echo '{"test_env": "ok"}'
       elif echo "$COLLECT_OUTPUT" | grep -qiE "No module named|command not found|no such file or directory"; then
