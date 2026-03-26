@@ -404,6 +404,29 @@ features:
     description: "Error boundaries, crash reporting, performance monitoring"
     size: M
 
+  # ── Phase 5 Session 19: User Feedback Batch 1 (5 pts) ──
+  medium-url-extraction:
+    status: ready
+    spec: specs/features/phase5/medium-url-extraction.md
+    description: "Fix Medium URL extraction failure + graceful error handling when content extraction fails"
+    size: S
+  double-logo-fix:
+    status: ready
+    spec: specs/features/phase5/double-logo-fix.md
+    description: "Fix double favicon rendering in SourceThumbnail — replace badge with source-type icon"
+    size: S
+  paste-raw-text:
+    status: ready
+    spec: specs/features/phase5/paste-raw-text.md
+    description: "Add text input to upload modal — paste raw text to create episode, no file or URL needed"
+    size: S
+  basic-file-types:
+    status: ready
+    spec: specs/features/phase5/basic-file-types.md
+    description: "Add .docx/.doc/.md file upload support via mammoth extractor + expanded MIME types"
+    size: M
+    depends_on: []
+
   # ── Night 6+: Platform Expansion ──
   content-type-expansion:
     status: deferred
