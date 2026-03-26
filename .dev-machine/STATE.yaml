@@ -162,7 +162,7 @@ recently_shipped:
 phase: 5
 phase_name: phase-5-platform-expansion
 epoch: 19
-next_action: "All health gates green. Pick first Phase 5 feature: in-app-feedback-system (fully designed, supports TestFlight cycle), pocket-refugee-capture (time-sensitive, specced), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), ios-share-extension (specced, M), browser-extension (fully specced, L), content-type-expansion (specced, M). Close stale GitHub issues (#24-#32 dupes, #33-#41 already shipped)."
+next_action: "9 user feedback items logged and prioritized (2026-03-26). Top priorities: (1) basic-file-types M, (2) medium-url-extraction bug S, (3) paste-raw-text S, (4) episode-sharing-expanded M. Also: close stale GitHub issues (#24-#32 dupes, #33-#41 already shipped)."
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -426,7 +426,71 @@ features:
     description: "iOS Share Extension — share from Safari or any app to Ridecast"
     size: M
 
-proposed_features: []
+proposed_features:
+  # User feedback 2026-03-26 — prioritized by weighted scoring (core-flow, user impact, growth, phase alignment, effort)
+  medium-url-extraction:
+    status: new
+    priority: 2
+    type: bug
+    description: "Medium URLs fail with 'missing scriptID' instead of user-friendly error. Two fixes: graceful error handling + investigate Medium anti-scraping."
+    size: S
+    source: "user-feedback-2026-03-26"
+  double-logo-fix:
+    status: new
+    priority: 8
+    type: bug
+    description: "Artwork renders at two sizes in every episode card on home screen — big logo with small logo layered inside. Layout/component bug."
+    size: S
+    source: "user-feedback-2026-03-26"
+  basic-file-types:
+    status: new
+    priority: 1
+    type: feature
+    description: "Support .docx, PDF, plain text file uploads. Basics first — table stakes vs Speechify/Blinkist."
+    size: M
+    source: "user-feedback-2026-03-26"
+  paste-raw-text:
+    status: new
+    priority: 3
+    type: feature
+    description: "Text input field in upload modal — no file, no URL, just paste and go."
+    size: S
+    source: "user-feedback-2026-03-26"
+  episode-sharing-expanded:
+    status: new
+    priority: 4
+    type: feature
+    description: "Shareable links with hosted playback page AND MP3 download/export. Viral acquisition loop."
+    size: M
+    source: "user-feedback-2026-03-26"
+  verbatim-read-mode:
+    status: new
+    priority: 5
+    type: feature
+    description: "Skip AI scripting, TTS source directly. New format alongside Narrator/Two-Host. User-requested."
+    size: M
+    source: "user-feedback-2026-03-26"
+  estimated-read-time:
+    status: new
+    priority: 7
+    type: feature
+    description: "Surface '~X min read' in upload modal using word count already in pipeline. Quick win."
+    size: S
+    source: "user-feedback-2026-03-26"
+  auto-subscribe-newsletter:
+    status: new
+    priority: 6
+    type: feature
+    description: "Full autopilot: follow a source, auto-generate when they publish. Depends on source-author-following + scheduled-production."
+    size: L
+    source: "user-feedback-2026-03-26"
+  amplifier-ridecast-integration:
+    status: parked
+    priority: 9
+    type: feature
+    description: "Send content from Amplifier to Ridecast via skill/API. Shape TBD. Narrow audience — general-user equivalents (Share Extension, Browser Extension) ship first."
+    size: M
+    source: "user-feedback-2026-03-26"
 next_steps:
 - step: 1
   task: "Close stale GitHub issues"

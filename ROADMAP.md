@@ -39,6 +39,8 @@ P0 items that block daily usage. These ship first.
 | 1 | Delete episodes + remove non-functional queue button | S | — | 📝 | Stubbed but not wired. GitHub #33 |
 | 2 | Generating episode feedback | S | — | 📝 | Silent failure when pipeline runs. GitHub #34 |
 | 3 | Offline guards for upload flow | S | — | 📝 | Crashes if offline during upload. GitHub #35 |
+| 3a | Medium URL extraction + graceful error handling | S | — | 🆕 | Medium URLs fail with "missing scriptID" instead of user-friendly error. Two fixes: (1) graceful error when extraction fails, (2) investigate Medium-specific anti-scraping. User feedback 2026-03-26. |
+| 3b | Double logo on all episode cards | S | — | 🆕 | Artwork renders at two sizes in every card on home screen — big logo with small logo layered inside. Layout/component bug, not data-specific. User feedback 2026-03-26. |
 
 ### Theme 2: Episode Identity & Intelligence
 
@@ -116,10 +118,13 @@ Ridecast becomes available everywhere you consume content, not just inside the a
 |---|---------|------|--------|-------|
 | 28 | Browser Extension | L | 🆕 | "Right-click any article > Send to Ridecast." Chrome first. |
 | 29 | iOS Share Extension | M | 🆕 | Share from Safari, Twitter, email, Substack. Mobile capture surface. |
-| 30 | Content type expansion (advanced) | M | 🆕 | .docx, Google Docs, Notion, GitHub as native input sources |
-| 31 | Generic URL handling (advanced) | M | 🆕 | Homepage detection, article picker, paywall handling |
-| 32 | Dynamic color from artwork | S | 🆕 | Player background tints from episode artwork. Source-branded gradients. |
-| 33 | Episode Sharing | M | 🆕 | Shareable links with hosted playback page. Viral acquisition loop. |
+| 30 | Basic file type support (.docx, PDF, text files) | M | 🆕 | Basics first: Word docs, PDFs, plain text files. Table stakes vs Speechify/Blinkist. User feedback 2026-03-26. |
+| 31 | Paste raw text to create episode | S | 🆕 | Text input field in upload modal — no file, no URL, just paste and go. Eliminates clipboard→file bottleneck. User feedback 2026-03-26. |
+| 32 | Episode Sharing (link + download) | M | 🆕 | Shareable links with hosted playback page AND MP3 download/export. Viral acquisition loop. User feedback 2026-03-26 expanded scope. |
+| 33 | Content type expansion (advanced) | M | 🆕 | Google Docs, Notion, GitHub as native input sources. Depends on #30. |
+| 34 | Generic URL handling (advanced) | M | 🆕 | Homepage detection, article picker, paywall handling |
+| 35 | Dynamic color from artwork | S | 🆕 | Player background tints from episode artwork. Source-branded gradients. |
+| 36 | Estimated read time in upload modal | S | 🆕 | Surface "~X min read" using word count already in pipeline. Prevents nonsensical duration choices. Quick win. User feedback 2026-03-26. |
 
 ---
 
@@ -129,14 +134,15 @@ The AI gets smarter about what it produces and how it produces it.
 
 | # | Feature | Size | Status | Notes |
 |---|---------|------|--------|-------|
-| 34 | Progressive Depth "Go Deeper" | M | 🆕 | Continuation episodes that build on what you already heard. Not re-summarization. |
-| 35 | Format Expansion | M | 🆕 | Debate, Critique, Storytelling modes beyond narrator and two-host. |
-| 36 | Multi-Source Synthesis | L | 🆕 | "Give me 20 minutes covering these 3 articles." NotebookLM's killer feature, done with duration control. |
-| 37 | Voice Selection | M | 🆕 | ElevenLabs voice library surfaced in-app. Retention driver. |
-| 38 | Voice Boost / Commute Audio Profile | M | 🆕 | EQ normalization for noisy environments. |
-| 39 | Chapter Explorer | M | 🆕 | Swipe-up panel with AI chapter summaries and frame-accurate timestamps. |
-| 40 | Word-Level Transcript Seek | M | 🆕 | Tap any word in the transcript to jump to that position. |
-| 41 | "What Did I Miss?" Recap | M | 🆕 | 30s AI summary when resuming after 24+ hours. "Previously on your episode..." |
+| 37 | Progressive Depth "Go Deeper" | M | 🆕 | Continuation episodes that build on what you already heard. Not re-summarization. |
+| 38 | Format Expansion | M | 🆕 | Debate, Critique, Storytelling modes beyond narrator and two-host. |
+| 38a | Verbatim "Read It to Me" mode | M | 🆕 | Skip AI scripting, TTS source directly. New format alongside Narrator/Two-Host. Simpler, faster, cheaper. User-requested feedback 2026-03-26. |
+| 39 | Multi-Source Synthesis | L | 🆕 | "Give me 20 minutes covering these 3 articles." NotebookLM's killer feature, done with duration control. |
+| 40 | Voice Selection | M | 🆕 | ElevenLabs voice library surfaced in-app. Retention driver. |
+| 41 | Voice Boost / Commute Audio Profile | M | 🆕 | EQ normalization for noisy environments. |
+| 42 | Chapter Explorer | M | 🆕 | Swipe-up panel with AI chapter summaries and frame-accurate timestamps. |
+| 43 | Word-Level Transcript Seek | M | 🆕 | Tap any word in the transcript to jump to that position. |
+| 44 | "What Did I Miss?" Recap | M | 🆕 | 30s AI summary when resuming after 24+ hours. "Previously on your episode..." |
 
 ---
 
@@ -146,11 +152,11 @@ Ridecast runs on autopilot. Episodes are waiting before your commute starts.
 
 | # | Feature | Size | Status | Notes |
 |---|---------|------|--------|-------|
-| 42 | Scheduled Production | L | 🆕 | Connect RSS feeds, auto-generate episodes every morning. The daily-habit play. |
-| 43 | RSS / Podcast Feed Output | M | 🆕 | Personal RSS feed delivers episodes to Spotify, Apple Podcasts, Pocket Casts. Depends on #42. |
-| 44 | "Ready to Commute" Push Notification | M | 🆕 | Commute-time-aware lock screen notification. Depends on #42. |
-| 45 | Newsletter / Email Digest | L | 🆕 | Substack RSS first, then full email OAuth integration. Morning audio briefing from your inbox. |
-| 46 | Smart Queue Curation | L | 🆕 | AI fills your commute queue ranked by predicted interest. Learns from skips, replays, favorites. |
+| 45 | Scheduled Production | L | 🆕 | Connect RSS feeds, auto-generate episodes every morning. The daily-habit play. |
+| 46 | RSS / Podcast Feed Output | M | 🆕 | Personal RSS feed delivers episodes to Spotify, Apple Podcasts, Pocket Casts. Depends on #45. |
+| 47 | "Ready to Commute" Push Notification | M | 🆕 | Commute-time-aware lock screen notification. Depends on #45. |
+| 48 | Newsletter / Email Digest + Auto-Subscribe | L | 🆕 | Substack RSS first, then full email OAuth integration. Morning audio briefing from your inbox. User feedback 2026-03-26: full autopilot — follow a source, auto-generate when they publish. Depends on Phase 4 #16 (following data model) + #45 (scheduled production). |
+| 49 | Smart Queue Curation | L | 🆕 | AI fills your commute queue ranked by predicted interest. Learns from skips, replays, favorites. |
 
 ---
 
@@ -165,6 +171,7 @@ Interesting but not committed. Revisit after Phase 5 proves the platform.
 | Ambient Soundscapes | Background audio (rain, lo-fi) during listening. ElevenReader shipped this. | Nice-to-have polish. Doesn't drive adoption. |
 | Interactive Q&A Post-Episode | Ask questions about content after listening. NotebookLM's stickiest feature. | Expands surface from "audio production" to "knowledge assistant." Bigger strategic decision. |
 | Context-Aware Format Selection | Auto-detect context (CarPlay = narrator, AirPods + walking = two-host). | Requires Format Expansion first. UX risk of wrong auto-selection. Needs usage data. |
+| Amplifier → Ridecast Integration | Send content from Amplifier to Ridecast via skill/API. Developer workflow shortcut. | Shape TBD. Narrow audience (power users). General-user equivalents (Share Extension, Browser Extension) ship first. User feedback 2026-03-26. |
 
 ---
 
@@ -181,4 +188,4 @@ Conscious positioning decisions, not "someday" items.
 
 ---
 
-*Last updated: 2026-03-12. Unified roadmap consolidating all brainstorm items, GitHub issues (#33-#41), and competitive analysis into a single planning document. 46 items across 4 active phases. STATE.yaml is the machine's execution queue; this file is the human plan.*
+*Last updated: 2026-03-26. Added 9 user feedback items (2 bugs, 7 features) from TestFlight feedback session. 55 items across 4 active phases. STATE.yaml is the machine's execution queue; this file is the human plan.*
