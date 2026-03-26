@@ -42,6 +42,44 @@ describe("uploadAudio", () => {
   });
 });
 
+describe("parseBlobUrl", () => {
+  it("parses a valid blob URL with nested path", async () => {
+    const { parseBlobUrl } = await import("./blob");
+    const result = parseBlobUrl(
+      "https://account.blob.core.windows.net/container/path/to/blob.mp3"
+    );
+    expect(result).toEqual({
+      containerName: "container",
+      blobName: "path/to/blob.mp3",
+    });
+  });
+
+  it("parses a valid URL with only container name and empty blob name", async () => {
+    const { parseBlobUrl } = await import("./blob");
+    const result = parseBlobUrl(
+      "https://account.blob.core.windows.net/container"
+    );
+    expect(result).toEqual({
+      containerName: "container",
+      blobName: "",
+    });
+  });
+
+  it("throws an error for invalid URL with no path segments", async () => {
+    const { parseBlobUrl } = await import("./blob");
+    expect(() => {
+      parseBlobUrl("https://account.blob.core.windows.net/");
+    }).toThrow(/invalid blob URL/i);
+  });
+
+  it("throws an error for root path with only domain", async () => {
+    const { parseBlobUrl } = await import("./blob");
+    expect(() => {
+      parseBlobUrl("https://account.blob.core.windows.net");
+    }).toThrow(/invalid blob URL/i);
+  });
+});
+
 describe("isBlobStorageConfigured", () => {
   afterEach(() => {
     delete process.env.AZURE_STORAGE_CONNECTION_STRING;

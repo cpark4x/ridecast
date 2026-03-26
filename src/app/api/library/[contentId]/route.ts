@@ -12,9 +12,10 @@ export async function DELETE(
     const userId = await getCurrentUserId();
     const { contentId } = await params;
 
-    // Verify ownership
+    // Verify ownership — only the two fields needed for the 404/403 check.
     const content = await prisma.content.findUnique({
       where: { id: contentId },
+      select: { id: true, userId: true },
     });
 
     if (!content) {

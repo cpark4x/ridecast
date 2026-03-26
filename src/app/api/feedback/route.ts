@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
-import { categorizeFeedback, type FeedbackCategory, type FeedbackPriority } from '@/lib/ai/feedback';
+import { categorizeFeedback, type FeedbackAnalysis } from '@/lib/ai/feedback';
 import { WHISPER_MODEL } from '@/lib/ai/types';
 import { uploadAudio, isBlobStorageConfigured } from '@/lib/storage/blob';
 import OpenAI from 'openai';
@@ -102,20 +102,15 @@ export async function POST(request: Request) {
     });
 
     // Categorize with Claude (graceful failure — store raw feedback even if AI fails)
-    let category: FeedbackCategory | null = null;
-    let summary: string | null = null;
-    let priority: FeedbackPriority | null = null;
+    let analysis: FeedbackAnalysis | null = null;
 
     try {
-      const analysis = await categorizeFeedback({
+      analysis = await categorizeFeedback({
         text: rawText,
         screenContext,
         episodeId,
         telemetryEvents: recentTelemetry,
       });
-      category = analysis.category;
-      summary = analysis.summary;
-      priority = analysis.priority;
     } catch (error) {
       console.error('Feedback categorization failed, storing raw feedback:', error);
     }
@@ -128,9 +123,9 @@ export async function POST(request: Request) {
         rawText,
         audioUrl,
         screenContext,
-        category,
-        summary,
-        priority,
+        category: analysis?.category ?? null,
+        summary: analysis?.summary ?? null,
+        priority: analysis?.priority ?? null,
         status: 'new',
         relatedEpisodeId: episodeId,
       },
@@ -138,8 +133,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       id: feedback.id,
-      summary: summary ?? rawText.slice(0, 100),
-      category: category ?? 'Uncategorized',
+      summary: analysis?.summary ?? rawText.slice(0, 100),
+      category: analysis?.category ?? 'Uncategorized',
     });
   } catch (error) {
     console.error('Feedback submission error:', error);

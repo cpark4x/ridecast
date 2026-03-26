@@ -211,6 +211,68 @@ describe('POST /api/upload', () => {
     );
   });
 
+  it('accepts PDF file upload, passes sourceType "pdf" to extractContent', async () => {
+    const file = createMockFile('%PDF-1.4 fake pdf content', 'document.pdf');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'My PDF',
+      text: 'Extracted PDF text',
+      wordCount: 3,
+    });
+
+    const mockRecord = {
+      id: 'pdf-id',
+      title: 'My PDF',
+      wordCount: 3,
+      sourceType: 'pdf',
+      contentHash: expect.any(String),
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('pdf');
+    expect(mockExtractContent).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'document.pdf',
+      'pdf',
+    );
+  });
+
+  it('accepts EPUB file upload, passes sourceType "epub" to extractContent', async () => {
+    const file = createMockFile('PK fake epub content', 'book.epub');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'My Book',
+      text: 'Extracted EPUB text',
+      wordCount: 3,
+    });
+
+    const mockRecord = {
+      id: 'epub-id',
+      title: 'My Book',
+      wordCount: 3,
+      sourceType: 'epub',
+      contentHash: expect.any(String),
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('epub');
+    expect(mockExtractContent).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'book.epub',
+      'epub',
+    );
+  });
+
   it('associates uploaded content with authenticated user ID', async () => {
     vi.mocked(getCurrentUserId).mockResolvedValueOnce('user_abc');
 

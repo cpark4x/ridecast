@@ -86,9 +86,14 @@ export function generateSasUrl(blobUrl: string): string {
  * Parse a blob storage URL into its container name and blob name components.
  * Example: https://account.blob.core.windows.net/container/path/to/blob.mp3
  *   → { containerName: 'container', blobName: 'path/to/blob.mp3' }
+ * 
+ * @throws Error if the URL has no container path segment
  */
 export function parseBlobUrl(url: string): { containerName: string; blobName: string } {
   const pathParts = new URL(url).pathname.split('/').filter(Boolean);
+  if (!pathParts[0]) {
+    throw new Error('Invalid blob URL: no container path segment found');
+  }
   return {
     containerName: pathParts[0],
     blobName: pathParts.slice(1).join('/'),

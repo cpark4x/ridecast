@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     let title: string;
     let text: string;
     let wordCount: number;
-    let sourceType: string;
+    let sourceType: 'url' | 'txt' | 'pdf' | 'epub';
     let sourceUrl: string | null = null;
     let author: string | undefined;
 
@@ -80,8 +80,7 @@ export async function POST(request: Request) {
         fileSourceType = 'txt';
       }
 
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const buffer = Buffer.from(bytes);
+      const buffer = Buffer.from(await file.arrayBuffer());
       const result = await extractContent(buffer, file.name, fileSourceType);
 
       title = result.title;

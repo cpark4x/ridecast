@@ -29,14 +29,13 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
-vi.mock('@/lib/storage/blob', () => ({
-  isBlobStorageConfigured: vi.fn().mockReturnValue(false),
-  parseBlobUrl: vi.fn().mockImplementation((url: string) => {
-    const { pathname } = new URL(url);
-    const parts = pathname.split('/').filter(Boolean);
-    return { containerName: parts[0], blobName: parts.slice(1).join('/') };
-  }),
-}));
+vi.mock('@/lib/storage/blob', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/storage/blob')>('@/lib/storage/blob');
+  return {
+    ...actual,
+    isBlobStorageConfigured: vi.fn().mockReturnValue(false),
+  };
+});
 
 vi.mock('@azure/storage-blob', () => ({
   BlobServiceClient: { fromConnectionString: vi.fn() },

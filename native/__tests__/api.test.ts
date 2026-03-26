@@ -63,6 +63,24 @@ describe("api client", () => {
 
       await expect(uploadUrl("https://bad.com")).rejects.toThrow("Server exploded");
     });
+
+    it("attaches statusCode to thrown error on non-409 failure", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: async () => ({ error: "Unprocessable entity" }),
+      });
+
+      let caughtError: unknown;
+      try {
+        await uploadUrl("https://bad.com");
+      } catch (e) {
+        caughtError = e;
+      }
+
+      expect(caughtError).toBeInstanceOf(Error);
+      expect((caughtError as Error & { statusCode: number }).statusCode).toBe(422);
+    });
   });
 
   describe("fetchLibrary", () => {

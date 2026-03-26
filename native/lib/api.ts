@@ -54,24 +54,52 @@ async function fetchJSON<T>(
 
 // --- Upload ---
 
-async function uploadFormData(
+/**
+ * Private helper: authenticated FormData POST to any API path.
+ *
+ * Options:
+ *  - treat409AsSuccess: if true, a 409 response is returned as data rather
+ *    than thrown (used by upload dedup flow).
+ *  - attachStatusCode: if true, thrown errors include a `.statusCode` property
+ *    set to the HTTP status (used by upload callers so the native UI can
+ *    surface the status code).
+ */
+async function postFormData<T>(
+  path: string,
   formData: FormData,
-  signal?: AbortSignal,
-): Promise<UploadResponse> {
+  options?: {
+    signal?: AbortSignal;
+    treat409AsSuccess?: boolean;
+    attachStatusCode?: boolean;
+  },
+): Promise<T> {
   const auth = await authHeaders();
-  const res = await fetch(`${API_URL}/api/upload`, {
+  const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: auth,
     body: formData,
-    signal,
+    signal: options?.signal,
   });
   const data = await res.json();
-  if (!res.ok && res.status !== 409) {
-    const err = new Error(data.error ?? "Upload failed");
-    (err as Error & { statusCode: number }).statusCode = res.status;
+  if (!res.ok && !(options?.treat409AsSuccess && res.status === 409)) {
+    const err = new Error(data.error ?? `Request failed: ${res.status}`);
+    if (options?.attachStatusCode) {
+      (err as Error & { statusCode: number }).statusCode = res.status;
+    }
     throw err;
   }
-  return data as UploadResponse;
+  return data as T;
+}
+
+function uploadFormData(
+  formData: FormData,
+  signal?: AbortSignal,
+): Promise<UploadResponse> {
+  return postFormData<UploadResponse>("/api/upload", formData, {
+    signal,
+    treat409AsSuccess: true,
+    attachStatusCode: true,
+  });
 }
 
 export async function uploadUrl(
@@ -204,18 +232,7 @@ export async function submitVoiceFeedback(params: {
     formData.append("episodeId", params.episodeId);
   }
 
-  const headers = await authHeaders();
-  const res = await fetch(`${API_URL}/api/feedback`, {
-    method: "POST",
-    headers,
-    body: formData,
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error ?? `Request failed: ${res.status}`);
-  }
-  return data as FeedbackResponse;
+  return postFormData<FeedbackResponse>("/api/feedback", formData);
 }
 
 // --- Telemetry ---
