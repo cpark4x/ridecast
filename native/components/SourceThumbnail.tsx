@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Image, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 // ---------------------------------------------------------------------------
 // Gradient palette — deterministic per source type / URL keyword
@@ -56,6 +57,25 @@ export function registeredDomain(url: string | null | undefined): string | null 
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Source type → Ionicons glyph map for badge
+// ---------------------------------------------------------------------------
+
+const SOURCE_TYPE_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
+  url:    "globe-outline",
+  pdf:    "document-text-outline",
+  epub:   "book-outline",
+  txt:    "text-outline",
+  docx:   "document-outline",
+  pocket: "bookmark-outline",
+};
+
+function sourceTypeIcon(
+  sourceType: string | null | undefined,
+): React.ComponentProps<typeof Ionicons>["name"] {
+  return SOURCE_TYPE_ICONS[(sourceType ?? "").toLowerCase()] ?? "ellipsis-horizontal-outline";
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +155,7 @@ export default function SourceThumbnail({
         />
       )}
 
-      {/* Source badge — bottom-right corner, URL sources only */}
+      {/* Source type badge — bottom-right corner, shows content-type glyph */}
       {showLogo && size >= 48 && (
         <View
           style={{
@@ -148,12 +168,12 @@ export default function SourceThumbnail({
             backgroundColor: "#fff",
             alignItems:      "center",
             justifyContent:  "center",
-            overflow:        "hidden",
           }}
         >
-          <Image
-            source={{ uri: `https://www.google.com/s2/favicons?domain=${hostname}&sz=128` }}
-            style={{ width: 12, height: 12 }}
+          <Ionicons
+            name={sourceTypeIcon(sourceType)}
+            size={11}
+            color="#6B7280"
           />
         </View>
       )}

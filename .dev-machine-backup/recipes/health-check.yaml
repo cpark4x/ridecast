@@ -1,0 +1,114 @@
+name: "ridecast2-health-check"
+description: "Systematic health check that detects build errors and test failures, spawns fixing sessions, and loops until the codebase is clean."
+version: "1.0.0"
+tags: ["health-check", "qa", "build", "test", "ridecast2"]
+
+context:
+  status: "checking"
+  iteration: "0"
+  project_dir: "/Users/chrispark/Projects/ridecast2"
+
+recursion:
+  max_depth: 5
+  max_total_steps: 200
+
+steps:
+  - id: "container-check"
+    type: "bash"
+    command: |
+      if [ ! -f /.dockerenv ] && [ ! -f /run/.containerenv ]; then
+          if [ -z "${DEV_MACHINE_ALLOW_HOST:-}" ]; then
+              echo "ERROR: Not running in container. Set DEV_MACHINE_ALLOW_HOST=1 to bypass."
+              exit 1
+          fi
+          echo "WARNING: Running on bare host."
+      fi
+      echo "Container check passed."
+    on_error: "fail"
+
+  - id: "initial-check"
+    type: "bash"
+    command: |
+      cd /Users/chrispark/Projects/ridecast2
+      echo "=== HEALTH CHECK -- INITIAL SCAN ==="
+
+      BUILD_OUTPUT=$(npm run build 2>&1) || true
+      BUILD_EXIT=$?
+
+      TEST_OUTPUT=$(npm run test 2>&1) || true
+      TEST_EXIT=$?
+
+      cat > .dev-machine/SCRATCH.md << 'SCRATCH_HEADER'
+      # Health Check Findings
+      SCRATCH_HEADER
+
+      echo "## Build Status" >> .dev-machine/SCRATCH.md
+      if [ "$BUILD_EXIT" -eq 0 ]; then
+        echo "Build: CLEAN" >> .dev-machine/SCRATCH.md
+      else
+        echo "Build: FAILED" >> .dev-machine/SCRATCH.md
+        echo "" >> .dev-machine/SCRATCH.md
+        echo "### Build Errors" >> .dev-machine/SCRATCH.md
+        echo '```' >> .dev-machine/SCRATCH.md
+        echo "$BUILD_OUTPUT" | tail -50 >> .dev-machine/SCRATCH.md
+        echo '```' >> .dev-machine/SCRATCH.md
+      fi
+
+      echo "" >> .dev-machine/SCRATCH.md
+      echo "## Test Status" >> .dev-machine/SCRATCH.md
+      if [ "$TEST_EXIT" -eq 0 ]; then
+        echo "Tests: PASSING" >> .dev-machine/SCRATCH.md
+      else
+        echo "Tests: FAILING" >> .dev-machine/SCRATCH.md
+        echo "" >> .dev-machine/SCRATCH.md
+        echo "### Test Output (last 80 lines)" >> .dev-machine/SCRATCH.md
+        echo '```' >> .dev-machine/SCRATCH.md
+        echo "$TEST_OUTPUT" | tail -80 >> .dev-machine/SCRATCH.md
+        echo '```' >> .dev-machine/SCRATCH.md
+      fi
+
+      if [ "$BUILD_EXIT" -eq 0 ] && [ "$TEST_EXIT" -eq 0 ]; then
+        echo '{"status": "clean", "build_errors": "0", "test_status": "passing"}'
+      else
+        echo "{\"status\": \"needs-fixing\", \"build_exit\": \"$BUILD_EXIT\", \"test_exit\": \"$TEST_EXIT\"}"
+      fi
+    output: "initial_result"
+    parse_json: true
+    timeout: 180
+    on_error: "continue"
+
+  - id: "check-if-clean"
+    type: "bash"
+    condition: "{{initial_result.status}} == 'clean'"
+    command: |
+      echo "=== ALL CLEAN ==="
+      echo "Build passes, tests pass. Codebase is healthy."
+      echo '{"status": "done", "iteration": "0"}'
+    output: "clean_signal"
+    parse_json: true
+
+  - id: "fix-loop"
+    type: "recipe"
+    recipe: "./.dev-machine/recipes/fix-iteration.yaml"
+    context:
+      project_dir: "/Users/chrispark/Projects/ridecast2"
+      iteration: "{{iteration}}"
+    output: "fix_result"
+    parse_json: true
+    timeout: 2400
+    on_error: "continue"
+    while_condition: "{{status}} == 'checking'"
+    max_while_iterations: 5
+    break_when: "{{status}} != 'checking'"
+    update_context:
+      status: "{{fix_result.verify_result.status}}"
+      iteration: "{{fix_result.verify_result.iteration}}"
+
+  - id: "final-report"
+    type: "bash"
+    command: |
+      echo "=== HEALTH CHECK COMPLETE ==="
+      echo "Final status: {{status}}"
+      echo "Iterations used: {{iteration}}"
+      cat /Users/chrispark/Projects/ridecast2/.dev-machine/SCRATCH.md 2>/dev/null || echo "(no SCRATCH.md)"
+    output: "final_output"

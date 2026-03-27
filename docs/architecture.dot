@@ -1,0 +1,349 @@
+digraph ridecast2_architecture {
+
+    // ── Graph attributes ──────────────────────────────────────────
+    label="Ridecast2 — End-to-End Architecture"
+    labelloc=t
+    rankdir=TB
+    compound=true
+    fontname="Helvetica"
+    fontsize=16
+    nodesep=0.45
+    ranksep=0.80
+
+    node [fontname="Helvetica" fontsize=10 style="rounded,filled" shape=box]
+    edge [fontname="Helvetica" fontsize=9  color="#555555" arrowsize=0.8]
+
+    // ══════════════════════════════════════════════════════════════
+    // LAYER 1 — CLIENT
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_client {
+        label="Client Layer"
+        style=filled fillcolor="#E3F2FD"
+        fontname="Helvetica-Bold" fontsize=13
+
+        subgraph cluster_ios {
+            label="iOS App  ·  Expo 55 / React Native 0.83"
+            style=filled fillcolor="#BBDEFB" fontsize=11
+
+            subgraph cluster_ios_screens {
+                label="Screens" style=filled fillcolor="#90CAF9" fontsize=10
+                ios_home       [label="Home Screen\n(Up Next queue)"]
+                ios_library    [label="Library Screen\n(search + filter)"]
+                ios_processing [label="Processing Screen\nanalyzing → scripting → generating"]
+                ios_settings   [label="Settings Modal\n(BYOK key · feedback)"]
+                ios_signin     [label="Sign-In Modal"]
+            }
+
+            subgraph cluster_ios_runtime {
+                label="Native Runtime" style=filled fillcolor="#90CAF9" fontsize=10
+                ios_trackplayer [label="react-native-track-player\nbackground audio · lock screen · CarPlay"]
+                ios_sqlite      [label="expo-sqlite\nepisodes / playback / downloads" shape=cylinder fillcolor="#64B5F6"]
+                ios_filesystem  [label="expo-file-system\nlocal MP3 cache"]
+                ios_clerk_sdk   [label="Clerk Expo\n+ expo-secure-store"]
+                ios_sentry      [label="Sentry (error monitoring)"]
+            }
+        }
+
+        subgraph cluster_web {
+            label="Web App  ·  Next.js 16 / React 19  ·  max-w 430px mobile SPA"
+            style=filled fillcolor="#BBDEFB" fontsize=11
+
+            subgraph cluster_web_screens {
+                label="Screens & Routes" style=filled fillcolor="#90CAF9" fontsize=10
+                web_home        [label="HomeScreen"]
+                web_library     [label="LibraryScreen"]
+                web_processing  [label="ProcessingScreen"]
+                web_pocket      [label="PocketImportScreen"]
+                web_player      [label="PlayerBar + ExpandedPlayer + CarMode"]
+                web_settings    [label="SettingsScreen"]
+                web_bookmarklet [label="/save  (bookmarklet)"]
+                web_upgrade     [label="/upgrade  (Stripe paywall)"]
+            }
+
+            web_clerk_sdk [label="Clerk Next.js\nClerkProvider + middleware" fillcolor="#90CAF9"]
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LAYER 2 — API
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_api {
+        label="API Layer  ·  Next.js App Router  (src/app/api/)"
+        style=filled fillcolor="#E8F5E9"
+        fontname="Helvetica-Bold" fontsize=13
+
+        subgraph cluster_api_pipeline {
+            label="Content Pipeline  [ auth + subscription required ]"
+            style=filled fillcolor="#C8E6C9" fontsize=11
+            api_upload         [label="POST /api/upload\nextract content · dedup by hash"]
+            api_process        [label="POST /api/process\nClaude analyze + generateScript"]
+            api_audio_generate [label="POST /api/audio/generate\nTTS pipeline → Azure upload"]
+            api_audio_stream   [label="GET /api/audio/[id]\nSAS redirect or local stream"]
+        }
+
+        subgraph cluster_api_library {
+            label="Library & Playback" style=filled fillcolor="#C8E6C9" fontsize=11
+            api_library        [label="GET /api/library\nScripts + Audio + PlaybackState"]
+            api_library_delete [label="DELETE /api/library/[contentId]\ncascade delete"]
+            api_playback       [label="GET|POST /api/playback\nposition / speed / completed"]
+        }
+
+        subgraph cluster_api_other {
+            label="Feedback · Import · Billing · Telemetry"
+            style=filled fillcolor="#C8E6C9" fontsize=11
+            api_feedback      [label="POST /api/feedback\ntext or voice (Whisper → Claude)"]
+            api_pocket_import [label="POST /api/pocket/import\nbulk HTML/CSV · 500/batch"]
+            api_pocket_save   [label="POST /api/pocket/save\nsingle URL stub (bookmarklet)"]
+            api_checkout      [label="POST /api/create-checkout-session"]
+            api_webhook       [label="POST /api/webhook\nStripe · signature-verified"]
+            api_telemetry     [label="POST /api/telemetry\nclientEventId dedup"]
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LAYER 3 — SERVICE LIBRARY
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_services {
+        label="Service Library  (src/lib/)"
+        style=filled fillcolor="#FFFDE7"
+        fontname="Helvetica-Bold" fontsize=13
+
+        subgraph cluster_svc_auth {
+            label="Auth & Access Control" style=filled fillcolor="#FFF9C4" fontsize=11
+            svc_auth         [label="lib/auth.ts\ngetCurrentUserId · upsert User"]
+            svc_subscription [label="lib/subscription.ts\nrequireSubscription · BYOK mode"]
+        }
+
+        subgraph cluster_svc_content {
+            label="Content Processing" style=filled fillcolor="#FFF9C4" fontsize=11
+            svc_extractors  [label="lib/extractors/\npdf | epub | txt | url/readability"]
+            svc_claude      [label="lib/ai/claude.ts\nClaudeProvider: analyze + generateScript"]
+            svc_feedback_ai [label="lib/ai/feedback.ts\ncategorizeFeedback via Claude"]
+        }
+
+        subgraph cluster_svc_delivery {
+            label="Audio & Storage" style=filled fillcolor="#FFF9C4" fontsize=11
+            svc_tts  [label="lib/tts/provider.ts\nGoogle → ElevenLabs → OpenAI cascade"]
+            svc_blob [label="lib/storage/blob.ts\nuploadAudio · generateSasUrl"]
+        }
+
+        subgraph cluster_svc_infra {
+            label="Infrastructure" style=filled fillcolor="#FFF9C4" fontsize=11
+            svc_stripe [label="lib/stripe.ts\ngetStripeClient"]
+            svc_db     [label="lib/db.ts  (Prisma singleton)"]
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LAYER 4 — DATABASE
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_database {
+        label="Database  ·  PostgreSQL 16 via Prisma ORM"
+        style=filled fillcolor="#FCE4EC"
+        fontname="Helvetica-Bold" fontsize=13
+
+        db_postgres [label="PostgreSQL 16" shape=cylinder fillcolor="#F48FB1" fontsize=12]
+
+        subgraph cluster_db_models {
+            label="Prisma Models" style=filled fillcolor="#F8BBD9" fontsize=11
+            db_user      [label="User\nClerk ID · subscriptionStatus\nstripeCustomerId"   shape=cylinder fillcolor="#FCE4EC"]
+            db_content   [label="Content\nrawText · wordCount\nsourceType · contentHash"  shape=cylinder fillcolor="#FCE4EC"]
+            db_script    [label="Script\nformat · targetDuration\nscriptText · themes[]"  shape=cylinder fillcolor="#FCE4EC"]
+            db_audio     [label="Audio\nfilePath · durationSecs\nvoices[] · ttsProvider"  shape=cylinder fillcolor="#FCE4EC"]
+            db_playback  [label="PlaybackState\nposition · speed · completed"             shape=cylinder fillcolor="#FCE4EC"]
+            db_feedback  [label="Feedback\ntype · rawText · category · priority"          shape=cylinder fillcolor="#FCE4EC"]
+            db_telemetry [label="TelemetryEvent\neventType · metadata JSON"               shape=cylinder fillcolor="#FCE4EC"]
+        }
+
+        // Anchor postgres to model cluster
+        db_postgres -> db_user [style=invis]
+
+        // Model relations — 1:N chain
+        db_user    -> db_content  [label="1:N" fontsize=9 color="#880E4F"]
+        db_content -> db_script   [label="1:N" fontsize=9 color="#880E4F"]
+        db_script  -> db_audio    [label="1:N" fontsize=9 color="#880E4F"]
+        db_audio   -> db_playback [label="1:N" fontsize=9 color="#880E4F"]
+        db_user    -> db_feedback  [label="1:N" fontsize=9 color="#880E4F" constraint=false]
+        db_user    -> db_telemetry [label="1:N" fontsize=9 color="#880E4F" constraint=false]
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LAYER 5 — EXTERNAL SERVICES
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_external {
+        label="External Services"
+        style=filled fillcolor="#FBE9E7"
+        fontname="Helvetica-Bold" fontsize=13
+
+        subgraph cluster_ext_ai {
+            label="AI Providers" style=filled fillcolor="#FFCCBC" fontsize=11
+            ext_claude [label="Anthropic Claude\ncontent analysis · script gen · feedback" shape=parallelogram fillcolor="#FFAB91"]
+            ext_openai [label="OpenAI\nTTS fallback · Whisper transcription"              shape=parallelogram fillcolor="#FFAB91"]
+        }
+
+        subgraph cluster_ext_tts {
+            label="TTS Providers  (cascade: primary → BYOK → fallback)"
+            style=filled fillcolor="#FFCCBC" fontsize=11
+            ext_google_tts [label="Google Cloud TTS\nprimary · NotebookLM-style voices" shape=parallelogram fillcolor="#FFAB91"]
+            ext_elevenlabs [label="ElevenLabs\nBYOK premium TTS"                        shape=parallelogram fillcolor="#FFAB91"]
+        }
+
+        subgraph cluster_ext_infra {
+            label="Auth · Storage · Billing · Monitoring"
+            style=filled fillcolor="#FFCCBC" fontsize=11
+            ext_azure  [label="Azure Blob Storage\naudio files · 1-hour SAS URLs" shape=parallelogram fillcolor="#FFAB91"]
+            ext_clerk  [label="Clerk\nauth provider · web + mobile"             shape=parallelogram fillcolor="#FFAB91"]
+            ext_stripe [label="Stripe\nsubscriptions · webhooks"                shape=parallelogram fillcolor="#FFAB91"]
+            ext_sentry [label="Sentry\nmobile error tracking"                   shape=parallelogram fillcolor="#FFAB91"]
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LAYER 6 — CI/CD & INFRASTRUCTURE
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_cicd {
+        label="CI/CD & Infrastructure"
+        style=filled fillcolor="#EDE7F6"
+        fontname="Helvetica-Bold" fontsize=13
+
+        subgraph cluster_cicd_web {
+            label="Web Pipeline" style=filled fillcolor="#D1C4E9" fontsize=11
+            cicd_tests [label="ci.yaml\nVitest + Playwright  (E2E_TEST_MODE=true)"]
+            cicd_build [label="deploy-azure.yml\nmain push → Docker build"]
+            cicd_acr   [label="Azure Container Registry" shape=cylinder fillcolor="#B39DDB"]
+            cicd_aca   [label="Azure Container Apps\n(production host)"  shape=cylinder fillcolor="#B39DDB"]
+        }
+
+        subgraph cluster_cicd_mobile {
+            label="Mobile Pipeline" style=filled fillcolor="#D1C4E9" fontsize=11
+            cicd_eas [label="Expo EAS\ndev / preview / production  iOS builds"]
+        }
+
+        cicd_tests -> cicd_build [label="pass"]
+        cicd_build -> cicd_acr  [label="Docker push"]
+        cicd_acr   -> cicd_aca  [label="deploy"]
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LEGEND
+    // ══════════════════════════════════════════════════════════════
+    subgraph cluster_legend {
+        label="Legend" style=filled fillcolor="#F5F5F5"
+        fontname="Helvetica-Bold" fontsize=11
+
+        leg_client   [label="Client Component"  fillcolor="#BBDEFB" shape=box           style="rounded,filled"]
+        leg_api      [label="API Route"          fillcolor="#C8E6C9" shape=box           style="rounded,filled"]
+        leg_service  [label="Service / lib"      fillcolor="#FFF9C4" shape=box           style="rounded,filled"]
+        leg_db       [label="DB Model"           fillcolor="#FCE4EC" shape=cylinder      style="filled"]
+        leg_external [label="External Service"   fillcolor="#FFAB91" shape=parallelogram style="filled"]
+        leg_cicd_l   [label="CI/CD"              fillcolor="#D1C4E9" shape=box           style="rounded,filled"]
+        leg_edges    [label="Edge colors:\n━━  content pipeline  (#E65100)\n╌╌  native sync / playback  (#1565C0)\n╌╌  auth / subscription  (#00695C / #4A148C)\n··  TTS · AI · crash cascade  (#BF360C)"
+                      shape=note fillcolor="#FFFDE7" fontsize=9 style=filled]
+
+        leg_client -> leg_api -> leg_service -> leg_db -> leg_external -> leg_cicd_l -> leg_edges [style=invis]
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // EDGES — KEY DATA FLOWS
+    // ══════════════════════════════════════════════════════════════
+
+    // ── 1. CONTENT PIPELINE  ━━ orange/bold ──────────────────────
+    //    ① Client → /api/upload → extract → DB
+    ios_processing  -> api_upload [label="① upload\n(auth+sub)"  color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    web_processing  -> api_upload [label="① upload\n(auth+sub)"  color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    api_upload      -> svc_extractors [label="extract\nPDF/EPUB/URL/txt" color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    api_upload      -> svc_db         [label="save Content"              color="#E65100" penwidth=1.5 fontcolor="#E65100"]
+
+    //    ② Client → /api/process → Claude → Script saved
+    ios_processing  -> api_process    [label="② process\n(auth+sub)"    color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    web_processing  -> api_process    [label="② process\n(auth+sub)"    color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    api_process     -> svc_claude     [label="analyze +\ngenerateScript" color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    api_process     -> svc_db         [label="save Script"               color="#E65100" penwidth=1.5 fontcolor="#E65100"]
+
+    //    ③ Client → /api/audio/generate → TTS cascade → Azure
+    ios_processing     -> api_audio_generate [label="③ generate\n(auth+sub)" color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    web_processing     -> api_audio_generate [label="③ generate\n(auth+sub)" color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    api_audio_generate -> svc_tts            [label="TTS cascade"            color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    svc_tts            -> svc_blob           [label="MP3"                    color="#E65100" penwidth=2.5 fontcolor="#E65100"]
+    svc_blob           -> ext_azure          [label="upload"                 color="#E65100" penwidth=2   fontcolor="#E65100"]
+    api_audio_generate -> svc_db             [label="save Audio"             color="#E65100" penwidth=1.5 fontcolor="#E65100"]
+
+    //    ④ Client → /api/audio/[id] → SAS URL → player
+    api_audio_stream -> svc_blob        [label="④ SAS redirect"  color="#E65100" penwidth=2   fontcolor="#E65100"]
+    api_audio_stream -> ios_trackplayer [label="stream / SAS URL" color="#E65100" penwidth=2   fontcolor="#E65100" constraint=false]
+    api_audio_stream -> web_player      [label="stream / SAS URL" color="#E65100" penwidth=2   fontcolor="#E65100" constraint=false]
+
+    // Pocket → pipeline
+    web_pocket      -> api_pocket_import [label="bulk import\n(500/batch)"]
+    web_bookmarklet -> api_pocket_save   [label="single URL"]
+    api_pocket_import -> api_upload      [label="per URL"  color="#E65100" penwidth=1.5 style=dashed fontcolor="#E65100"]
+    api_pocket_save   -> api_upload      [label="stub URL" color="#E65100" penwidth=1.5 style=dashed fontcolor="#E65100"]
+
+    // TTS provider cascade  ····· red-brown/dotted
+    svc_tts    -> ext_google_tts [label="primary"         color="#BF360C" penwidth=1.5 style=dotted fontcolor="#BF360C"]
+    svc_tts    -> ext_elevenlabs [label="BYOK fallback"   color="#BF360C" penwidth=1.5 style=dotted fontcolor="#BF360C"]
+    svc_tts    -> ext_openai     [label="last resort"     color="#BF360C" penwidth=1.5 style=dotted fontcolor="#BF360C"]
+    svc_claude -> ext_claude     [label="analyze +\ngenerateScript" color="#BF360C" penwidth=1.5 style=dotted fontcolor="#BF360C"]
+
+    // ── 2. NATIVE SYNC LOOP  ╌╌ blue/dashed ─────────────────────
+    ios_home    -> api_library [label="syncLibrary()" color="#1565C0" penwidth=1.8 style=dashed fontcolor="#1565C0"]
+    ios_library -> api_library [label="syncLibrary()" color="#1565C0" penwidth=1.8 style=dashed fontcolor="#1565C0"]
+    api_library -> ios_sqlite     [label="upsert cache"  color="#1565C0" penwidth=1.8 style=dashed fontcolor="#1565C0" constraint=false]
+    ios_sqlite  -> ios_filesystem [label="download MP3"  color="#1565C0" penwidth=1.8 style=dashed fontcolor="#1565C0"]
+    ios_filesystem -> ios_trackplayer [label="local path" color="#1565C0" penwidth=1.8 style=dashed fontcolor="#1565C0"]
+
+    // Playback state sync
+    ios_trackplayer -> api_playback [label="position/speed" color="#1565C0" penwidth=1.2 style=dashed fontcolor="#1565C0" constraint=false]
+    web_player      -> api_playback [label="position/speed" color="#1565C0" penwidth=1.2 style=dashed fontcolor="#1565C0"]
+    api_library        -> svc_db [color="#1565C0" style=dashed penwidth=1.2]
+    api_playback       -> svc_db [color="#1565C0" style=dashed penwidth=1.2]
+    api_library_delete -> svc_db [label="cascade delete" color="#1565C0" style=dashed penwidth=1.2]
+
+    // Library + audio requested by both clients
+    ios_library -> api_library_delete [label="delete"        fontsize=9]
+    web_library -> api_library_delete [label="delete"        fontsize=9]
+    ios_library -> api_audio_stream   [label="request audio" fontsize=9]
+    web_library -> api_audio_stream   [label="request audio" fontsize=9]
+
+    // ── 3. AUTH FLOW  ╌╌ teal ────────────────────────────────────
+    ios_signin    -> ios_clerk_sdk [label="sign in"     color="#00695C" fontcolor="#00695C"]
+    ios_clerk_sdk -> ext_clerk     [label="token cache" color="#00695C" fontcolor="#00695C"]
+    web_clerk_sdk -> ext_clerk     [label="middleware"  color="#00695C" fontcolor="#00695C"]
+    api_upload    -> svc_auth      [label="getCurrentUserId" color="#00695C" fontcolor="#00695C"]
+    svc_auth      -> ext_clerk     [label="verify JWT"  color="#00695C" fontcolor="#00695C"]
+    svc_auth      -> svc_db        [label="upsert User" color="#00695C" fontcolor="#00695C"]
+
+    // Subscription gate (shown on all pipeline entry routes)
+    api_upload         -> svc_subscription [label="requireSub" color="#4A148C" fontcolor="#4A148C" fontsize=8]
+    api_process        -> svc_subscription [label="requireSub" color="#4A148C" fontcolor="#4A148C" fontsize=8]
+    api_audio_generate -> svc_subscription [label="requireSub" color="#4A148C" fontcolor="#4A148C" fontsize=8]
+    svc_subscription   -> svc_db           [label="check status" color="#4A148C" fontcolor="#4A148C" fontsize=8]
+
+    // ── 4. SUBSCRIPTION FLOW  ━━ purple ──────────────────────────
+    web_upgrade  -> api_checkout [label="subscribe"         color="#4A148C" penwidth=1.8 fontcolor="#4A148C"]
+    api_checkout -> svc_stripe   [                           color="#4A148C" penwidth=1.8]
+    svc_stripe   -> ext_stripe   [                           color="#4A148C" penwidth=1.8]
+    ext_stripe   -> api_webhook  [label="webhook (sig)"     color="#4A148C" penwidth=1.8 fontcolor="#4A148C"]
+    api_webhook  -> svc_db       [label="update\nsubscriptionStatus" color="#4A148C" penwidth=1.8 fontcolor="#4A148C"]
+
+    // ── 5. FEEDBACK ──────────────────────────────────────────────
+    ios_settings    -> api_feedback    [label="voice/text"  fontsize=9]
+    web_settings    -> api_feedback    [label="text"        fontsize=9]
+    api_feedback    -> ext_openai      [label="Whisper"     color="#BF360C" style=dotted fontcolor="#BF360C" fontsize=9]
+    api_feedback    -> svc_feedback_ai [label="categorize"  fontsize=9]
+    svc_feedback_ai -> ext_claude      [label="Claude"      color="#BF360C" style=dotted fontcolor="#BF360C" fontsize=9]
+    api_feedback    -> svc_db          [fontsize=9]
+
+    // ── 6. TELEMETRY ─────────────────────────────────────────────
+    ios_sentry    -> ext_sentry    [label="crash reports" fontsize=9]
+    ios_home      -> api_telemetry [label="events"  fontsize=8 style=dotted]
+    web_home      -> api_telemetry [label="events"  fontsize=8 style=dotted]
+    api_telemetry -> svc_db        [style=dotted    fontsize=9]
+
+    // ── 7. ORM → POSTGRES ────────────────────────────────────────
+    svc_db -> db_postgres [label="Prisma ORM"]
+
+    // ── 8. CI/CD → RUNTIME ───────────────────────────────────────
+    cicd_eas -> ios_processing [label="ships build" style=dashed color="#7B1FA2" fontcolor="#7B1FA2" constraint=false fontsize=9]
+    cicd_aca -> api_upload     [label="hosts"        style=dashed color="#7B1FA2" fontcolor="#7B1FA2" constraint=false fontsize=9]
+}

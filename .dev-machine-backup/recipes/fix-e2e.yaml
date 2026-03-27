@@ -1,0 +1,228 @@
+# =============================================================================
+# fix-e2e.yaml — Fix failing E2E tests per fix-e2e-selectors spec
+# =============================================================================
+#
+# CHANGELOG
+# ---------
+# v1.0.4 (2026-03-05):
+#   - IMPROVEMENT: Replace LLM-based analyze-failures with deterministic bash step
+#     * ROOT CAUSE: bug-hunter (and previously zen-architect) repeatedly timed out
+#       at 900s even with retry, because the agent reads ~8 files, walks call
+#       hierarchies, and reasons broadly — far more work than needed for locating
+#       specific selector strings and config lines.
+#     * THE KEY INSIGHT: The information downstream steps actually need is just
+#       grep output (file:line matches) and a few config lines — all of which
+#       can be gathered deterministically in <1 second with shell commands.
+#     * FIX: Replaced the agent step with type: "bash". The command greps for
+#       getByText('Library') in Pattern A files, getByText('Target Duration')
+#       in Pattern B files, extracts baseURL/webServer config from
+#       playwright.config.ts, and searches BottomNav for the Library element
+#       role. Stdout is captured into the same {{analysis}} variable, so
+#       fix-pattern-a and fix-pattern-b prompts are unchanged.
+#     * RESULT: analyze-failures completes in <2s (was timing out at 900s).
+#       Timeout dropped to 60s, retry removed (deterministic — no transient
+#       failures possible). Zero changes to downstream steps.
+#
+# v1.0.3 (2026-03-05):
+#   - BUGFIX: analyze-failures step times out even at 900s with retry
+#     * ROOT CAUSE: foundation:zen-architect in ANALYZE mode performs broad
+#       architectural reasoning (call-hierarchy walks, design-pattern matching)
+#       that far exceeds what this step needs — it just reads ~8 files and
+#       locates specific broken selectors / config mismatches.
+#     * FIX: Swapped agent to foundation:bug-hunter (already proven in this
+#       recipe's fix-pattern-a/b steps) and removed the zen-architect-specific
+#       `mode: "ANALYZE"` field. Kept prompt, output variable, timeout, and
+#       retry unchanged — zero downstream coupling changes.
+#     * THE KEY INSIGHT: The prompt is targeted debugging ("find these lines,
+#       diagnose these patterns"), not architectural analysis. bug-hunter is
+#       purpose-built for exactly this workload.
+#     * RESULT: analyze-failures should complete well within 900s, matching
+#       the performance profile of the sibling fix-pattern-* steps.
+#
+# v1.0.2 (2026-03-05):
+#   - BUGFIX: fix-pattern-b step timed out at 600s
+#     * ROOT CAUSE: bug-hunter must read playwright.config.ts, 2 spec files,
+#       AND cross-reference React components to diagnose navigation gaps /
+#       label mismatches — significantly more tool calls than fix-pattern-a.
+#       600s is insufficient under normal API latency.
+#     * FIX: Bumped timeout 600 → 900s; added retry (1 extra attempt,
+#       exponential backoff) matching the analyze-failures configuration.
+#     * RESULT: fix-pattern-b now has the same resilience as analyze-failures.
+#
+# v1.0.1 (2026-03-05):
+#   - BUGFIX: analyze-failures step timed out at 300s
+#     * ROOT CAUSE: Step reads 8 files and produces structured diagnosis;
+#       300s was below the schema default (600s) and insufficient for
+#       zen-architect to complete the full analysis.
+#     * FIX: Bumped timeout 300 → 900s; added retry (1 extra attempt,
+#       exponential backoff) to handle transient API slowdowns.
+#
+# Context variables:
+#   project_dir       (default ".")
+#   spec_path         (default "specs/features/devx/fix-e2e-selectors.md")
+#   pattern_a_files   — comma-separated list of Pattern A spec files
+#   pattern_b_files   — comma-separated list of Pattern B spec files
+#   playwright_config (default "playwright.config.ts")
+#
+# Pattern A: ambiguous getByText('Library') -> role-scoped selector
+# Pattern B: missing 'Target Duration' element -> config / navigation fix
+#
+# Agents read the actual source files and edit them in place.
+# Final step runs npm run test:e2e to confirm 5/5 passing.
+# =============================================================================
+
+name: "fix-e2e-selectors"
+description: "Fix failing E2E tests by resolving Pattern A (ambiguous getByText) and Pattern B (missing Target Duration) selectors"
+version: "1.0.4"
+tags: ["e2e", "fix", "selectors", "playwright"]
+
+context:
+  project_dir: "."
+  spec_path: "specs/features/devx/fix-e2e-selectors.md"
+  pattern_a_files: "e2e/commute-flow.spec.ts,e2e/offline-listening.spec.ts,e2e/quick-relisten.spec.ts"
+  pattern_b_files: "e2e/pdf-commute.spec.ts,e2e/article-discussion.spec.ts"
+  playwright_config: "playwright.config.ts"
+  e2e_exit_code: ""
+
+steps:
+  # Deterministic grep extraction — replaces the former LLM analysis step
+  # that repeatedly timed out. Captures the same {{analysis}} variable so
+  # downstream fix-pattern-a / fix-pattern-b prompts are unchanged.
+  - id: "analyze-failures"
+    type: "bash"
+    command: |
+      cd {{project_dir}}
+      echo "=== DETERMINISTIC E2E FAILURE ANALYSIS ==="
+      echo ""
+
+      echo "--- Pattern A: getByText('Library') occurrences ---"
+      for f in $(echo "{{pattern_a_files}}" | tr ',' ' '); do
+        echo ""
+        echo ">> $f"
+        grep -n "getByText.*Library" "$f" 2>/dev/null || echo "  (no matches)"
+      done
+
+      echo ""
+      echo "--- Pattern B: getByText('Target Duration') occurrences ---"
+      for f in $(echo "{{pattern_b_files}}" | tr ',' ' '); do
+        echo ""
+        echo ">> $f"
+        grep -n "getByText.*Target Duration" "$f" 2>/dev/null || echo "  (no matches)"
+      done
+
+      echo ""
+      echo "--- Playwright config: key settings ({{playwright_config}}) ---"
+      grep -n "baseURL\|webServer\|reuseExistingServer" "{{playwright_config}}" 2>/dev/null || echo "  (no matches)"
+
+      echo ""
+      echo "--- BottomNav: Library element role ---"
+      BNAV=$(find src -name 'BottomNav*' -type f 2>/dev/null | head -5)
+      if [ -n "$BNAV" ]; then
+        for f in $BNAV; do
+          echo ">> $f"
+          grep -n "Library\|role=\|aria-role\|<button\|<a \|<Link\|<Tab" "$f" 2>/dev/null || echo "  (no matches)"
+        done
+      else
+        echo "  (BottomNav component not found — agent should discover it)"
+      fi
+
+      echo ""
+      echo "=== END ANALYSIS ==="
+    output: "analysis"
+    timeout: 60
+
+  - id: "fix-pattern-a"
+    agent: "foundation:bug-hunter"
+    prompt: |
+      Fix Pattern A — ambiguous `getByText('Library')` — in these E2E specs
+      (working directory: {{project_dir}}):
+
+        - {{pattern_a_files}}
+
+      ANALYSIS FROM PREVIOUS STEP:
+      {{analysis}}
+
+      INSTRUCTIONS:
+      For each file listed above, open it and replace every call to
+        page.getByText('Library')
+      with the role-scoped selector identified in the analysis. Prefer:
+        page.getByRole('tab', { name: 'Library' })
+      If BottomNav renders <button> elements rather than tab-role elements, use:
+        page.getByRole('button', { name: 'Library' })
+      If the role query is still ambiguous (multiple matches), fall back to
+      adding `data-testid="library-tab"` to the Library entry in
+      src/components/BottomNav.tsx and using:
+        page.getByTestId('library-tab')
+
+      CONSTRAINTS:
+      - Edit files in place.
+      - Change ONLY selectors — do not alter test logic, assertions, or flow.
+      - Preserve all imports and formatting conventions.
+    output: "pattern_a_result"
+    timeout: 600
+
+  - id: "fix-pattern-b"
+    agent: "foundation:bug-hunter"
+    prompt: |
+      Fix Pattern B — missing 'Target Duration' element — in these E2E specs
+      (working directory: {{project_dir}}):
+
+        - {{pattern_b_files}}
+
+      Also check and fix {{playwright_config}} if needed.
+
+      ANALYSIS FROM PREVIOUS STEP:
+      {{analysis}}
+
+      INSTRUCTIONS:
+      1. Open {{playwright_config}}. Verify that:
+           webServer.url  === 'http://localhost:3000'
+           use.baseURL    === 'http://localhost:3000'
+         If either is wrong or missing, fix it. Ensure webServer.command
+         runs the dev server (e.g., 'npm run dev') and set
+         reuseExistingServer: !process.env.CI.
+
+      2. For each Pattern B spec file, read the test flow and determine
+         why `getByText('Target Duration')` finds nothing:
+         a) If the UI requires clicking the uploaded item to navigate to
+            the processing screen before 'Target Duration' appears, add
+            the missing navigation step.
+         b) If the label text changed in the UI, read the relevant React
+            component to find the current copy and update the spec to match.
+         c) If the element needs a wait, add an appropriate
+            `await expect(...).toBeVisible()` assertion before interacting.
+
+      CONSTRAINTS:
+      - Edit files in place.
+      - Preserve all existing test logic and assertions.
+      - Only fix selectors, navigation gaps, and Playwright config mismatches.
+    output: "pattern_b_result"
+    timeout: 900
+    retry:
+      max_attempts: 2
+      backoff: "exponential"
+      initial_delay: 10
+
+  - id: "run-e2e"
+    type: "bash"
+    command: "cd {{project_dir}} && npm run test:e2e 2>&1"
+    output: "e2e_output"
+    output_exit_code: "e2e_exit_code"
+    on_error: "continue"
+    timeout: 600
+
+  - id: "summary"
+    type: "bash"
+    command: |
+      echo "=== fix-e2e-selectors Result ==="
+      echo "Pattern A files: {{pattern_a_files}}"
+      echo "Pattern B files: {{pattern_b_files}}"
+      echo ""
+      if [ "{{e2e_exit_code}}" = "0" ]; then
+        echo "E2E: PASS — all scenarios passing"
+      else
+        echo "E2E: FAIL (exit code {{e2e_exit_code}})"
+        echo "Run manually: npm run test:e2e -- --headed"
+      fi
+      echo "================================"
+    output: "final_output"

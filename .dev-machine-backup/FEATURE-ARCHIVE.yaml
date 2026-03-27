@@ -1,0 +1,207 @@
+description: Completed feature archive.
+features:
+  duration-accuracy:
+    status: done
+    title: "Duration Accuracy \u2014 \xB115% tolerance, 2nd retry, durationAdvisory"
+    spec: specs/features/phase1/duration-accuracy.md
+    depends_on: []
+    commit: f1f5775
+    completed_at: '2026-03-06T14:18:00Z'
+  pipeline-error-resilience:
+    status: done
+    title: "Pipeline Error Resilience \u2014 retryWithBackoff, truncation warning, maxDuration"
+    spec: specs/features/phase1/pipeline-error-resilience.md
+    depends_on: []
+    commit: b158b0d
+    completed_at: '2026-03-06T14:24:00Z'
+  processing-screen-upgrade:
+    status: done
+    title: "ProcessingScreen 4-Stage UI \u2014 Analyzing\u2192Scripting\u2192Generating\u2192Ready"
+    spec: specs/features/phase1/processing-screen-upgrade.md
+    depends_on: []
+    commit: 43bec2a
+    completed_at: '2026-03-06T14:28:00Z'
+  elevenlabs-provider:
+    status: done
+    title: "ElevenLabs TTS Provider \u2014 ElevenLabsTTSProvider class"
+    spec: specs/features/phase2/elevenlabs-provider.md
+    depends_on: []
+    commit: 1ba268f
+    completed_at: '2026-03-06T15:01:35Z'
+  elevenlabs-routing:
+    status: done
+    title: "ElevenLabs Routing \u2014 auto-select provider by API key"
+    spec: specs/features/phase2/elevenlabs-routing.md
+    depends_on:
+    - elevenlabs-provider
+    commit: 0738f2f
+    completed_at: '2026-03-06T15:03:00Z'
+  episode-versioning:
+    status: done
+    title: "Episode Versioning \u2014 all audio versions per content in API + UI"
+    spec: specs/features/phase2/episode-versioning.md
+    depends_on: []
+    commit: 3c55a2e
+    completed_at: '2026-03-06T15:06:20Z'
+  commute-duration:
+    status: done
+    title: "Commute Duration Preference \u2014 localStorage hook"
+    spec: specs/features/phase2/commute-duration.md
+    depends_on: []
+    commit: 1252d1f
+    completed_at: '2026-03-06T15:09:50Z'
+  home-screen-queue-first:
+    status: done
+    title: "Queue-First Home Screen \u2014 replaces Upload as default, shows episode queue + commute math"
+    spec: specs/features/phase2/home-screen-queue-first.md
+    depends_on:
+    - commute-duration
+    commit: 590644a
+    completed_at: '2026-03-06T15:41:00Z'
+  smart-resume:
+    status: done
+    title: "Smart Resume \u2014 auto-rewind 3s after pause > 10s in PlayerContext"
+    spec: specs/features/phase2/smart-resume.md
+    depends_on: []
+    commit: 5efca83
+    completed_at: '2026-03-06T15:30:00Z'
+  undo-seek:
+    status: done
+    title: "Undo Seek \u2014 Go Back button 4s after any progress bar tap in ExpandedPlayer"
+    spec: specs/features/phase2/undo-seek.md
+    depends_on: []
+    commit: 9d4598d
+    completed_at: '2026-03-06T15:32:00Z'
+  elevenlabs-key-settings:
+    status: done
+    title: "ElevenLabs Key Settings \u2014 UI to enter key without editing .env, sent as header"
+    spec: specs/features/phase2/elevenlabs-key-settings.md
+    depends_on:
+    - elevenlabs-provider
+    - elevenlabs-routing
+  fix-scrubber-handle:
+    status: done
+    title: "Fix progress bar scrubber \u2014 add visible drag thumb to ExpandedPlayer"
+    spec: specs/features/phase2/fixes/fix-scrubber-handle.md
+    depends_on: []
+    commit: c5337d9
+    completed_at: '2026-03-06T17:10:00Z'
+  fix-mini-player-controls:
+    status: done
+    title: "Fix mini-player \u2014 add +30s skip button to PlayerBar"
+    spec: specs/features/phase2/fixes/fix-mini-player-controls.md
+    depends_on: []
+    commit: c416844
+    completed_at: '2026-03-06T17:11:00Z'
+  fix-upload-polish:
+    status: done
+    title: "Fix upload screen \u2014 mobile tap copy + Works With grid to fill dead space"
+    spec: specs/features/phase2/fixes/fix-upload-polish.md
+    depends_on: []
+    commit: 77fad80
+    completed_at: '2026-03-06T17:12:00Z'
+  google-cloud-tts:
+    status: done
+    title: "Google Cloud TTS Provider \u2014 Studio voices, auto-selected over OpenAI/ElevenLabs"
+    spec: specs/features/phase0/google-cloud-tts.md
+    depends_on: []
+    commit: de483d0
+    completed_at: '2026-03-06T22:08:00Z'
+  clerk-auth:
+    status: done
+    title: "Clerk Auth \u2014 middleware, sign-in/up pages, getCurrentUserId helper"
+    spec: specs/features/phase0/clerk-auth.md
+    depends_on: []
+    commit: 40c35f7
+    completed_at: '2026-03-06T22:11:00Z'
+  azure-blob-storage:
+    status: done
+    title: "Azure Blob Storage \u2014 replace local filesystem for audio files"
+    spec: specs/features/phase0/azure-blob-storage.md
+    depends_on: []
+    commit: 41f81e8
+    completed_at: '2026-03-06T22:14:00Z'
+  multi-user-schema:
+    status: done
+    title: "Multi-User Schema \u2014 replace DEFAULT_USER_ID with real Clerk user IDs"
+    spec: specs/features/phase0/multi-user-schema.md
+    depends_on:
+    - clerk-auth
+    commit: a476a7b
+    completed_at: '2026-03-06T22:25:00Z'
+  stripe-subscription:
+    status: done
+    title: "Stripe Freemium \u2014 $10/mo subscription gate on own-content upload/process"
+    spec: specs/features/phase0/stripe-subscription.md
+    depends_on:
+    - clerk-auth
+    - multi-user-schema
+    commit: 7750c49
+    completed_at: '2026-03-06T22:33:00Z'
+  azure-deployment:
+    status: done
+    title: "Azure Deployment \u2014 Dockerfile, GitHub Actions CI/CD, deployment guide"
+    spec: specs/features/phase0/azure-deployment.md
+    depends_on: []
+    commit: 3b39547
+    completed_at: '2026-03-06T22:28:00Z'
+  home-screen-rewrite:
+    status: done
+    size: L
+    depends_on:
+    - home-screen-api
+    - home-screen-playercontext-queue
+    - home-screen-content-display-utils
+    - home-screen-nav-restructure
+    started_at: '2026-03-11T02:58:00Z'
+    completed_at: '2026-03-11T03:00:00Z'
+    commit: 4d220f6
+  expanded-player-minibar:
+    status: done
+    size: S
+    depends_on:
+    - expanded-player-playable-item
+    started_at: '2026-03-11T03:01:00Z'
+    completed_at: '2026-03-11T03:02:00Z'
+    commit: 28904c1
+  library-search-filter:
+    status: done
+    size: M
+    depends_on:
+    - home-screen-api
+    started_at: '2026-03-11T02:54:00Z'
+    completed_at: '2026-03-11T02:56:00Z'
+    commit: fadc894
+  library-progress-display:
+    status: done
+    size: M
+    depends_on:
+    - home-screen-api
+    - home-screen-content-display-utils
+    started_at: '2026-03-11T02:56:00Z'
+    completed_at: '2026-03-11T02:57:00Z'
+    commit: f7b87ac
+  expanded-player-rewrite:
+    status: done
+    size: L
+    started_at: '2026-03-11T09:11:00Z'
+    completed_at: '2026-03-11T09:22:00Z'
+    commit: 9c2c7e0
+    depends_on:
+    - expanded-player-playable-item
+  library-upload-modal:
+    status: done
+    size: M
+    started_at: '2026-03-11T09:22:00Z'
+    completed_at: '2026-03-11T09:24:00Z'
+    commit: 7dec82c
+    depends_on:
+    - home-screen-nav-restructure
+  library-process-new-version:
+    status: done
+    size: S
+    started_at: '2026-03-11T09:24:00Z'
+    completed_at: '2026-03-11T09:25:00Z'
+    commit: 6dc8857
+    depends_on:
+    - library-upload-modal

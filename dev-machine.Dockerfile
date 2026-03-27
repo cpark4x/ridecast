@@ -67,12 +67,7 @@
 #   Python:    uv sync (reads uv.lock) -- never `pip install` without pinning
 #   Node.js:   pnpm install --frozen-lockfile  or  npm ci
 #   Rust:      cargo build (Cargo.lock is committed)
-# The entrypoint.sh # Install project dependencies (npm ci for reproducible installs)
-if [ -f "/Users/chrispark/Projects/ridecast2/package-lock.json" ]; then
-    echo "[entrypoint] Installing npm dependencies (npm ci)..."
-    cd "/Users/chrispark/Projects/ridecast2" && npm ci --prefer-offline 2>&1 | tail -10
-    echo "[entrypoint] npm dependencies ready."
-fi should use the lock-file install command.
+# The entrypoint.sh installs project dependencies (npm ci for reproducible installs).
 # If no lock file exists: create one before deploying the machine (run the install once
 # on the host, commit the lock file, then use the frozen/locked variant in the container).
 
@@ -197,6 +192,9 @@ COPY --chown=501:20 .dev-machine/scripts/entrypoint.sh /Users/chrispark/entrypoi
 RUN chmod +x /Users/chrispark/entrypoint.sh
 
 WORKDIR /Users/chrispark/Projects/ridecast2
+
+# -- Project dependencies installed at runtime by entrypoint.sh ----------------
+# (Project directory is bind-mounted, not available at build time.)
 
 ENTRYPOINT ["/Users/chrispark/entrypoint.sh"]
 CMD ["amplifier", "tool", "invoke", "recipes", "operation=execute", \

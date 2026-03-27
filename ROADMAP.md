@@ -99,6 +99,7 @@ Accumulated UX debt from the Phase 3 build. Death by a thousand cuts if left una
 | 24 | Settings and onboarding polish | S | — | 📝 | GitHub #39 |
 | 25 | Minor UX polish | S | — | 📝 | Assorted paper cuts. GitHub #41 |
 | 26 | App infrastructure hardening | M | — | 📝 | Build tooling, error boundaries, crash resilience. GitHub #40 |
+| 50 | Graceful Claude outage handling | S | — | 🆕 | `/api/process` and `/api/audio/generate` return clear user-facing error when Anthropic API is down instead of cryptic failure. "AI service temporarily unavailable — content saved, try again in a few minutes." Architecture review 2026-03-26. |
 
 ### Theme 7: Pocket Refugee Capture
 

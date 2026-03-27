@@ -1,0 +1,28 @@
+=== Dev-machine overnight run starting at Thu Mar 12 23:40:23 PDT 2026 ===
+Max runs: 8
+Log file: /Users/chrispark/Projects/ridecast2/.dev-machine/logs/overnight-20260312-234023.log
+
+=== Run 1/8 starting at Thu Mar 12 23:40:23 PDT 2026 ===
+
+=== Overnight run complete at Thu Mar 12 23:40:23 PDT 2026 ===
+Final status: 10 done, 16 remaining
+b0a793c chore: add overnight runner script for dev-machine
+274d457 wip: empty-states components in progress
+731b6c4 wip: empty-states in progress — episode-card-redesign complete
+a0845fd feat(ui): redesign EpisodeCard — three-column layout, state indicators, ShimmerPill
+1310424 feat(library): default filter to Active — hide completed episodes on launch
+5bc9cce fix(dev-machine): lazy spec loading + context budget reduction — prevent 200k overflow
+d5111bd feat(ui): add skeleton loading states for cold launch
+89ded0e feat(player): upgrade PlayerBar with SourceIcon, source name, time remaining
+b8371fa feat(ui): add haptic feedback throughout native app
+975efc7 chore: mark Night 1 features done — 5 features, 8 pts, all gates green
+e8fd2e8 fix: complete Night 1 test updates and lint fixes from timed-out session
+2ab786a docs: reorganize docs/plans/ — move active docs to proper homes, archive historical execution plans
+9d133bb chore: cleanup — reorganize dev docs, remove unused SVGs, update .gitignore
+e1287fd fix(dev-machine): limit spec loading to session work list — prevent 200k token overflow
+ff61e40 fix(dev-machine): fix O(N²) spec-drift-check timeout — hoist file collection outside loop
+5107c0d chore: mark all Phase 4 features ready for dev-machine
+20174f5 chore(specs): upgrade all Phase 4 specs to production quality
+e751ba1 feat(planning): Phase 4 backlog — 25 specs, 9 mockups, unified roadmap
+edcfa01 feat: competitive analysis and roadmap expansion
+9ef1d11 fix(native): resolve TypeScript type errors in processing and upload screens

@@ -404,34 +404,6 @@ features:
     description: "Error boundaries, crash reporting, performance monitoring"
     size: M
 
-  # ── Phase 5 Session 19: User Feedback Batch 1 (5 pts) ──
-  medium-url-extraction:
-    status: done
-    started_at: "2026-03-26T16:12:00Z"
-    completed_at: "2026-03-26T18:30:00Z"
-    commit: 2d6556a
-    spec: specs/features/phase5/medium-url-extraction.md
-    description: "Fix Medium URL extraction failure + graceful error handling when content extraction fails"
-    size: S
-  double-logo-fix:
-    status: done
-    started_at: "2026-03-26T20:05:00Z"
-    completed_at: "2026-03-26T20:12:00Z"
-    spec: specs/features/phase5/double-logo-fix.md
-    description: "Fix double favicon rendering in SourceThumbnail — replace badge with source-type icon"
-    size: S
-  paste-raw-text:
-    status: ready
-    spec: specs/features/phase5/paste-raw-text.md
-    description: "Add text input to upload modal — paste raw text to create episode, no file or URL needed"
-    size: S
-  basic-file-types:
-    status: ready
-    spec: specs/features/phase5/basic-file-types.md
-    description: "Add .docx/.doc/.md file upload support via mammoth extractor + expanded MIME types"
-    size: M
-    depends_on: []
-
   # ── Night 6+: Platform Expansion ──
   content-type-expansion:
     status: deferred
@@ -527,21 +499,11 @@ next_steps:
   task: "Pick first Phase 5 feature"
   action: "Options: in-app-feedback-system (fully designed, supports active TestFlight cycle), pocket-refugee-capture (time-sensitive, specced), ios-share-extension (specced, M), source-author-following (fully specced, L), episode-sharing (no spec, high growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M)."
 last_session: '2026-03-15'
-quality_cadences:
-  smoke_test:
-    interval: 5
-    last_run_session: 18
-  performance_profile:
-    interval: 15
-    last_run_session: 15
-  state_pruning:
-    interval: 20
-    last_run_session: 0
 meta:
   project: ridecast2
   created: '2026-03-05'
   total_features_completed: 49
   last_updated: '2026-03-25'
-  session_count: 19
+  session_count: 18
   zero_change_sessions: 0
   last_session_head: e957906

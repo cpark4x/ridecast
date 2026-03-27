@@ -1,0 +1,37 @@
+# =============================================================================
+# setup.yaml — Install dependencies then run the full verify suite
+# =============================================================================
+#
+# Context variables:
+#   project_dir  (default ".")      — repo root
+#   run_e2e      (default "false")  — forwarded to verify.yaml
+#
+# Composes verify.yaml: after npm ci, delegates to verify for lint/test/build
+# (and optional E2E).
+# =============================================================================
+
+name: "setup"
+description: "Install dependencies and run the full verification suite via verify.yaml"
+version: "1.0.0"
+tags: ["setup", "ci", "verification"]
+
+context:
+  project_dir: "."
+  run_e2e: "false"
+
+steps:
+  - id: "install"
+    type: "bash"
+    command: |
+      cd {{project_dir}} && npm ci
+      echo "Dependencies installed successfully."
+    output: "install_output"
+    timeout: 300
+
+  - id: "verify"
+    type: "recipe"
+    recipe: "verify.yaml"
+    context:
+      project_dir: "{{project_dir}}"
+      run_e2e: "{{run_e2e}}"
+    output: "verify_output"
