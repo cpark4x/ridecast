@@ -82,6 +82,14 @@ known_issues:
 
     '
 recently_shipped:
+- session: '19'
+  date: '2026-03-26'
+  commits:
+  - ab03e63 feat(native): double-logo-fix
+  - 5c27a93 feat(upload): paste-raw-text
+  - d218116 feat(extractors): basic-file-types
+  title: "Session 19: 3 features — double-logo-fix, paste-raw-text, basic-file-types (Phase 5 Batch 1 complete)"
+  notes: "3 features completed (4 pts). 12 new tests (430 total). mammoth package added for DOCX extraction. Upload route now handles JSON body (rawText) + formData. Antagonistic reviews: fixed double-spinner bug, added corrupt-file error handler."
 - session: '15'
   date: '2026-03-11'
   commits:
@@ -161,8 +169,8 @@ recently_shipped:
     '
 phase: 5
 phase_name: phase-5-platform-expansion
-epoch: 19
-next_action: "9 user feedback items logged and prioritized (2026-03-26). Top priorities: (1) basic-file-types M, (2) medium-url-extraction bug S, (3) paste-raw-text S, (4) episode-sharing-expanded M. Also: close stale GitHub issues (#24-#32 dupes, #33-#41 already shipped)."
+epoch: 20
+next_action: "Phase 5 Batch 1 complete (medium-url-extraction, double-logo-fix, paste-raw-text, basic-file-types). Next: close stale GitHub issues (#24-#41), then pick next features from proposed_features (episode-sharing-expanded M, verbatim-read-mode M, estimated-read-time S)."
 completed_features:
 - duration-accuracy
 - pipeline-error-resilience
@@ -208,6 +216,9 @@ completed_features:
 - library-process-new-version
 - library-screen-rewrite
 - homepage-redesign
+- double-logo-fix
+- paste-raw-text
+- basic-file-types
 features:
   # ── Night 1: Critical Fixes + Foundations (8 pts) ──
   delete-episodes:
@@ -544,7 +555,7 @@ quality_cadences:
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 49
+  total_features_completed: 52
   last_updated: '2026-03-26'
   session_count: 19
   zero_change_sessions: 0
