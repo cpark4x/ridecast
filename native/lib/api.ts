@@ -125,6 +125,29 @@ export async function uploadFile(
   return uploadFormData(formData);
 }
 
+export async function uploadText(
+  rawText: string,
+  options?: { title?: string; signal?: AbortSignal },
+): Promise<UploadResponse> {
+  const auth = await authHeaders();
+  const res = await fetch(`${API_URL}/api/upload`, {
+    method: "POST",
+    headers: {
+      ...auth,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ rawText, title: options?.title ?? "Pasted text" }),
+    signal: options?.signal,
+  });
+  const data = await res.json();
+  if (!res.ok && res.status !== 409) {
+    const err = new Error(data.error ?? `Request failed: ${res.status}`);
+    (err as Error & { statusCode: number }).statusCode = res.status;
+    throw err;
+  }
+  return data as UploadResponse;
+}
+
 // --- Process ---
 
 export async function processContent(

@@ -26,10 +26,10 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 ## Session 19 Summary — 2026-03-26
 
 **Completed:**
-- `double-logo-fix` — Replaced duplicate favicon `<Image>` in SourceThumbnail badge with `<Ionicons>` glyph mapped by sourceType. Added SOURCE_TYPE_ICONS map + sourceTypeIcon helper. Removed overflow:hidden from badge container. Antagonistic review: 5/6 icons unreachable by-design (badge gated on showLogo which is URL-only, per spec Edge Cases).
+- `double-logo-fix` — Replaced duplicate favicon `<Image>` in SourceThumbnail badge with `<Ionicons>` glyph mapped by sourceType.
+- `paste-raw-text` — Added text paste input to UploadModal, uploadText() in api.ts, JSON body path in upload route, extractTxt export. 4 new server tests. Antagonistic review: fixed double-spinner bug (file loading spinner showing during text submit).
 
 **In progress:**
-- `paste-raw-text` — Add text input to upload modal
 - `basic-file-types` — DOCX/MD file type support
 
 ---

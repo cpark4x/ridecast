@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { extractContent, extractUrl } from '@/lib/extractors';
+import { extractContent, extractTxt, extractUrl } from '@/lib/extractors';
 import { contentHash } from '@/lib/utils/hash';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { requireSubscription } from '@/lib/subscription';
@@ -15,9 +15,24 @@ export async function POST(request: Request) {
     if (gate) return gate;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawBody: any = await request.formData();
-    const file = rawBody.get('file') as File | null;
-    const url = rawBody.get('url') as string | null;
+    let file: File | null = null;
+    let url: string | null = null;
+    let rawText: string | null = null;
+    let bodyTitle: string | null = null;
+
+    const contentType = request.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      const json = await request.json() as { rawText?: string; url?: string; title?: string };
+      rawText = json.rawText ?? null;
+      bodyTitle = json.title ?? null;
+      // JSON body may also carry a URL (kept for compatibility)
+      if (!rawText) url = json.url as string | null ?? null;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawBody: any = await request.formData();
+      file = rawBody.get('file') as File | null;
+      url = rawBody.get('url') as string | null;
+    }
 
     // Fast-path: if URL is already in this user's library (including Pocket stubs),
     // re-use it so we don't create a duplicate.
@@ -68,7 +83,13 @@ export async function POST(request: Request) {
     let sourceUrl: string | null = null;
     let author: string | undefined;
 
-    if (url) {
+    if (rawText !== null) {
+      const result = extractTxt(rawText, bodyTitle ?? 'Pasted text');
+      title = bodyTitle ?? result.title;
+      text = result.text;
+      wordCount = result.wordCount;
+      sourceType = 'txt';
+    } else if (url) {
       const result = await extractUrl(url);
       title = result.title;
       text = result.text;
@@ -98,7 +119,7 @@ export async function POST(request: Request) {
       author = result.author;
     } else {
       return NextResponse.json(
-        { error: 'No file or URL provided' },
+        { error: 'No file, URL, or text provided' },
         { status: 400 },
       );
     }

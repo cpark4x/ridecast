@@ -421,7 +421,9 @@ features:
     description: "Fix double favicon rendering in SourceThumbnail — replace badge with source-type icon"
     size: S
   paste-raw-text:
-    status: ready
+    status: done
+    started_at: "2026-03-26T20:13:00Z"
+    completed_at: "2026-03-26T20:22:00Z"
     spec: specs/features/phase5/paste-raw-text.md
     description: "Add text input to upload modal — paste raw text to create episode, no file or URL needed"
     size: S

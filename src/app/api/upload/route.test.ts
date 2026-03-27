@@ -15,6 +15,7 @@ vi.mock('@/lib/db', () => ({
 // Mock extractors
 vi.mock('@/lib/extractors', () => ({
   extractContent: vi.fn(),
+  extractTxt: vi.fn(),
   extractUrl: vi.fn(),
 }));
 
@@ -33,7 +34,7 @@ vi.mock('@/lib/subscription', () => ({
 }));
 
 import { prisma } from '@/lib/db';
-import { extractContent, extractUrl } from '@/lib/extractors';
+import { extractContent, extractTxt, extractUrl } from '@/lib/extractors';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { POST } from './route';
 
@@ -42,6 +43,7 @@ const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
 const mockCreate = prisma.content.create as ReturnType<typeof vi.fn>;
 const mockUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
 const mockExtractContent = extractContent as ReturnType<typeof vi.fn>;
+const mockExtractTxt = extractTxt as ReturnType<typeof vi.fn>;
 const mockExtractUrl = extractUrl as ReturnType<typeof vi.fn>;
 
 function createMockFile(content: string, filename: string) {
@@ -55,9 +57,17 @@ function createMockFile(content: string, filename: string) {
 
 function createMockRequest(fields: Record<string, unknown>): Request {
   return {
+    headers: { get: () => null },
     formData: async () => ({
       get: (key: string) => fields[key] ?? null,
     }),
+  } as unknown as Request;
+}
+
+function createMockJsonRequest(body: Record<string, unknown>): Request {
+  return {
+    headers: { get: (h: string) => h === 'content-type' ? 'application/json' : null },
+    json: async () => body,
   } as unknown as Request;
 }
 
@@ -293,5 +303,89 @@ describe('POST /api/upload', () => {
         data: expect.objectContaining({ userId: 'user_abc' }),
       })
     );
+  });
+
+  // ── rawText JSON body (paste-raw-text feature) ──────────────────
+
+  it('accepts rawText via JSON body, returns content record with sourceType txt', async () => {
+    const pastedText = 'This is a long article that has been pasted directly by the user. It contains enough words to be meaningful content for generating an audio episode. The text should be processed as plain text and stored in the database.';
+
+    mockExtractTxt.mockReturnValue({
+      title: 'Pasted text',
+      text: pastedText,
+      wordCount: 42,
+    });
+
+    const mockRecord = {
+      id: 'paste-id',
+      title: 'Pasted text',
+      wordCount: 42,
+      sourceType: 'txt',
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockJsonRequest({ rawText: pastedText });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('txt');
+    expect(data.title).toBe('Pasted text');
+    expect(data.wordCount).toBe(42);
+    expect(mockExtractTxt).toHaveBeenCalledWith(pastedText, 'Pasted text');
+  });
+
+  it('accepts rawText with custom title via JSON body', async () => {
+    const pastedText = 'Some pasted content that is long enough for the test to work properly and validate the custom title handling in the server route.';
+
+    mockExtractTxt.mockReturnValue({
+      title: 'My Custom Title',
+      text: pastedText,
+      wordCount: 25,
+    });
+
+    const mockRecord = {
+      id: 'paste-custom-id',
+      title: 'My Custom Title',
+      wordCount: 25,
+      sourceType: 'txt',
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockJsonRequest({ rawText: pastedText, title: 'My Custom Title' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.title).toBe('My Custom Title');
+  });
+
+  it('returns 400 when JSON body has neither rawText, url, nor file', async () => {
+    const request = createMockJsonRequest({});
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toContain('No file, URL, or text provided');
+  });
+
+  it('rawText dedup: returns 409 when pasted text matches existing content hash', async () => {
+    const pastedText = 'Duplicate pasted content that already exists in the library.';
+
+    mockExtractTxt.mockReturnValue({
+      title: 'Pasted text',
+      text: pastedText,
+      wordCount: 10,
+    });
+
+    mockFindUnique.mockResolvedValue({
+      id: 'existing-paste-id',
+      contentHash: 'hash123',
+    });
+
+    const request = createMockJsonRequest({ rawText: pastedText });
+    const response = await POST(request);
+
+    expect(response.status).toBe(409);
   });
 });

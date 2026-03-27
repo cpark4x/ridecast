@@ -4,6 +4,7 @@ import { extractEpub } from './epub';
 import type { ExtractionResult } from './types';
 
 export { extractUrl } from './url';
+export { extractTxt } from './txt';
 export type { ExtractionResult } from './types';
 
 export async function extractContent(

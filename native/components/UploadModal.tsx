@@ -14,7 +14,7 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { uploadFile, uploadUrl } from "../lib/api";
+import { uploadFile, uploadText, uploadUrl } from "../lib/api";
 import { DURATION_PRESETS } from "../lib/constants";
 import { getPrefs } from "../lib/prefs";
 import type { UploadResponse } from "../lib/types";
@@ -27,6 +27,7 @@ import DurationPicker from "./DurationPicker";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 15_000;
+const MIN_TEXT_CHARS = 100;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // URL validator (synchronous — no network call)
@@ -111,6 +112,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   const [loading, setLoading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [rawTextInput, setRawTextInput] = useState("");
   const [targetMinutes, setTargetMinutes] = useState<number>(
     DURATION_PRESETS[2].minutes,
   );
@@ -120,6 +122,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   // ── Reset when modal opens / closes ────────────────────────────────────────
   function handleDismiss() {
     setUrlText("");
+    setRawTextInput("");
     setLoading(false);
     setUploadResult(null);
     setErrorMsg(null);
@@ -193,6 +196,36 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     try {
       const uploadRes = await uploadFile(asset.uri, name, mimeType);
       setUploadResult(uploadRes);
+    } catch (err: unknown) {
+      const statusCode =
+        err instanceof Object && "statusCode" in err
+          ? (err as { statusCode: number }).statusCode
+          : undefined;
+      setErrorMsg(humaniseError(err, statusCode));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Text paste ──────────────────────────────────────────────
+  async function handleTextSubmit() {
+    if (offline) {
+      Alert.alert("No Connection", "Please check your internet connection and try again.");
+      return;
+    }
+
+    const trimmed = rawTextInput.trim();
+    if (trimmed.length < MIN_TEXT_CHARS) {
+      setErrorMsg(`Please paste at least ${MIN_TEXT_CHARS} characters of text.`);
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const result = await uploadText(trimmed);
+      setUploadResult(result);
     } catch (err: unknown) {
       const statusCode =
         err instanceof Object && "statusCode" in err
@@ -321,11 +354,59 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
                   <Text className={`text-base font-medium ${offline ? "text-gray-400" : "text-gray-600"}`}>
                     Choose File
                   </Text>
-                  <Text className="text-xs text-gray-400">(PDF, EPUB, TXT)</Text>
+                  <Text className="text-xs text-gray-400">(PDF, EPUB, TXT, DOCX)</Text>
                 </TouchableOpacity>
 
-                {/* File upload loading */}
-                {loading && !urlText.trim() && (
+                {/* OR divider — text paste */}
+                <View className="flex-row items-center my-4 gap-3">
+                  <View className="flex-1 h-px bg-gray-200" />
+                  <Text className="text-xs text-gray-400 font-medium">or paste text</Text>
+                  <View className="flex-1 h-px bg-gray-200" />
+                </View>
+
+                {/* Raw text input */}
+                <TextInput
+                  className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
+                  placeholder="Paste article text here…"
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={5}
+                  textAlignVertical="top"
+                  style={{ minHeight: 100 }}
+                  value={rawTextInput}
+                  onChangeText={(t) => {
+                    setRawTextInput(t);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  editable={!loading && !offline}
+                />
+
+                {/* Live word count hint */}
+                {rawTextInput.trim().length > 0 && (
+                  <Text className="text-xs text-gray-400 mt-1 text-right">
+                    ~{rawTextInput.trim().split(/\s+/).length} words
+                  </Text>
+                )}
+
+                {/* Use This Text button */}
+                {rawTextInput.trim().length >= MIN_TEXT_CHARS && (
+                  <TouchableOpacity
+                    onPress={handleTextSubmit}
+                    disabled={loading || offline}
+                    className={`mt-3 bg-brand py-3 rounded-xl items-center ${loading || offline ? "opacity-70" : ""}`}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text className="text-white font-semibold text-sm">
+                        Use This Text
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                {/* File upload loading (only for file picks, not text submits) */}
+                {loading && !urlText.trim() && rawTextInput.trim().length < MIN_TEXT_CHARS && (
                   <View className="items-center mt-6">
                     <ActivityIndicator size="large" color="#EA580C" />
                     <Text className="text-sm text-gray-500 mt-2">
