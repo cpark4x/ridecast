@@ -27,10 +27,8 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 
 **Completed:**
 - `double-logo-fix` — Replaced duplicate favicon `<Image>` in SourceThumbnail badge with `<Ionicons>` glyph mapped by sourceType.
-- `paste-raw-text` — Added text paste input to UploadModal, uploadText() in api.ts, JSON body path in upload route, extractTxt export. 4 new server tests. Antagonistic review: fixed double-spinner bug (file loading spinner showing during text submit).
-
-**In progress:**
-- `basic-file-types` — DOCX/MD file type support
+- `paste-raw-text` — Added text paste input to UploadModal, uploadText() in api.ts, JSON body path in upload route, extractTxt export. 4 new server tests. Fixed double-spinner bug (antagonistic review).
+- `basic-file-types` — Added mammoth-based DOCX extractor, docx/doc/md extension sniff, MIME types in DocumentPicker, mammoth.d.ts type shim. 8 new tests (5 docx extractor + 3 upload route). Fixed corrupt file error message (antagonistic review).
 
 ---
 

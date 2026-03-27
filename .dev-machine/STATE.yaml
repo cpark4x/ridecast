@@ -428,7 +428,9 @@ features:
     description: "Add text input to upload modal — paste raw text to create episode, no file or URL needed"
     size: S
   basic-file-types:
-    status: ready
+    status: done
+    started_at: "2026-03-26T20:23:00Z"
+    completed_at: "2026-03-26T20:31:00Z"
     spec: specs/features/phase5/basic-file-types.md
     description: "Add .docx/.doc/.md file upload support via mammoth extractor + expanded MIME types"
     size: M
@@ -543,7 +545,7 @@ meta:
   project: ridecast2
   created: '2026-03-05'
   total_features_completed: 49
-  last_updated: '2026-03-25'
+  last_updated: '2026-03-26'
   session_count: 19
   zero_change_sessions: 0
   last_session_head: e957906

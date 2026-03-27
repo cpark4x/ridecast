@@ -99,13 +99,16 @@ export async function POST(request: Request) {
       author = result.author;
     } else if (file) {
       const extension = file.name.split('.').pop()?.toLowerCase();
-      let fileSourceType: 'txt' | 'pdf' | 'epub';
+      let fileSourceType: 'txt' | 'pdf' | 'epub' | 'docx';
 
       if (extension === 'pdf') {
         fileSourceType = 'pdf';
       } else if (extension === 'epub') {
         fileSourceType = 'epub';
+      } else if (extension === 'docx' || extension === 'doc') {
+        fileSourceType = 'docx';
       } else {
+        // txt, md, markdown, and unknown extensions → plain text
         fileSourceType = 'txt';
       }
 
@@ -115,7 +118,8 @@ export async function POST(request: Request) {
       title = result.title;
       text = result.text;
       wordCount = result.wordCount;
-      sourceType = fileSourceType;
+      // DOCX maps to 'txt' in the DB — no schema migration needed
+      sourceType = fileSourceType === 'docx' ? 'txt' : fileSourceType;
       author = result.author;
     } else {
       return NextResponse.json(
@@ -178,6 +182,8 @@ export async function POST(request: Request) {
         message = 'That doesn\u2019t look like a valid URL.';
       } else if (error.message.includes('Unsupported') || error.message.includes('extract')) {
         message = 'Could not extract text from this content. Try a different file or URL.';
+      } else if (error.message.includes('zip') || error.message.includes('central directory') || error.message.includes('encrypted')) {
+        message = 'This file appears to be corrupt or password-protected. Try re-saving as a new file.';
       }
     }
 

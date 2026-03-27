@@ -369,6 +369,98 @@ describe('POST /api/upload', () => {
     expect(data.error).toContain('No file, URL, or text provided');
   });
 
+  // ── DOCX / Markdown file uploads (basic-file-types feature) ────
+
+  it('accepts DOCX file upload, passes sourceType "docx" to extractContent, stores as "txt"', async () => {
+    const file = createMockFile('PK fake docx content', 'report.docx');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'report',
+      text: 'Extracted DOCX text content here',
+      wordCount: 5,
+    });
+
+    const mockRecord = {
+      id: 'docx-id',
+      title: 'report',
+      wordCount: 5,
+      sourceType: 'txt', // docx maps to txt in DB
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('txt');
+    expect(mockExtractContent).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'report.docx',
+      'docx',
+    );
+  });
+
+  it('accepts .doc (legacy Word) file, routes through docx extractor', async () => {
+    const file = createMockFile('fake legacy doc content', 'legacy.doc');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'legacy',
+      text: 'Legacy Word text',
+      wordCount: 3,
+    });
+
+    const mockRecord = {
+      id: 'doc-id',
+      title: 'legacy',
+      wordCount: 3,
+      sourceType: 'txt',
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('txt');
+    expect(mockExtractContent).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'legacy.doc',
+      'docx',
+    );
+  });
+
+  it('accepts .md file upload, falls through to txt extraction', async () => {
+    const file = createMockFile('# Markdown content\nSome text here', 'readme.md');
+
+    mockExtractContent.mockResolvedValue({
+      title: 'readme',
+      text: '# Markdown content\nSome text here',
+      wordCount: 5,
+    });
+
+    const mockRecord = {
+      id: 'md-id',
+      title: 'readme',
+      wordCount: 5,
+      sourceType: 'txt',
+    };
+    mockCreate.mockResolvedValue(mockRecord);
+
+    const request = createMockRequest({ file });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sourceType).toBe('txt');
+    expect(mockExtractContent).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'readme.md',
+      'txt',
+    );
+  });
+
   it('rawText dedup: returns 409 when pasted text matches existing content hash', async () => {
     const pastedText = 'Duplicate pasted content that already exists in the library.';
 

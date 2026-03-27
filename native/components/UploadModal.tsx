@@ -177,7 +177,14 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     let result;
     try {
       result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "application/epub+zip", "text/plain"],
+        type: [
+          "application/pdf",
+          "application/epub+zip",
+          "text/plain",
+          "text/markdown",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/msword",
+        ],
         copyToCacheDirectory: true,
       });
     } catch {
