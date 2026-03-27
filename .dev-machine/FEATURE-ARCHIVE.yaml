@@ -205,3 +205,213 @@ features:
     commit: 6dc8857
     depends_on:
     - library-upload-modal
+  delete-episodes:
+    status: done
+    started_at: '2026-03-12T16:50:00Z'
+    completed_at: '2026-03-12T18:20:00Z'
+    commit: e1287fd
+    spec: specs/features/phase4/delete-episodes.md
+    description: Fix stubbed delete, add swipe-to-delete, remove non-functional queue button
+    size: S
+  generating-feedback:
+    status: done
+    started_at: '2026-03-12T16:50:00Z'
+    completed_at: '2026-03-12T18:20:00Z'
+    commit: e1287fd
+    spec: specs/features/phase4/generating-feedback.md
+    description: Toast feedback when tapping a generating episode instead of silent failure
+    size: S
+  offline-guards:
+    status: done
+    started_at: '2026-03-12T16:50:00Z'
+    completed_at: '2026-03-12T18:20:00Z'
+    commit: e1287fd
+    spec: specs/features/phase4/offline-guards.md
+    description: Network connectivity guards on upload flow with clear error messaging
+    size: S
+  episode-identity:
+    status: done
+    started_at: '2026-03-12T16:50:00Z'
+    completed_at: '2026-03-12T18:20:00Z'
+    commit: e1287fd
+    spec: specs/features/phase4/episode-identity.md
+    description: "Source icons, attribution metadata, SourceIcon component \u2014 foundational for all visual redesigns"
+    size: M
+  smart-titles:
+    status: done
+    started_at: '2026-03-12T16:50:00Z'
+    completed_at: '2026-03-12T18:20:00Z'
+    commit: e1287fd
+    spec: specs/features/phase4/smart-titles.md
+    description: "Client-side title cleaning \u2014 strip publisher suffixes, clean PDF filenames"
+    size: M
+  haptic-feedback:
+    status: done
+    started_at: '2026-03-12T18:30:00Z'
+    completed_at: '2026-03-12T18:35:00Z'
+    commit: b8371fa
+    spec: specs/features/phase4/haptic-feedback.md
+    description: "expo-haptics throughout the app \u2014 light/medium/error on all touch points"
+    size: S
+  player-bar-upgrade:
+    status: done
+    started_at: '2026-03-12T18:36:00Z'
+    completed_at: '2026-03-12T18:38:00Z'
+    commit: 89ded0e
+    spec: specs/features/phase4/player-bar-upgrade.md
+    description: Add SourceIcon, source name, and time remaining to mini player
+    size: S
+    depends_on:
+    - episode-identity
+  skeleton-loading:
+    status: done
+    started_at: '2026-03-12T18:39:00Z'
+    completed_at: '2026-03-12T18:55:00Z'
+    commit: d5111bd
+    spec: specs/features/phase4/skeleton-loading.md
+    description: Shimmer loading states for home and library on cold launch
+    size: S
+  active-filter-default:
+    status: done
+    started_at: '2026-03-12T18:57:00Z'
+    completed_at: '2026-03-12T19:24:47Z'
+    commit: '1310424'
+    spec: specs/features/phase4/active-filter-default.md
+    description: Default library filter to Active (unlistened + in-progress), not All
+    size: S
+  native-jest-fix:
+    status: done
+    started_at: '2026-03-13T09:46:00Z'
+    completed_at: '2026-03-13T10:46:00Z'
+    commit: 77f49f9
+    spec: specs/features/phase4/native-jest-fix.md
+    description: "Fix native Jest environment \u2014 all 31 suites fail with ExpoImportMetaRegistry error"
+    size: S
+  homepage-redesign:
+    status: done
+    started_at: '2026-03-13T04:14:00Z'
+    completed_at: '2026-03-13T05:04:00Z'
+    commit: d95f316
+    spec: specs/features/phase4/homepage-redesign.md
+    description: "Option B visual hybrid \u2014 hero now-playing card, episode carousel, rich list"
+    size: L
+    depends_on:
+    - episode-identity
+    - episode-card-redesign
+  episode-card-redesign:
+    status: done
+    started_at: '2026-03-12T23:00:00Z'
+    completed_at: '2026-03-12T23:13:26Z'
+    commit: a0845fd
+    spec: specs/features/phase4/episode-card-redesign.md
+    description: Rich cards with SourceIcon, attribution, description preview, state indicators
+    size: M
+    depends_on:
+    - episode-identity
+  empty-states:
+    status: done
+    started_at: '2026-03-13T06:42:00Z'
+    completed_at: '2026-03-13T08:15:00Z'
+    commit: 81a7201
+    spec: specs/features/phase4/empty-states.md
+    description: "Context-aware empty states \u2014 new user onboarding, all caught up, stale library nudge"
+    size: M
+  library-redesign:
+    status: done
+    started_at: '2026-03-13T10:48:00Z'
+    completed_at: '2026-03-13T12:00:00Z'
+    commit: 653c1a4
+    spec: specs/features/phase4/library-redesign.md
+    description: Time sections, upgraded filters with Sources/Topics dropdowns, sort control
+    size: L
+    depends_on:
+    - episode-card-redesign
+    - active-filter-default
+  smart-search:
+    status: done
+    started_at: '2026-03-13T12:30:00Z'
+    completed_at: '2026-03-13T13:10:00Z'
+    commit: 0a6b63d
+    spec: specs/features/phase4/smart-search.md
+    description: "Search across title, author, source, themes, summary \u2014 not just title/author"
+    size: M
+    depends_on:
+    - episode-identity
+  upload-polish:
+    status: done
+    started_at: '2026-03-13T08:16:00Z'
+    completed_at: '2026-03-13T08:40:00Z'
+    commit: fb8af41
+    spec: specs/features/phase4/upload-polish.md
+    description: Upload modal error handling, loading states, bottom sheet behavior
+    size: S
+  player-controls-polish:
+    status: done
+    started_at: '2026-03-13T08:41:00Z'
+    completed_at: '2026-03-13T08:55:00Z'
+    commit: a21ef4f
+    spec: specs/features/phase4/player-controls-polish.md
+    description: Skip boundary fixes, speed chip in mini bar, lock screen integration
+    size: S
+  single-version-new-version:
+    status: done
+    started_at: '2026-03-13T08:56:00Z'
+    completed_at: '2026-03-13T09:15:00Z'
+    commit: 22b02df
+    spec: specs/features/phase4/single-version-new-version.md
+    description: Direct path to create new version from single-version cards
+    size: S
+  settings-onboarding-polish:
+    status: done
+    started_at: '2026-03-13T13:10:00Z'
+    completed_at: '2026-03-13T13:30:00Z'
+    commit: 458dd4d
+    spec: specs/features/phase4/settings-onboarding-polish.md
+    description: Default duration, haptics toggle, notification prefs, first-run hints
+    size: S
+  minor-ux-polish:
+    status: done
+    started_at: '2026-03-13T13:30:00Z'
+    completed_at: '2026-03-13T13:48:00Z'
+    commit: c772878
+    spec: specs/features/phase4/minor-ux-polish.md
+    description: Animation timing, keyboard handling, scroll restoration, loading consistency
+    size: S
+  app-infrastructure:
+    status: done
+    started_at: '2026-03-13T13:30:00Z'
+    completed_at: '2026-03-13T13:48:00Z'
+    commit: c772878
+    spec: specs/features/phase4/app-infrastructure.md
+    description: Error boundaries, crash reporting, performance monitoring
+    size: M
+  medium-url-extraction:
+    status: done
+    started_at: '2026-03-26T16:12:00Z'
+    completed_at: '2026-03-26T18:30:00Z'
+    commit: 2d6556a
+    spec: specs/features/phase5/medium-url-extraction.md
+    description: Fix Medium URL extraction failure + graceful error handling when content extraction fails
+    size: S
+  double-logo-fix:
+    status: done
+    started_at: '2026-03-26T20:05:00Z'
+    completed_at: '2026-03-26T20:12:00Z'
+    spec: specs/features/phase5/double-logo-fix.md
+    description: "Fix double favicon rendering in SourceThumbnail \u2014 replace badge with source-type icon"
+    size: S
+  paste-raw-text:
+    status: done
+    started_at: '2026-03-26T20:13:00Z'
+    completed_at: '2026-03-26T20:22:00Z'
+    spec: specs/features/phase5/paste-raw-text.md
+    description: "Add text input to upload modal \u2014 paste raw text to create episode, no file or URL needed"
+    size: S
+  basic-file-types:
+    status: done
+    started_at: '2026-03-26T20:23:00Z'
+    completed_at: '2026-03-26T20:31:00Z'
+    spec: specs/features/phase5/basic-file-types.md
+    description: Add .docx/.doc/.md file upload support via mammoth extractor + expanded MIME types
+    size: M
+    depends_on: []

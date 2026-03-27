@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-26
 **Project:** ridecast2
-**Status:** Phase 5 in progress — 52+ features shipped across 19 sessions.
+**Status:** Phase 5 in progress — 68 features shipped across 21 sessions.
 
 ---
 
