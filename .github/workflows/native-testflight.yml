@@ -1,0 +1,70 @@
+# Ridecast — Automated TestFlight builds
+#
+# Triggers:
+#   - Manual dispatch (workflow_dispatch) with optional profile override
+#   - Push to main when native/ files change
+#
+# Requirements (GitHub secrets):
+#   EXPO_TOKEN — from https://expo.dev/accounts/[you]/settings/access-tokens
+#
+# What it does:
+#   1. Builds the iOS app using EAS Build (cloud, pinned Xcode)
+#   2. Auto-submits to TestFlight via EAS Submit
+#   3. Apple processes it — available in TestFlight within ~30 min
+
+name: TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        required: false
+        default: 'testflight'
+        type: choice
+        options:
+          - testflight
+          - production
+
+  push:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '!native/__tests__/**'
+      - '!native/**/*.test.*'
+      - '!native/store-metadata/**'
+
+jobs:
+  build-and-submit:
+    name: EAS Build → TestFlight
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: native
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: native/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build and submit to TestFlight
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'testflight' }}"
+          echo "Building with profile: $PROFILE"
+          eas build --platform ios --profile "$PROFILE" --non-interactive --auto-submit

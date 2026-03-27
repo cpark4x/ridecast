@@ -36,11 +36,10 @@ Ridecast transforms any content into produced AI audio episodes for your commute
 podcast,ai,audio,commute,text-to-speech,articles,pdf,listening,episodes,news
 
 ## Privacy Policy URL
-<!-- REQUIRED: You need a privacy policy URL before submission -->
-<!-- Options: host on your website, use a GitHub Pages site, or a service like iubenda.com -->
+https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io/privacy
 
 ## Support URL
-<!-- REQUIRED: Apple requires a support URL -->
+https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io/support
 
 ## Marketing URL (optional)
 <!-- Your website or landing page -->

@@ -8,13 +8,27 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sequoia-15.6-xcode-16.4"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sequoia-15.6-xcode-16.4"
+      }
+    },
+    "testflight": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_aW5jbHVkZWQtZ29zaGF3ay03NC5jbGVyay5hY2NvdW50cy5kZXYk",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-16.4"
       }
     },
     "production": {
@@ -26,6 +40,14 @@
       },
       "ios": {
         "image": "macos-sequoia-15.6-xcode-16.4"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "",
+        "appleTeamId": ""
       }
     }
   }
