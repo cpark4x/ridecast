@@ -44,6 +44,11 @@
     }
   },
   "submit": {
+    "testflight": {
+      "ios": {
+        "appleTeamId": "6FMTUGRF3A"
+      }
+    },
     "production": {
       "ios": {
         "appleTeamId": "6FMTUGRF3A"
