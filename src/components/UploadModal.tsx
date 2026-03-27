@@ -5,7 +5,7 @@ import { UploadScreen } from "./UploadScreen";
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProcess: (contentId: string, targetMinutes: number) => void;
+  onProcess: (contentId: string, targetMinutes: number, format?: string) => void;
   onImportPocket: () => void;
 }
 

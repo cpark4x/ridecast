@@ -1,13 +1,16 @@
+/** All supported script formats: AI-chosen (narrator/conversation) or user-chosen (verbatim). */
+export type ScriptFormat = 'narrator' | 'conversation' | 'verbatim';
+
 export interface ContentAnalysis {
   contentType: string;
-  format: 'narrator' | 'conversation';
+  format: ScriptFormat;
   themes: string[];
   summary: string;
   suggestedTitle: string;
 }
 
 export interface ScriptConfig {
-  format: 'narrator' | 'conversation';
+  format: ScriptFormat;
   targetMinutes: number;
   contentType: string;
   themes: string[];
@@ -16,7 +19,7 @@ export interface ScriptConfig {
 export interface GeneratedScript {
   text: string;
   wordCount: number;
-  format: 'narrator' | 'conversation';
+  format: ScriptFormat;
 }
 
 export interface AIProvider {

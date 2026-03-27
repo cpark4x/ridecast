@@ -15,15 +15,15 @@ import { PocketImportScreen } from "./PocketImportScreen";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState("home");
-  const [processing, setProcessing] = useState<{ contentId: string; targetMinutes: number } | null>(null);
+  const [processing, setProcessing] = useState<{ contentId: string; targetMinutes: number; format?: string } | null>(null);
   const [showExpandedPlayer, setShowExpandedPlayer] = useState(false);
   const [showCarMode, setShowCarMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const { currentItem } = usePlayer();
 
-  const handleProcess = useCallback((contentId: string, targetMinutes: number) => {
-    setProcessing({ contentId, targetMinutes });
+  const handleProcess = useCallback((contentId: string, targetMinutes: number, format?: string) => {
+    setProcessing({ contentId, targetMinutes, format });
     setShowUploadModal(false);
     setActiveTab("processing");
   }, []);
@@ -51,6 +51,7 @@ export function AppShell() {
             <ProcessingScreen
               contentId={processing.contentId}
               targetMinutes={processing.targetMinutes}
+              format={processing.format}
               onComplete={handleProcessComplete}
             />
           )}

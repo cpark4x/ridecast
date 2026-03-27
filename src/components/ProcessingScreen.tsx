@@ -6,6 +6,7 @@ import { useElevenLabsKey } from "./SettingsScreen";
 interface ProcessingScreenProps {
   contentId: string;
   targetMinutes: number;
+  format?: string;
   onComplete: (audioId: string) => void;
 }
 
@@ -48,7 +49,7 @@ const STAGE_CONFIG = {
 
 const STAGE_ORDER: Stage[] = ["analyzing", "scripting", "generating", "ready"];
 
-export function ProcessingScreen({ contentId, targetMinutes, onComplete }: ProcessingScreenProps) {
+export function ProcessingScreen({ contentId, targetMinutes, format, onComplete }: ProcessingScreenProps) {
   const [stage, setStage] = useState<Stage>("analyzing");
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -88,7 +89,7 @@ export function ProcessingScreen({ contentId, targetMinutes, onComplete }: Proce
         const processRes = await fetch("/api/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contentId, targetMinutes }),
+          body: JSON.stringify({ contentId, targetMinutes, ...(format ? { format } : {}) }),
           signal: abort.signal,
         });
         const processData = await processRes.json();

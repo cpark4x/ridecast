@@ -227,17 +227,18 @@ proposed_features:
     size: M
     source: user-feedback-2026-03-26
   verbatim-read-mode:
-    status: new
+    status: in-progress
+    started_at: '2026-03-26T20:44:00+00:00'
     priority: 5
     type: feature
     description: Skip AI scripting, TTS source directly. New format alongside Narrator/Two-Host. User-requested.
     size: M
     source: user-feedback-2026-03-26
   estimated-read-time:
-    status: new
+    status: already-done
     priority: 7
     type: feature
-    description: Surface '~X min read' in upload modal using word count already in pipeline. Quick win.
+    description: Already implemented in UploadScreen.tsx (readTime = wordCount / 250, displayed as '~X min read').
     size: S
     source: user-feedback-2026-03-26
   auto-subscribe-newsletter:

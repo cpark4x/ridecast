@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     contentId = body.contentId;
-    const { targetMinutes } = body;
+    const { targetMinutes, format } = body;
 
     if (!contentId || !targetMinutes) {
       return NextResponse.json(
@@ -77,7 +77,26 @@ export async function POST(request: Request) {
       }
     }
 
-    // Step 1: Analyze content
+    // ── Verbatim mode: skip AI, use raw text as script ──────────────
+    if (format === 'verbatim') {
+      const script = await prisma.script.create({
+        data: {
+          contentId,
+          format: 'verbatim',
+          targetDuration: targetMinutes,
+          actualWordCount: content.wordCount,
+          compressionRatio: 1,
+          scriptText: content.rawText,
+          contentType: null,
+          themes: [],
+          summary: null,
+        },
+      });
+
+      return NextResponse.json({ ...script, durationAdvisory: null });
+    }
+
+    // ── AI mode: analyze + generate script ────────────────────────────
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'AI provider not configured' },

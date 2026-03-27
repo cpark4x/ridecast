@@ -11,8 +11,10 @@ interface ContentPreview {
   truncationWarning?: string | null;
 }
 
+type FormatChoice = "auto" | "verbatim";
+
 interface UploadScreenProps {
-  onProcess: (contentId: string, targetMinutes: number) => void;
+  onProcess: (contentId: string, targetMinutes: number, format?: string) => void;
   onImportPocket: () => void;
 }
 
@@ -27,6 +29,7 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
   );
   const [sliderValue, setSliderValue] = useState(commuteDuration);
   const [error, setError] = useState<string | null>(null);
+  const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const presets = [
@@ -110,11 +113,13 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
 
   function handleCreateAudio() {
     if (preview) {
-      onProcess(preview.id, sliderValue);
+      const targetMin = formatChoice === "verbatim" ? preview.readTime : sliderValue;
+      onProcess(preview.id, targetMin, formatChoice === "verbatim" ? "verbatim" : undefined);
       // Reset form — restore to commuteDuration (not hardcoded 15)
       setPreview(null);
       setUrl("");
       setError(null);
+      setFormatChoice("auto");
       setSelectedPreset([2, 3, 5, 15, 30].includes(commuteDuration) ? commuteDuration : 0);
       setSliderValue(commuteDuration);
     }
@@ -243,7 +248,41 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
 
           <div className="h-px bg-black/[0.07] my-3.5" />
 
-          {/* Duration Selector */}
+          {/* Format Toggle */}
+          <div className="text-[13px] font-semibold text-[var(--text-mid)] uppercase tracking-wider mb-3">Format</div>
+          <div className="flex gap-2 mb-5">
+            <button
+              onClick={() => setFormatChoice("auto")}
+              className={`flex-1 py-2.5 px-3 rounded-[10px] text-center transition-all border ${
+                formatChoice === "auto"
+                  ? "bg-[#EA580C]/[0.12] border-[#EA580C]"
+                  : "bg-[var(--surface)] border-black/[0.07]"
+              }`}
+            >
+              <div className={`text-[13px] font-bold ${formatChoice === "auto" ? "text-[var(--accent-text)]" : "text-[#18181A]"}`}>AI Audio</div>
+              <div className="text-[10px] text-[var(--text-mid)]">Summarized &amp; narrated</div>
+            </button>
+            <button
+              onClick={() => setFormatChoice("verbatim")}
+              className={`flex-1 py-2.5 px-3 rounded-[10px] text-center transition-all border ${
+                formatChoice === "verbatim"
+                  ? "bg-[#EA580C]/[0.12] border-[#EA580C]"
+                  : "bg-[var(--surface)] border-black/[0.07]"
+              }`}
+            >
+              <div className={`text-[13px] font-bold ${formatChoice === "verbatim" ? "text-[var(--accent-text)]" : "text-[#18181A]"}`}>Verbatim</div>
+              <div className="text-[10px] text-[var(--text-mid)]">Read exactly as written</div>
+            </button>
+          </div>
+
+          {/* Duration Selector — hidden for verbatim (duration = full read) */}
+          {formatChoice === "verbatim" ? (
+            <div className="mb-5 p-3.5 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07] text-center">
+              <div className="text-[13px] text-[var(--text-mid)]">Full read</div>
+              <div className="text-lg font-bold text-[var(--accent-text)]">~{preview.readTime} min</div>
+            </div>
+          ) : (
+            <>
           <div className="text-[13px] font-semibold text-[var(--text-mid)] uppercase tracking-wider mb-3.5">Target Duration</div>
           <div className="flex gap-2 mb-5">
             {presets.map(({ minutes, label }) => (
@@ -284,6 +323,9 @@ export function UploadScreen({ onProcess, onImportPocket }: UploadScreenProps) {
               ))}
             </div>
           </div>
+
+          </>
+          )}
 
           {/* Create Button */}
           <button

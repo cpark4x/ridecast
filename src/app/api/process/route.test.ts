@@ -291,6 +291,116 @@ describe('POST /api/process', () => {
     });
   });
 
+  it('verbatim mode skips AI and creates script directly from raw text', async () => {
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'This is the original source text that should be read verbatim without any AI processing.',
+      wordCount: 16,
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+
+    const savedScript = {
+      id: 'script-v1',
+      contentId: 'content-1',
+      format: 'verbatim',
+      targetDuration: 5,
+      actualWordCount: 16,
+      compressionRatio: 1,
+      scriptText: contentRecord.rawText,
+      contentType: null,
+      themes: [],
+      summary: null,
+    };
+    mockScriptCreate.mockResolvedValue(savedScript);
+
+    const request = createJsonRequest({
+      contentId: 'content-1',
+      targetMinutes: 5,
+      format: 'verbatim',
+    });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.format).toBe('verbatim');
+    expect(data.scriptText).toBe(contentRecord.rawText);
+    expect(data.compressionRatio).toBe(1);
+
+    // AI should NOT have been called
+    expect(mockAnalyze).not.toHaveBeenCalled();
+    expect(mockGenerateScript).not.toHaveBeenCalled();
+
+    // Script should be created with raw text
+    expect(mockScriptCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        format: 'verbatim',
+        scriptText: contentRecord.rawText,
+        actualWordCount: 16,
+        compressionRatio: 1,
+        contentType: null,
+        themes: [],
+        summary: null,
+      }),
+    });
+  });
+
+  it('verbatim mode does not require ANTHROPIC_API_KEY', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some text to read verbatim.',
+      wordCount: 6,
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockScriptCreate.mockResolvedValue({
+      id: 'script-v2',
+      contentId: 'content-1',
+      format: 'verbatim',
+      targetDuration: 5,
+      actualWordCount: 6,
+      compressionRatio: 1,
+      scriptText: contentRecord.rawText,
+    });
+
+    const request = createJsonRequest({
+      contentId: 'content-1',
+      targetMinutes: 5,
+      format: 'verbatim',
+    });
+    const response = await POST(request);
+
+    // Should succeed without API key since no AI is called
+    expect(response.status).toBe(200);
+    expect(mockAnalyze).not.toHaveBeenCalled();
+  });
+
+  it('verbatim mode still rejects duplicate duration', async () => {
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some text.',
+      wordCount: 3,
+      scripts: [{ targetDuration: 5 }],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+
+    const request = createJsonRequest({
+      contentId: 'content-1',
+      targetMinutes: 5,
+      format: 'verbatim',
+    });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(data.error).toContain('already have a 5-minute version');
+  });
+
   it('returns 500 when API key is not configured', async () => {
     delete process.env.ANTHROPIC_API_KEY;
 
