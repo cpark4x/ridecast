@@ -186,6 +186,20 @@ completed_features:
 - app-infrastructure
 - medium-url-extraction
 features:
+  # ── UI Redesign Phase 1: Foundation (5 pts) ──
+  dark-theme-foundation:
+    status: ready
+    spec: specs/features/phase5/dark-theme-foundation.md
+    description: "Create shared theme.ts token module + apply dark background and light StatusBar to root layout"
+    size: M
+  nav-shell-redesign:
+    status: ready
+    spec: specs/features/phase5/nav-shell-redesign.md
+    description: "3-tab layout (Home/Discover/Library) with dark theme + redesigned mini player bar matching nav-shell spec"
+    size: L
+    depends_on: [dark-theme-foundation]
+
+  # ── Deferred ──
   pocket-refugee-capture:
     status: deferred
     spec: specs/features/phase3/pocket-refugee-capture.md
