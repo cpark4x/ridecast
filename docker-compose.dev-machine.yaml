@@ -60,9 +60,6 @@ services:
       # the container can use `gh auth git-credential` as a git credential
       # helper. This enables HTTPS clones of private repos (e.g. Microsoft
       # amplifier modules) without requiring SSH for everything.
-      # - "${HOME}/.config/gh:${HOME}/.config/gh:ro"
-      - "/opt/homebrew/bin/gh:/usr/local/bin/gh:ro" expands to the volume lines, or is empty if gh is
-      # not available on the host.
       - "${HOME}/.config/gh:${HOME}/.config/gh:ro"
       - "/opt/homebrew/bin/gh:/usr/local/bin/gh:ro"
 

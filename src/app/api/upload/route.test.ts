@@ -150,10 +150,9 @@ describe('POST /api/upload', () => {
     expect(response.status).toBe(401);
   });
 
-  it('pocket stub: calls extractUrl exactly once and returns outer-handler error when extraction fails', async () => {
-    // When a pocket stub exists and extractUrl throws, the error must propagate
-    // to the outer handler (returning a 500 with a message) rather than falling
-    // through and calling extractUrl a second time.
+  it('pocket stub: returns 422 with user-friendly message when extraction fails', async () => {
+    // When a pocket stub exists and extractUrl throws, the new try/catch
+    // returns 422 with a clear message instead of propagating to outer handler.
     mockFindFirst.mockResolvedValue({
       id: 'stub-1',
       userId: 'user_test123',
@@ -162,7 +161,7 @@ describe('POST /api/upload', () => {
       title: 'Saved Article',
     });
 
-    mockExtractUrl.mockRejectedValue(new Error('Failed to fetch URL: 403'));
+    mockExtractUrl.mockRejectedValue(new Error('Could not extract article content from URL'));
 
     const request = createMockRequest({ url: 'https://example.com/pocket-article' });
     const response = await POST(request);
@@ -170,10 +169,10 @@ describe('POST /api/upload', () => {
     // extractUrl must have been called exactly once — no second attempt
     expect(mockExtractUrl).toHaveBeenCalledTimes(1);
 
-    // The outer handler must return 500 with the translated message
-    expect(response.status).toBe(500);
+    // The new try/catch returns 422 with specific message
+    expect(response.status).toBe(422);
     const data = await response.json();
-    expect(data.error).toContain('blocked our request');
+    expect(data.error).toBe("We couldn't extract content from this URL. Try pasting the article text directly.");
   });
 
   it('pocket stub: updates stub record and returns populated content when extraction succeeds', async () => {

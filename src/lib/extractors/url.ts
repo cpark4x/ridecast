@@ -53,7 +53,12 @@ export async function extractUrl(url: string): Promise<ExtractionResult> {
   }
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch URL: ${response.status}`);
+    // Non-403 HTTP errors — try Jina before giving up
+    try {
+      return await extractViaJinaReader(url);
+    } catch {
+      throw new Error(`Failed to fetch URL: ${response.status}`);
+    }
   }
 
   const html = await response.text();
@@ -62,7 +67,12 @@ export async function extractUrl(url: string): Promise<ExtractionResult> {
   const article = reader.parse();
 
   if (!article || !article.textContent) {
-    throw new Error("Could not extract article content from URL");
+    // Readability failed — site may be JS-rendered (e.g. Medium). Try Jina.
+    try {
+      return await extractViaJinaReader(url);
+    } catch {
+      throw new Error("Could not extract article content from URL");
+    }
   }
 
   const text = article.textContent.trim();

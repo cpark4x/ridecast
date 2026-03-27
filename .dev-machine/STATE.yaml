@@ -406,7 +406,8 @@ features:
 
   # ── Phase 5 Session 19: User Feedback Batch 1 (5 pts) ──
   medium-url-extraction:
-    status: ready
+    status: in-progress
+    started_at: "2026-03-26T16:12:00Z"
     spec: specs/features/phase5/medium-url-extraction.md
     description: "Fix Medium URL extraction failure + graceful error handling when content extraction fails"
     size: S

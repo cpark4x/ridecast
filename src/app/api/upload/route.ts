@@ -29,8 +29,16 @@ export async function POST(request: Request) {
       if (byUrl) {
         if (byUrl.sourceType === 'pocket' && byUrl.rawText === '') {
           // Stub — fetch and populate it now so the caller gets a real preview.
-          // If extraction fails, let it propagate to the outer handler (no double-fetch).
-          const fetched = await extractUrl(url);
+          let fetched;
+          try {
+            fetched = await extractUrl(url);
+          } catch (extractErr) {
+            console.error('Upload: failed to hydrate Pocket stub', { url, extractErr });
+            return NextResponse.json(
+              { error: "We couldn't extract content from this URL. Try pasting the article text directly." },
+              { status: 422 },
+            );
+          }
           const hash = contentHash(fetched.text);
           const updated = await prisma.content.update({
             where: { id: byUrl.id },
