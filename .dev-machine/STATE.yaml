@@ -199,6 +199,76 @@ features:
     size: L
     depends_on: [dark-theme-foundation]
 
+  # ── UI Redesign Phase 2: Core Screens (3 pts) ──
+  redesign-sign-in:
+    status: ready
+    spec: specs/features/phase5/redesign-sign-in.md
+    description: "Sign In screen dark theme — atmospheric glows, dark background, white pill CTA"
+    size: S
+    depends_on: [dark-theme-foundation]
+  redesign-home-screens:
+    status: ready
+    spec: specs/features/phase5/redesign-home-screens.md
+    description: "Home Empty + Home Daily dark refresh — EpisodeCard redesign, greeting header, Play All button"
+    size: M
+    depends_on: [dark-theme-foundation, nav-shell-redesign]
+
+  # ── UI Redesign Phase 3: Upload + Processing (3 pts) ──
+  redesign-upload-modal:
+    status: ready
+    spec: specs/features/phase5/redesign-upload-modal.md
+    description: "Upload Modal + Duration Picker dark theme — bottom sheet, inputs, chips, drop zone"
+    size: M
+    depends_on: [dark-theme-foundation]
+  redesign-processing:
+    status: ready
+    spec: specs/features/phase5/redesign-processing.md
+    description: "Processing screen dark theme — stage indicators, progress bar, dark fullscreen"
+    size: S
+    depends_on: [dark-theme-foundation]
+
+  # ── UI Redesign Phase 4: Player + Library + Settings (5 pts) ──
+  redesign-expanded-player:
+    status: ready
+    spec: specs/features/phase5/redesign-expanded-player.md
+    description: "Expanded Player dark theme — artwork color-bleed atmosphere, dark scrubber, controls"
+    size: M
+    depends_on: [dark-theme-foundation]
+  redesign-library:
+    status: ready
+    spec: specs/features/phase5/redesign-library.md
+    description: "Library screen dark theme — search bar, filter chips, time-grouped list, header + button"
+    size: M
+    depends_on: [dark-theme-foundation, nav-shell-redesign]
+  redesign-settings-carmode:
+    status: ready
+    spec: specs/features/phase5/redesign-settings-carmode.md
+    description: "Settings dark modal sheet + Car Mode pure OLED black with giant controls"
+    size: S
+    depends_on: [dark-theme-foundation]
+
+  # ── UI Redesign Phase 5: Discover Flow — New Screens (5 pts) ──
+  discover-ftue:
+    status: ready
+    spec: specs/features/phase5/discover-ftue.md
+    description: "Discover FTUE — topic chip grid selection + source suggestion cards, AsyncStorage gate"
+    size: M
+    depends_on: [dark-theme-foundation, nav-shell-redesign]
+  discover-screens:
+    status: ready
+    spec: specs/features/phase5/discover-screens.md
+    description: "Discover Main feed (For You, Topics, Recommended) + Topic Drilldown screen"
+    size: L
+    depends_on: [dark-theme-foundation, nav-shell-redesign, discover-ftue]
+
+  # ── UI Redesign Phase 6: Source Detail — New Screen (2 pts) ──
+  source-detail:
+    status: ready
+    spec: specs/features/phase5/source-detail.md
+    description: "Source Detail screen — source header, episode list, follow button, Play Unplayed CTA"
+    size: M
+    depends_on: [dark-theme-foundation, redesign-library]
+
   # ── Deferred ──
   pocket-refugee-capture:
     status: deferred
