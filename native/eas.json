@@ -9,14 +9,14 @@
       "distribution": "internal",
       "ios": {
         "simulator": false,
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "sdk-55"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false,
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "sdk-55"
       }
     },
     "testflight": {
@@ -28,7 +28,7 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "sdk-55"
       }
     },
     "production": {
@@ -39,7 +39,7 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "sdk-55"
       }
     }
   },
