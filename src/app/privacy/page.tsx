@@ -179,12 +179,21 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
           <p>
-            Questions about this policy? Email us at{" "}
+            Questions about this policy? Reach us at{" "}
             <a
-              href="mailto:support@ridecast.app"
+              href="https://github.com/cpark4x/ridecast-support/issues"
+              className="text-[#FF6B35] underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              github.com/cpark4x/ridecast-support
+            </a>
+            {" "}or email{" "}
+            <a
+              href="mailto:chris.park@gmail.com"
               className="text-[#FF6B35] underline"
             >
-              support@ridecast.app
+              chris.park@gmail.com
             </a>
           </p>
         </section>

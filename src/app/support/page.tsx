@@ -81,12 +81,22 @@ export default function SupportPage() {
           <p className="mb-4">
             Can&apos;t find what you need? Reach out directly:
           </p>
-          <a
-            href="mailto:support@ridecast.app"
-            className="inline-block px-6 py-3 bg-[#FF6B35] text-white font-semibold rounded-lg hover:bg-[#e55f2e] transition-colors"
-          >
-            Email support@ridecast.app
-          </a>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a
+              href="https://github.com/cpark4x/ridecast-support/issues/new/choose"
+              className="inline-block px-6 py-3 bg-[#FF6B35] text-white text-center font-semibold rounded-lg hover:bg-[#e55f2e] transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Report an Issue
+            </a>
+            <a
+              href="mailto:chris.park@gmail.com"
+              className="inline-block px-6 py-3 bg-[#242438] text-white text-center font-semibold rounded-lg hover:bg-[#2e2e48] transition-colors"
+            >
+              Email Us
+            </a>
+          </div>
           <p className="mt-4 text-sm text-gray-400">
             We typically respond within 24 hours.
           </p>

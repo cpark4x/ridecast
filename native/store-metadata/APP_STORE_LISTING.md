@@ -39,7 +39,7 @@ podcast,ai,audio,commute,text-to-speech,articles,pdf,listening,episodes,news
 https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io/privacy
 
 ## Support URL
-https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io/support
+https://github.com/cpark4x/ridecast-support
 
 ## Marketing URL (optional)
 <!-- Your website or landing page -->
