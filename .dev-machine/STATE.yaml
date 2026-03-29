@@ -188,7 +188,9 @@ completed_features:
 features:
   # ── UI Redesign Phase 1: Foundation (5 pts) ──
   dark-theme-foundation:
-    status: ready
+    status: done
+    started_at: "2026-03-29T00:21:00+00:00"
+    completed_at: "2026-03-29T00:31:00+00:00"
     spec: specs/features/phase5/dark-theme-foundation.md
     description: "Create shared theme.ts token module + apply dark background and light StatusBar to root layout"
     size: M
@@ -201,11 +203,12 @@ features:
 
   # ── UI Redesign Phase 2: Core Screens (3 pts) ──
   redesign-sign-in:
-    status: ready
+    status: blocked
     spec: specs/features/phase5/redesign-sign-in.md
     description: "Sign In screen dark theme — atmospheric glows, dark background, white pill CTA"
     size: S
     depends_on: [dark-theme-foundation]
+    blocker: "@clerk/clerk-expo v2.19 wraps <SignIn /> in WrapComponent() that throws 'not supported in native environments' on iOS. Spec incorrectly assumes <SignIn /> is usable on native. Spec must be updated to use useSSO() hook (newer replacement for deprecated useOAuth()) with custom Apple+Google auth buttons. Visual redesign (dark bg, atmospheric glows, logo, legal text) can proceed once auth approach is clarified."
   redesign-home-screens:
     status: ready
     spec: specs/features/phase5/redesign-home-screens.md

@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ridecast2 — Tab Routing Demo</title>
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-deep:        #0F0F1A;
+      --bg-card:        #1A1A2E;
+      --bg-mini:        #242438;
+      --bg-page:        #080812;
+      --accent:         #FF6B35;
+      --accent-dim:     rgba(255,107,53,0.15);
+      --accent-border:  rgba(255,107,53,0.4);
+      --tab-active:     #FF6B35;
+      --tab-inactive:   #6B7280;
+      --tab-bar-bg:     #141424;
+      --text-primary:   #FFFFFF;
+      --text-secondary: #9CA3AF;
+      --text-muted:     #6B7280;
+      --border:         rgba(255,255,255,0.06);
+      --border-accent:  rgba(255,107,53,0.35);
+      --card-radius:    10px;
+      --mini-radius:    14px;
+    }
+
+    body {
+      background: var(--bg-page);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Page Header ───────────────────────────────────────────────────────── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 36px;
+      max-width: 900px;
+    }
+
+    .page-header .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .page-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .page-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto 14px;
+    }
+
+    .code-tag {
+      display: inline-block;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 5px;
+    }
+
+    /* ─── Demo Layout ───────────────────────────────────────────────────────── */
+    .demo-layout {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      justify-content: center;
+      max-width: 1120px;
+      width: 100%;
+    }
+
+    /* ─── Sidebar ───────────────────────────────────────────────────────────── */
+    .sidebar {
+      width: 248px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 16px;
+    }
+
+    .sidebar-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .sidebar-card p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .mono {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(255,107,53,0.1);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .code-block {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 11px;
+      color: #B0B8D0;
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 12px;
+      margin-top: 10px;
+      white-space: pre;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    .code-block .hl   { color: var(--accent); }
+    .code-block .dim  { color: var(--text-muted); }
+    .code-block .grn  { color: #6EE7B7; }
+    .code-block .blu  { color: #93C5FD; }
+    .code-block .ylw  { color: #FCD34D; }
+
+    /* State display */
+    .state-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .state-table td {
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .state-table tr:last-child td { border-bottom: none; }
+    .state-table .key { color: var(--text-muted); font-size: 11px; }
+    .state-table .val {
+      text-align: right;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    /* Navigation tree */
+    .nav-tree {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: #8899BB;
+      line-height: 1.85;
+      margin-top: 6px;
+    }
+    .nav-tree .active-screen { color: var(--accent); font-weight: 700; }
+    .nav-tree .hidden-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      font-size: 9px;
+      padding: 0 4px;
+      border-radius: 3px;
+      margin-left: 4px;
+      vertical-align: middle;
+      letter-spacing: 0.3px;
+    }
+
+    /* Try-it list */
+    .try-list {
+      list-style: none;
+      margin-top: 4px;
+    }
+    .try-list li {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+    .try-list li:last-child { border-bottom: none; }
+    .try-list .step-num {
+      width: 18px;
+      height: 18px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .try-list strong { color: var(--text-primary); }
+
+    /* ─── Phone Frame ───────────────────────────────────────────────────────── */
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .phone-frame {
+      width: 375px;
+      height: 812px;
+      background: var(--bg-deep);
+      border-radius: 48px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow:
+        0 0 0 1px #2A2A4A,
+        0 0 0 10px #141428,
+        0 0 0 12px #2A2A4A,
+        0 30px 80px rgba(0,0,0,0.8),
+        0 0 120px rgba(255,107,53,0.06);
+    }
+
+    /* Notch simulation */
+    .phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 130px;
+      height: 28px;
+      background: #000;
+      border-radius: 0 0 18px 18px;
+      z-index: 100;
+    }
+
+    /* ─── Status Bar ────────────────────────────────────────────────────────── */
+    .status-bar {
+      flex-shrink: 0;
+      height: 48px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 28px 8px;
+      background: var(--bg-deep);
+      z-index: 10;
+    }
+
+    .status-time {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.9;
+    }
+
+    /* ─── Content Area ──────────────────────────────────────────────────────── */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-deep);
+      position: relative;
+      scroll-behavior: smooth;
+    }
+    .content-area::-webkit-scrollbar { display: none; }
+
+    /* Screens */
+    .screen {
+      display: none;
+      min-height: 100%;
+      animation: screenIn 0.22s ease;
+    }
+    .screen.active { display: block; }
+
+    @keyframes screenIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Screen Components ─────────────────────────────────────────────────── */
+    .screen-header {
+      padding: 18px 20px 10px;
+    }
+
+    .screen-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.6px;
+    }
+
+    .back-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--accent);
+      font-size: 16px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      letter-spacing: -0.2px;
+    }
+    .back-btn:active { opacity: 0.7; }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 0 20px;
+      margin: 16px 0 8px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--card-radius);
+      margin: 0 16px 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: transform 0.12s, opacity 0.12s;
+      border: 1px solid var(--border);
+    }
+    .card:active { transform: scale(0.985); opacity: 0.85; }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+      letter-spacing: -0.2px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Episode rows */
+    .ep-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      cursor: pointer;
+      transition: background 0.1s;
+      border-bottom: 1px solid var(--border);
+    }
+    .ep-row:last-of-type { border-bottom: none; }
+    .ep-row:active { background: rgba(255,255,255,0.03); }
+
+    .ep-art {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .ep-info { flex: 1; min-width: 0; }
+
+    .ep-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.2px;
+    }
+
+    .ep-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .ep-dur {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ─── Home Screen ───────────────────────────────────────────────────────── */
+    .hero-continue {
+      margin: 6px 16px 4px;
+      border-radius: 12px;
+      background: linear-gradient(130deg, #1E1E38 0%, #2A1A38 100%);
+      border: 1px solid rgba(255,107,53,0.2);
+      padding: 18px;
+    }
+
+    .hero-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hero-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      letter-spacing: -0.3px;
+    }
+
+    .hero-sub { font-size: 13px; color: var(--text-secondary); }
+
+    .hero-progress {
+      margin-top: 12px;
+      height: 3px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+    }
+    .hero-progress-fill {
+      width: 38%;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* ─── Discover Screen ───────────────────────────────────────────────────── */
+    .search-bar {
+      margin: 8px 16px 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .pills-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px;
+    }
+
+    .pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill:hover {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .pill:active { transform: scale(0.95); }
+
+    /* ─── Library Screen ────────────────────────────────────────────────────── */
+    .source-card {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      margin: 0 16px 10px;
+      padding: 13px 14px;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s;
+    }
+    .source-card:active { transform: scale(0.985); }
+    .source-card:hover { border-color: rgba(255,107,53,0.3); }
+
+    .source-art {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .source-info { flex: 1; min-width: 0; }
+
+    .source-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+      margin-bottom: 3px;
+    }
+
+    .source-meta { font-size: 12px; color: var(--text-secondary); }
+
+    .unplayed-badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ─── Source Detail Screen ──────────────────────────────────────────────── */
+    .detail-hero {
+      background: linear-gradient(180deg, rgba(255,107,53,0.12) 0%, transparent 100%);
+      padding: 16px 20px 20px;
+    }
+
+    .detail-art {
+      width: 76px;
+      height: 76px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      margin-bottom: 12px;
+    }
+
+    .detail-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+      margin-bottom: 3px;
+    }
+
+    .detail-sub { font-size: 13px; color: var(--text-secondary); }
+
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ─── Discover Topic Screen ─────────────────────────────────────────────── */
+    .topic-hero {
+      background: linear-gradient(160deg, #1A2A1E 0%, var(--bg-deep) 100%);
+      padding: 16px 20px 20px;
+    }
+
+    .topic-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .topic-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.6px;
+      margin-bottom: 4px;
+    }
+
+    .topic-sub { font-size: 13px; color: var(--text-secondary); }
+
+    /* ─── Annotation Banner ─────────────────────────────────────────────────── */
+    .annotation {
+      margin: 10px 16px 6px;
+      background: rgba(255,107,53,0.07);
+      border: 1px solid var(--accent-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+    }
+
+    .annotation-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    .annotation-text {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .annotation-text strong { color: var(--text-primary); font-weight: 600; }
+
+    /* Drill-down annotation (prominent) */
+    .drilldown-annotation {
+      margin: 10px 16px;
+      background: rgba(110,231,183,0.07);
+      border: 1px solid rgba(110,231,183,0.3);
+      border-radius: 8px;
+      padding: 10px 13px;
+      display: flex;
+      gap: 9px;
+      align-items: center;
+    }
+
+    .drilldown-annotation-text {
+      font-size: 11px;
+      color: #6EE7B7;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .drilldown-annotation-text strong { color: #FFFFFF; }
+
+    /* ─── Mini Player ───────────────────────────────────────────────────────── */
+    .mini-player {
+      flex-shrink: 0;
+      background: var(--bg-mini);
+      margin: 0 10px 8px;
+      border-radius: var(--mini-radius);
+      padding: 0 14px;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow:
+        0 -4px 20px rgba(0,0,0,0.5),
+        0 2px 8px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .mini-player:active { opacity: 0.9; }
+
+    .mini-player::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 14px;
+      right: 14px;
+      height: 2px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 1px;
+    }
+
+    .mini-progress-fill {
+      position: absolute;
+      bottom: 0;
+      left: 14px;
+      width: 38%;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+      z-index: 1;
+    }
+
+    .mini-art {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #FF6B35 0%, #C84B1E 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+
+    .mini-info { flex: 1; min-width: 0; }
+
+    .mini-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.2px;
+    }
+
+    .mini-feed { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+    .mini-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .mini-back-btn {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    .mini-play-btn {
+      width: 35px;
+      height: 35px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ─── Tab Bar ───────────────────────────────────────────────────────────── */
+    .tab-bar {
+      flex-shrink: 0;
+      background: var(--tab-bar-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: 22px; /* safe area inset */
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 0 2px;
+      cursor: pointer;
+      color: var(--tab-inactive);
+      transition: color 0.15s;
+      position: relative;
+    }
+
+    .tab-item.active { color: var(--tab-active); }
+
+    .tab-item .tab-icon {
+      width: 26px;
+      height: 26px;
+      margin-bottom: 3px;
+    }
+
+    .tab-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    /* Active indicator dot */
+    .tab-item.active::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      width: 4px;
+      height: 4px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    /* ─── Divider ───────────────────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* ─── Persist label ─────────────────────────────────────────────────────── */
+    .persist-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 3px 0 0;
+      letter-spacing: 0.3px;
+    }
+
+    .persist-dot {
+      width: 6px;
+      height: 6px;
+      background: #6EE7B7;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* ─── Phone labels ──────────────────────────────────────────────────────── */
+    .phone-labels {
+      display: flex;
+      width: 375px;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    /* ─── Right sidebar specifics ───────────────────────────────────────────── */
+    .check-list {
+      list-style: none;
+      margin-top: 6px;
+    }
+    .check-list li {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 5px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+      border-bottom: 1px solid var(--border);
+    }
+    .check-list li:last-child { border-bottom: none; }
+    .check-list .chk { color: #6EE7B7; font-size: 13px; flex-shrink: 0; }
+
+    /* Horizontal rule between sidebars on narrow */
+    @media (max-width: 900px) {
+      .demo-layout { flex-direction: column; align-items: center; }
+      .sidebar { width: 375px; flex-direction: row; flex-wrap: wrap; }
+      .sidebar-card { flex: 1 1 48%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════ PAGE HEADER ══ -->
+  <div class="page-header">
+    <div class="eyebrow">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+        <circle cx="5" cy="5" r="4"/>
+      </svg>
+      Expo Router · ridecast2
+    </div>
+    <h1>Tab Layout with Hidden Drill-Down Screens</h1>
+    <p>
+      Demonstrates how <strong>Source Detail</strong> and <strong>Discover Topic</strong> screens live
+      inside the tab navigator without appearing as tab items — keeping the tab bar and mini player
+      visible on every screen.
+    </p>
+    <span class="code-tag">href: null</span>&nbsp;&nbsp;
+    <span class="code-tag">(tabs)/_layout.tsx</span>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ DEMO LAYOUT ══ -->
+  <div class="demo-layout">
+
+    <!-- ── LEFT SIDEBAR ───────────────────────────────────────────────────── -->
+    <div class="sidebar">
+
+      <!-- Live state -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <circle cx="6" cy="6" r="5" stroke="#6EE7B7" stroke-width="1.5"/>
+            <circle cx="6" cy="6" r="2" fill="#6EE7B7"/>
+          </svg>
+          Live Navigation State
+        </h3>
+        <table class="state-table">
+          <tr>
+            <td class="key">activeTab</td>
+            <td><span class="val" id="state-tab">home</span></td>
+          </tr>
+          <tr>
+            <td class="key">currentScreen</td>
+            <td><span class="val" id="state-screen">home</span></td>
+          </tr>
+          <tr>
+            <td class="key">isDrillDown</td>
+            <td><span class="val" id="state-drill">false</span></td>
+          </tr>
+        </table>
+        <div style="margin-top:10px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">Screen Stack</div>
+          <div class="nav-tree" id="nav-tree">
+<span style="color:#6EE7B7;">▶ (tabs)</span>
+  ├ <span class="active-screen">index</span>   ← active
+  ├ discover
+  └ library</div>
+        </div>
+      </div>
+
+      <!-- File structure -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 2h4l2 2h2v7H2V2z" stroke="#9CA3AF" stroke-width="1.2" stroke-linejoin="round"/>
+          </svg>
+          File Structure
+        </h3>
+        <div class="code-block"><span class="dim">app/</span>
+  <span class="ylw">(tabs)/</span>
+    <span class="blu">_layout.tsx</span>   <span class="dim">← tab config</span>
+    <span class="grn">index.tsx</span>      <span class="dim">← Home tab</span>
+    <span class="grn">discover.tsx</span>   <span class="dim">← Discover tab</span>
+    <span class="grn">library.tsx</span>    <span class="dim">← Library tab</span>
+  <span class="ylw">discover/</span>
+    <span class="hl">[topic].tsx</span>  <span class="dim">← href:null ✦</span>
+  <span class="ylw">library/</span>
+    <span class="hl">[sourceId].tsx</span> <span class="dim">← href:null ✦</span></div>
+      </div>
+
+      <!-- Code snippet -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 4L1 6l2 2M9 4l2 2-2 2M7 2l-2 8" stroke="#FF6B35" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          _layout.tsx — href: null
+        </h3>
+        <div class="code-block"><span class="dim">// (tabs)/_layout.tsx</span>
+<span class="blu">export default</span> <span class="grn">function</span> Layout() {
+  <span class="blu">return</span> (
+    &lt;<span class="ylw">Tabs</span>&gt;
+      &lt;<span class="ylw">Tabs.Screen</span>
+        name=<span class="grn">"index"</span>
+        options=&#123;&#123; title: <span class="grn">"Home"</span> &#125;&#125;
+      /&gt;
+      &lt;<span class="ylw">Tabs.Screen</span>
+        name=<span class="grn">"discover"</span>
+        options=&#123;&#123; title: <span class="grn">"Discover"</span> &#125;&#125;
+      /&gt;
+      &lt;<span class="ylw">Tabs.Screen</span>
+        name=<span class="grn">"library"</span>
+        options=&#123;&#123; title: <span class="grn">"Library"</span> &#125;&#125;
+      /&gt;
+
+      <span class="dim">&#123;/* ✦ Hidden drill-down screens */&#125;</span>
+      &lt;<span class="ylw">Tabs.Screen</span>
+        name=<span class="grn">"library/[sourceId]"</span>
+        options=&#123;&#123;
+          <span class="hl">href: null</span>   <span class="dim">← key!</span>
+        &#125;&#125;
+      /&gt;
+      &lt;<span class="ylw">Tabs.Screen</span>
+        name=<span class="grn">"discover/[topic]"</span>
+        options=&#123;&#123;
+          <span class="hl">href: null</span>
+        &#125;&#125;
+      /&gt;
+    &lt;/<span class="ylw">Tabs</span>&gt;
+  );
+&#125;</div>
+      </div>
+
+    </div><!-- /left sidebar -->
+
+    <!-- ── PHONE ─────────────────────────────────────────────────────────────── -->
+    <div class="phone-wrap">
+      <div class="phone-frame">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span class="status-time">9:41</span>
+          <div class="status-icons">
+            <!-- Signal -->
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="white">
+              <rect x="0" y="6" width="3" height="5" rx="1"/>
+              <rect x="4.5" y="4" width="3" height="7" rx="1"/>
+              <rect x="9"   y="2" width="3" height="9" rx="1"/>
+              <rect x="13.5" y="0" width="2.5" height="11" rx="1" opacity="0.3"/>
+            </svg>
+            <!-- WiFi -->
+            <svg width="15" height="11" viewBox="0 0 15 11" fill="none">
+              <path d="M7.5 8.5a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z" fill="white"/>
+              <path d="M3.3 6.3C4.7 4.9 6 4.2 7.5 4.2s2.8.7 4.2 2.1" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M.8 3.8C2.8 1.8 5 .7 7.5.7S12.2 1.8 14.2 3.8" stroke="white" stroke-width="1.4" stroke-linecap="round" opacity="0.45"/>
+            </svg>
+            <!-- Battery -->
+            <svg width="24" height="11" viewBox="0 0 24 11" fill="none">
+              <rect x=".5" y=".5" width="19" height="10" rx="2.2" stroke="white" stroke-opacity="0.5"/>
+              <rect x="1.5" y="1.5" width="15" height="8" rx="1.5" fill="white"/>
+              <path d="M21 3.5v4a2 2 0 000-4z" fill="white" opacity="0.35"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ══ CONTENT AREA ════════════════════════════════════════════════ -->
+        <div class="content-area" id="content-area">
+
+          <!-- ── HOME ───────────────────────────────────────────────────── -->
+          <div class="screen active" id="screen-home">
+            <div class="screen-header">
+              <div class="screen-title">Good morning 👋</div>
+            </div>
+
+            <div class="hero-continue">
+              <div class="hero-eyebrow">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg>
+                Continue Listening
+              </div>
+              <div class="hero-title">How AI is changing podcasting</div>
+              <div class="hero-sub">The Daily Tech · 38 min left</div>
+              <div class="hero-progress"><div class="hero-progress-fill"></div></div>
+            </div>
+
+            <div class="section-label">Recent</div>
+
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1E3A5F;">🎙</div>
+              <div class="ep-info">
+                <div class="ep-title">Building in public: year 2</div>
+                <div class="ep-meta">Indie Hackers</div>
+              </div>
+              <div class="ep-dur">42m</div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1A3A1A;">🧠</div>
+              <div class="ep-info">
+                <div class="ep-title">The science of habits</div>
+                <div class="ep-meta">Huberman Lab</div>
+              </div>
+              <div class="ep-dur">1h 22m</div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#3A1A1A;">💡</div>
+              <div class="ep-info">
+                <div class="ep-title">Startup funding in 2025</div>
+                <div class="ep-meta">20VC</div>
+              </div>
+              <div class="ep-dur">58m</div>
+            </div>
+
+            <div class="section-label">For You</div>
+            <div class="card">
+              <div class="card-title">⚡ Tech &amp; AI</div>
+              <div class="card-subtitle">12 new episodes this week</div>
+            </div>
+            <div class="card">
+              <div class="card-title">🚀 Startup &amp; Business</div>
+              <div class="card-subtitle">8 new episodes this week</div>
+            </div>
+            <div class="card">
+              <div class="card-title">🧠 Health &amp; Science</div>
+              <div class="card-subtitle">5 new episodes this week</div>
+            </div>
+          </div><!-- /home -->
+
+          <!-- ── DISCOVER ────────────────────────────────────────────────── -->
+          <div class="screen" id="screen-discover">
+            <div class="screen-header">
+              <div class="screen-title">Discover</div>
+            </div>
+
+            <div class="search-bar">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                <circle cx="6.5" cy="6.5" r="4.5" stroke="#6B7280" stroke-width="1.5"/>
+                <path d="M10 10l3 3" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Search episodes &amp; shows…
+            </div>
+
+            <div class="section-label">Browse Topics</div>
+
+            <div class="annotation" style="margin-bottom:10px;">
+              <div class="annotation-icon">👇</div>
+              <div class="annotation-text">
+                Tap a topic pill → navigates to <span class="mono">discover/[topic]</span> with
+                <span class="mono">href:null</span>. Tab bar stays visible.
+              </div>
+            </div>
+
+            <div class="pills-row">
+              <div class="pill" onclick="navigate('discover-topic','Tech &amp; AI','⚡','47')">⚡ Tech &amp; AI</div>
+              <div class="pill" onclick="navigate('discover-topic','Business','🚀','31')">🚀 Business</div>
+              <div class="pill" onclick="navigate('discover-topic','Science','🔬','23')">🔬 Science</div>
+              <div class="pill" onclick="navigate('discover-topic','Design','🎨','19')">🎨 Design</div>
+              <div class="pill" onclick="navigate('discover-topic','Health','🧠','38')">🧠 Health</div>
+              <div class="pill" onclick="navigate('discover-topic','Sports','⚽','52')">⚽ Sports</div>
+            </div>
+
+            <div class="section-label" style="margin-top:8px;">Trending Now</div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1E2A3A;">🤖</div>
+              <div class="ep-info">
+                <div class="ep-title">The future of AI agents</div>
+                <div class="ep-meta">a16z Podcast</div>
+              </div>
+              <div class="ep-dur">52m</div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1A1A3A;">📊</div>
+              <div class="ep-info">
+                <div class="ep-title">Sequoia's market outlook</div>
+                <div class="ep-meta">Invest Like the Best</div>
+              </div>
+              <div class="ep-dur">1h 5m</div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#2A1A2A;">🎵</div>
+              <div class="ep-info">
+                <div class="ep-title">Cursor and the future of coding</div>
+                <div class="ep-meta">Lex Fridman</div>
+              </div>
+              <div class="ep-dur">2h 18m</div>
+            </div>
+          </div><!-- /discover -->
+
+          <!-- ── LIBRARY ─────────────────────────────────────────────────── -->
+          <div class="screen" id="screen-library">
+            <div class="screen-header">
+              <div class="screen-title">Library</div>
+            </div>
+
+            <div class="section-label">Your Sources</div>
+
+            <div class="annotation" style="margin-bottom:10px;">
+              <div class="annotation-icon">👇</div>
+              <div class="annotation-text">
+                Tap a source → navigates to <span class="mono">library/[sourceId]</span> with
+                <span class="mono">href:null</span>. Tab bar + Library tab highlight stay.
+              </div>
+            </div>
+
+            <div class="source-card" onclick="navigate('source-detail','Huberman Lab','🧠','#1A3A1A','Health &amp; Science · 28 episodes')">
+              <div class="source-art" style="background:#1A3A1A;">🧠</div>
+              <div class="source-info">
+                <div class="source-name">Huberman Lab</div>
+                <div class="source-meta">Health &amp; Science</div>
+              </div>
+              <div class="unplayed-badge">3</div>
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1 1l5 5-5 5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <div class="source-card" onclick="navigate('source-detail','Indie Hackers','🎙','#1E3A5F','Startup · 42 episodes')">
+              <div class="source-art" style="background:#1E3A5F;">🎙</div>
+              <div class="source-info">
+                <div class="source-name">Indie Hackers</div>
+                <div class="source-meta">Startup &amp; Bootstrapping</div>
+              </div>
+              <div class="unplayed-badge">7</div>
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1 1l5 5-5 5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <div class="source-card" onclick="navigate('source-detail','20VC','💡','#3A1A1A','VC &amp; Investing · 15 episodes')">
+              <div class="source-art" style="background:#3A1A1A;">💡</div>
+              <div class="source-info">
+                <div class="source-name">20VC</div>
+                <div class="source-meta">VC &amp; Investing</div>
+              </div>
+              <div class="unplayed-badge">2</div>
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1 1l5 5-5 5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <div class="source-card" onclick="navigate('source-detail','a16z Podcast','🔮','#1A1A3A','Tech &amp; Venture · 63 episodes')">
+              <div class="source-art" style="background:#1A1A3A;">🔮</div>
+              <div class="source-info">
+                <div class="source-name">a16z Podcast</div>
+                <div class="source-meta">Tech &amp; Venture</div>
+              </div>
+              <div class="unplayed-badge" style="background:var(--bg-card);color:var(--text-muted);border:1px solid var(--border);">0</div>
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1 1l5 5-5 5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div><!-- /library -->
+
+          <!-- ── SOURCE DETAIL (drill-down, href:null) ───────────────────── -->
+          <div class="screen" id="screen-source-detail">
+
+            <div class="drilldown-annotation" style="margin-top:10px;">
+              <span style="font-size:14px;">✅</span>
+              <div class="drilldown-annotation-text">
+                <strong>Drill-down screen</strong> — tab bar &amp; mini player persist below.
+                <strong>Library</strong> tab stays highlighted. Route: <span style="font-family:monospace;color:#6EE7B7;">library/[sourceId]</span> · <span style="font-family:monospace;color:#FF6B35;">href:null</span>
+              </div>
+            </div>
+
+            <div class="detail-hero">
+              <div class="back-row">
+                <button class="back-btn" onclick="goBack()">
+                  <svg width="9" height="14" viewBox="0 0 9 14" fill="none">
+                    <path d="M7.5 1L1.5 7l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Library
+                </button>
+              </div>
+              <div style="height:10px;"></div>
+              <div class="detail-art" id="detail-art" style="background:linear-gradient(135deg,#1A3A1A,#0A1A0A);">🧠</div>
+              <div class="detail-title" id="detail-title">Huberman Lab</div>
+              <div class="detail-sub" id="detail-sub">Health &amp; Science · 28 episodes</div>
+              <div class="detail-actions">
+                <button class="btn-primary">▶ Play Latest</button>
+                <button class="btn-secondary">+ Subscribe</button>
+              </div>
+            </div>
+
+            <div class="section-label">Recent Episodes</div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1A3A1A;">🎧</div>
+              <div class="ep-info">
+                <div class="ep-title">Focus &amp; Attention Protocols</div>
+                <div class="ep-meta">2 days ago · 1h 45m</div>
+              </div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1A3A1A;">🎧</div>
+              <div class="ep-info">
+                <div class="ep-title">Cold exposure science</div>
+                <div class="ep-meta">1 week ago · 2h 12m</div>
+              </div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" style="background:#1A3A1A;">🎧</div>
+              <div class="ep-info">
+                <div class="ep-title">Sleep optimization deep dive</div>
+                <div class="ep-meta">2 weeks ago · 1h 58m</div>
+              </div>
+            </div>
+          </div><!-- /source-detail -->
+
+          <!-- ── DISCOVER TOPIC (drill-down, href:null) ──────────────────── -->
+          <div class="screen" id="screen-discover-topic">
+
+            <div class="drilldown-annotation" style="margin-top:10px;">
+              <span style="font-size:14px;">✅</span>
+              <div class="drilldown-annotation-text">
+                <strong>Drill-down screen</strong> — tab bar &amp; mini player persist below.
+                <strong>Discover</strong> tab stays highlighted. Route: <span style="font-family:monospace;color:#6EE7B7;">discover/[topic]</span> · <span style="font-family:monospace;color:#FF6B35;">href:null</span>
+              </div>
+            </div>
+
+            <div class="topic-hero">
+              <div class="back-row">
+                <button class="back-btn" onclick="goBack()">
+                  <svg width="9" height="14" viewBox="0 0 9 14" fill="none">
+                    <path d="M7.5 1L1.5 7l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Discover
+                </button>
+              </div>
+              <div style="height:10px;"></div>
+              <div class="topic-chip" id="topic-chip">⚡ Topic</div>
+              <div class="topic-title" id="topic-title">Tech &amp; AI</div>
+              <div class="topic-sub" id="topic-sub">47 episodes this week</div>
+            </div>
+
+            <div class="section-label">Top Episodes</div>
+            <div class="ep-row">
+              <div class="ep-art" id="topic-art1" style="background:#1E2A3A;">🤖</div>
+              <div class="ep-info">
+                <div class="ep-title" id="topic-ep1">The future of AI agents</div>
+                <div class="ep-meta">a16z Podcast</div>
+              </div>
+              <div class="ep-dur">52m</div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" id="topic-art2" style="background:#1A1A3A;">💻</div>
+              <div class="ep-info">
+                <div class="ep-title" id="topic-ep2">GPT-5 and what's next</div>
+                <div class="ep-meta">Hard Fork</div>
+              </div>
+              <div class="ep-dur">1h 2m</div>
+            </div>
+            <div class="ep-row">
+              <div class="ep-art" id="topic-art3" style="background:#2A1A3A;">🔮</div>
+              <div class="ep-info">
+                <div class="ep-title" id="topic-ep3">Cursor, Copilot &amp; the future of coding</div>
+                <div class="ep-meta">Lex Fridman</div>
+              </div>
+              <div class="ep-dur">2h 18m</div>
+            </div>
+
+          </div><!-- /discover-topic -->
+
+        </div><!-- /content-area -->
+
+        <!-- ══ MINI PLAYER (always visible) ═══════════════════════════════ -->
+        <div class="mini-player">
+          <div class="mini-art">🎙</div>
+          <div class="mini-info">
+            <div class="mini-title">How AI is changing podcasting</div>
+            <div class="mini-feed">The Daily Tech</div>
+          </div>
+          <div class="mini-controls">
+            <div class="mini-back-btn">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 4h4V2L1 6l6 4V8H3V4z" fill="currentColor"/>
+                <rect x="10" y="2" width="2" height="12" rx="1" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="mini-play-btn">
+              <!-- Pause icon (currently playing) -->
+              <svg width="12" height="14" viewBox="0 0 12 14" fill="white">
+                <rect x="1" y="1" width="3.5" height="12" rx="1.5"/>
+                <rect x="7.5" y="1" width="3.5" height="12" rx="1.5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="mini-progress-fill"></div>
+        </div>
+        <div class="persist-label">
+          <div class="persist-dot"></div>
+          Mini player always rendered — persists across all screens
+        </div>
+
+        <!-- ══ TAB BAR (always visible) ════════════════════════════════════ -->
+        <div class="tab-bar">
+
+          <!-- Home -->
+          <div class="tab-item active" id="tab-home" onclick="switchTab('home')">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V10.5z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M9 22V14h6v8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+            <span class="tab-label">Home</span>
+          </div>
+
+          <!-- Discover -->
+          <div class="tab-item" id="tab-discover" onclick="switchTab('discover')">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M16.5 7.5l-4 8-4-4 8-4z" fill="currentColor"/>
+            </svg>
+            <span class="tab-label">Discover</span>
+          </div>
+
+          <!-- Library -->
+          <div class="tab-item" id="tab-library" onclick="switchTab('library')">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="6" height="18" rx="1" stroke="currentColor" stroke-width="1.8"/>
+              <rect x="11" y="3" width="4" height="18" rx="1" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M17.5 3.5L21 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span class="tab-label">Library</span>
+          </div>
+
+        </div><!-- /tab-bar -->
+
+      </div><!-- /phone-frame -->
+
+      <!-- Labels below phone -->
+      <div class="phone-labels">
+        <span>← Tab bar · always visible</span>
+        <span>Mini player · always visible →</span>
+      </div>
+    </div><!-- /phone-wrap -->
+
+    <!-- ── RIGHT SIDEBAR ──────────────────────────────────────────────────── -->
+    <div class="sidebar">
+
+      <!-- Try it -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <polygon points="2,1 11,6 2,11" fill="#FF6B35"/>
+          </svg>
+          Try It
+        </h3>
+        <ul class="try-list">
+          <li>
+            <span class="step-num">1</span>
+            Tap <strong>Library</strong> → tap a source card → notice Library tab stays orange
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            Tap <strong>Discover</strong> → tap a topic pill → Discover tab stays orange
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            Hit <strong style="color:var(--accent);">← back</strong> from any drill-down screen to return
+          </li>
+          <li>
+            <span class="step-num">4</span>
+            Switch tabs directly from a drill-down screen — it works!
+          </li>
+          <li>
+            <span class="step-num">5</span>
+            Watch the <strong>Live State</strong> panel (left) update in real time
+          </li>
+        </ul>
+      </div>
+
+      <!-- What stays visible -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="#6EE7B7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          What Stays Visible
+        </h3>
+        <ul class="check-list">
+          <li><span class="chk">✓</span> Tab bar on every screen</li>
+          <li><span class="chk">✓</span> Mini player floats above tabs</li>
+          <li><span class="chk">✓</span> Parent tab stays highlighted (Library on Source Detail, Discover on Topic)</li>
+          <li><span class="chk">✓</span> Back button navigates within tab stack</li>
+          <li><span class="chk">✓</span> Direct tab switching works from drill-down</li>
+        </ul>
+      </div>
+
+      <!-- Key insight -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <circle cx="6" cy="6" r="5" stroke="#FCD34D" stroke-width="1.5"/>
+            <path d="M6 4v2.5M6 8.5v.5" stroke="#FCD34D" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Why href: null?
+        </h3>
+        <p>Without it, the screen either <strong>shows as a tab item</strong> (wrong — Source Detail shouldn't be a tab) or is <strong>inaccessible</strong> from within the tab stack.</p>
+        <p style="margin-top:8px;">With <span class="mono">href:null</span>, the screen is <strong style="color:var(--text-primary);">registered</strong> inside the tab navigator — preserving the persistent tab bar and mini player — but <strong style="color:var(--text-primary);">hidden</strong> from the tab strip.</p>
+      </div>
+
+      <!-- Layout hierarchy -->
+      <div class="sidebar-card">
+        <h3>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="1" y="1" width="4" height="3" rx="0.8" stroke="#9CA3AF" stroke-width="1.2"/>
+            <rect x="1" y="7" width="4" height="3" rx="0.8" stroke="#9CA3AF" stroke-width="1.2"/>
+            <rect x="7" y="4" width="4" height="3" rx="0.8" stroke="#FF6B35" stroke-width="1.2"/>
+            <path d="M5 2.5h1M5 8.5h1M6 2.5v6M6 6h1" stroke="#9CA3AF" stroke-width="1"/>
+          </svg>
+          Render Hierarchy
+        </h3>
+        <div class="code-block"><span class="ylw">TabLayout</span> (_layout.tsx)
+  <span class="dim">┌─ StatusBar</span>
+  <span class="dim">│</span>
+  <span class="dim">├─ Screen Stack (scrollable)</span>
+  <span class="grn">│    ├─ index.tsx</span>        <span class="dim">tab</span>
+  <span class="grn">│    ├─ discover.tsx</span>     <span class="dim">tab</span>
+  <span class="grn">│    ├─ library.tsx</span>      <span class="dim">tab</span>
+  <span class="hl">│    ├─ library/[id]</span>  <span class="hl">✦</span>
+  <span class="hl">│    └─ discover/[t]</span>  <span class="hl">✦</span>
+  <span class="dim">│</span>
+  <span class="dim">├─ MiniPlayer</span>     <span class="grn">← always</span>
+  <span class="dim">└─ TabBar</span>         <span class="grn">← always</span>
+
+<span class="hl">✦</span> = <span class="hl">href:null</span> (hidden from tab bar)</div>
+      </div>
+
+    </div><!-- /right sidebar -->
+
+  </div><!-- /demo-layout -->
+
+  <!-- ══════════════════════════════════════════════════════════ SCRIPT ══ -->
+  <script>
+    // ── State ─────────────────────────────────────────────────────────────
+    let activeTab    = 'home';
+    let currentScreen = 'home';
+
+    const SCREENS   = ['home', 'discover', 'library', 'source-detail', 'discover-topic'];
+    const TABS      = ['home', 'discover', 'library'];
+    const TAB_SCREEN = { home: 'home', discover: 'discover', library: 'library' };
+
+    // Topic content map
+    const TOPIC_DATA = {
+      'Tech &amp; AI':  { chip: '⚡ Tech & AI',  title: 'Tech & AI',  sub: '47 episodes this week', e1: ['🤖','#1E2A3A','The future of AI agents'], e2: ['💻','#1A1A3A','GPT-5 and what\'s next'], e3: ['🔮','#2A1A3A','Cursor & the future of coding'] },
+      'Business':       { chip: '🚀 Business',   title: 'Business',   sub: '31 episodes this week', e1: ['📈','#1A2A1A','Scale or die — 2025 playbook'], e2: ['💼','#1A1A2A','Hiring your first 10 people'], e3: ['🏆','#2A2A1A','From 0 to $10M ARR'] },
+      'Science':        { chip: '🔬 Science',    title: 'Science',    sub: '23 episodes this week', e1: ['🧬','#1A2A2A','The longevity revolution'], e2: ['🌌','#1A1A3A','Dark matter explained'], e3: ['⚗️','#2A1A1A','CRISPR breakthroughs 2025'] },
+      'Design':         { chip: '🎨 Design',     title: 'Design',     sub: '19 episodes this week', e1: ['✏️','#2A1A2A','Typography that converts'], e2: ['🖌','#1A2A1A','Building design systems at scale'], e3: ['🎭','#1A1A3A','AI-assisted creative work'] },
+      'Health':         { chip: '🧠 Health',     title: 'Health',     sub: '38 episodes this week', e1: ['💪','#1A3A1A','Strength training fundamentals'], e2: ['🥗','#2A2A1A','Nutrition myths debunked'], e3: ['😴','#1A1A3A','Optimize your sleep tonight'] },
+      'Sports':         { chip: '⚽ Sports',     title: 'Sports',     sub: '52 episodes this week', e1: ['🏀','#1A2A3A','The analytics revolution'], e2: ['⚡','#3A1A1A','Peak performance mindset'], e3: ['🏋️','#1A3A2A','Training like an elite athlete'] },
+    };
+
+    // Source detail map
+    const SOURCE_DATA = {
+      'Huberman Lab':  { emoji: '🧠', bg: '#1A3A1A', sub: 'Health & Science · 28 episodes' },
+      'Indie Hackers': { emoji: '🎙', bg: '#1E3A5F', sub: 'Startup · 42 episodes' },
+      '20VC':          { emoji: '💡', bg: '#3A1A1A', sub: 'VC & Investing · 15 episodes' },
+      'a16z Podcast':  { emoji: '🔮', bg: '#1A1A3A', sub: 'Tech & Venture · 63 episodes' },
+    };
+
+    // ── Render ─────────────────────────────────────────────────────────────
+    function render() {
+      // Screens
+      SCREENS.forEach(id => {
+        const el = document.getElementById('screen-' + id);
+        if (el) el.classList.toggle('active', currentScreen === id);
+      });
+
+      // Tabs
+      TABS.forEach(tab => {
+        const el = document.getElementById('tab-' + tab);
+        if (el) el.classList.toggle('active', activeTab === tab);
+      });
+
+      // State panel
+      document.getElementById('state-tab').textContent    = activeTab;
+      document.getElementById('state-screen').textContent = currentScreen;
+      const isDrill = currentScreen === 'source-detail' || currentScreen === 'discover-topic';
+      document.getElementById('state-drill').textContent  = isDrill ? 'true' : 'false';
+
+      // Nav tree
+      updateNavTree();
+
+      // Scroll to top
+      document.getElementById('content-area').scrollTop = 0;
+    }
+
+    function updateNavTree() {
+      const tree = document.getElementById('nav-tree');
+      const s = currentScreen;
+
+      const mark = (id, label, extra) => {
+        const isActive = s === id;
+        const cls = isActive ? 'active-screen' : '';
+        const arrow = isActive ? '   ← active' : '';
+        const badge = extra ? `<span class="hidden-badge">href:null</span>` : '';
+        return `<span class="${cls}">${label}</span>${badge}${arrow}`;
+      };
+
+      tree.innerHTML =
+`<span style="color:#6EE7B7;">▶ (tabs)/</span>
+  ├ ${mark('home',            'index       ')}
+  ├ ${mark('discover',        'discover    ')}
+  └ ${mark('library',         'library     ')}
+
+<span style="color:#FF6B35;">✦ Hidden (href:null)</span>
+  ├ ${mark('source-detail',   'library/[id]',    true)}
+  └ ${mark('discover-topic',  'discover/[t]',    true)}`;
+    }
+
+    // ── Navigation actions ─────────────────────────────────────────────────
+    function switchTab(tab) {
+      activeTab     = tab;
+      currentScreen = TAB_SCREEN[tab];
+      render();
+    }
+
+    function navigate(screen, param, ...rest) {
+      currentScreen = screen;
+      // activeTab stays what it was
+
+      if (screen === 'source-detail') {
+        const data = SOURCE_DATA[param] || { emoji: '🎙', bg: '#1A1A2E', sub: '' };
+        document.getElementById('detail-title').textContent = param;
+        document.getElementById('detail-sub').innerHTML   = data.sub;
+        const art = document.getElementById('detail-art');
+        art.textContent       = data.emoji;
+        art.style.background  = `linear-gradient(135deg, ${data.bg}, #080812)`;
+      }
+
+      if (screen === 'discover-topic') {
+        const key  = param;  // e.g. "Tech &amp; AI"
+        // Find matching key (handle HTML entities)
+        let data = TOPIC_DATA[key] || TOPIC_DATA['Tech &amp; AI'];
+        // Try decoded
+        const decoded = key.replace(/&amp;/g, '&');
+        for (const k of Object.keys(TOPIC_DATA)) {
+          if (k.replace(/&amp;/g, '&') === decoded || k === key) { data = TOPIC_DATA[k]; break; }
+        }
+        document.getElementById('topic-chip').textContent  = data.chip;
+        document.getElementById('topic-title').textContent = data.title;
+        document.getElementById('topic-sub').textContent   = data.sub;
+        // Episodes
+        const [e1a, e1b, e1c] = data.e1;
+        const [e2a, e2b, e2c] = data.e2;
+        const [e3a, e3b, e3c] = data.e3;
+        const a1 = document.getElementById('topic-art1'); a1.textContent = e1a; a1.style.background = e1b;
+        const a2 = document.getElementById('topic-art2'); a2.textContent = e2a; a2.style.background = e2b;
+        const a3 = document.getElementById('topic-art3'); a3.textContent = e3a; a3.style.background = e3b;
+        document.getElementById('topic-ep1').textContent = e1c;
+        document.getElementById('topic-ep2').textContent = e2c;
+        document.getElementById('topic-ep3').textContent = e3c;
+      }
+
+      render();
+    }
+
+    function goBack() {
+      currentScreen = TAB_SCREEN[activeTab] || activeTab;
+      render();
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    render();
+  </script>
+</body>
+</html>

@@ -50,12 +50,18 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 
 ---
 
+## Session 22 Summary — 2026-03-29
+
+**Completed:**
+- `dark-theme-foundation` — Created `native/lib/theme.ts` (pure data module, 80 LOC, all 5 token objects + convenience bundle). Modified `native/app/_layout.tsx`: StatusBar "dark" → "light", AppShell root View gains `backgroundColor: colors.backgroundScreen`. Created `native/__tests__/theme.test.ts` (21 tests with pinned value assertions). Antagonistic review caught missing value-pin tests for typography.sizes, sizes, and borderRadius — all fixed. Also removed redundant inner `as const` from weight literals.
+- `redesign-sign-in` BLOCKED — `@clerk/clerk-expo` v2.19 wraps `<SignIn />` in a `WrapComponent()` that throws "not supported in native environments" on iOS. Spec needs update to use `useSSO()` hook with custom Apple/Google buttons. Visual changes can proceed once auth approach is updated.
+
 ## What's Next
 
-**Phase 5 User Feedback Batch 1.** After paste-raw-text + basic-file-types:
-- `episode-sharing-expanded` (M) — No spec yet
-- `verbatim-read-mode` (M) — No spec yet
-- Close stale GitHub issues (#24–#41)
+**Phase 5 UI Redesign Batch 1 (Session 22):** After dark-theme-foundation:
+- `redesign-processing` (S, 1pt) — theme pass on processing.tsx
+- `redesign-upload-modal` (M, 2pts) — theme pass on UploadModal.tsx + DurationPicker.tsx
+- `redesign-settings-carmode` (S, 1pt) — theme pass on settings.tsx + CarMode.tsx + settings sub-components
 
 ---
 

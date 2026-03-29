@@ -21,6 +21,7 @@ import { syncLibrary, syncPlayback } from "../lib/sync";
 import FeedbackSheet from "../components/FeedbackSheet";
 import type { FeedbackSheetRef } from "../components/FeedbackSheet";
 import { FeedbackSheetContext } from "../lib/useFeedbackSheet";
+import { colors } from "../lib/theme";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 if (!CLERK_KEY) {
@@ -84,7 +85,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <FeedbackSheetContext.Provider value={feedbackCtx}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
         <OfflineBanner />
         {children}
         <PlayerBar />
@@ -104,7 +105,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
       <ClerkLoaded>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <AuthGate>
           <PlayerProvider>
             <TelemetryProvider>
