@@ -8,9 +8,14 @@
 **Size:** S — 1pt
 **Depends on:** `dark-theme-foundation` (F-P5-UI-01)
 
-**Settings:** Currently uses `bg-gray-50` root with `SettingsSection` components that wrap groups. This spec converts to `#0F0F1A` root, `#1A1A2E` grouped section cards, `#FF6B35` toggles, and correct dark text hierarchy.
+**Settings:** Keep current settings rows and functionality. Apply dark theme tokens to the existing structure. The blueprint (11-settings) is used as a color reference only, not for row inventory. All existing settings rows — account info, playback speed, notifications, ElevenLabs API key, storage, about — are preserved exactly. Token swaps:
+- Group card backgrounds: light → `#1A1A2E`
+- Row label text: `text-gray-900` → `#FFFFFF`
+- Row secondary text / values: `text-gray-500` → `#9CA3AF`
+- Toggle track (active): iOS default green → `#FF6B35`
+- Section group borders / dividers: `#E5E7EB` → `rgba(255,255,255,0.06)`
 
-**Car Mode:** Already uses `bg-black` (`#000000`) for the screen background — this is correct. The main changes are structural: add an `ArticleInfoSection` (title + source text in the upper area), add a thin `ProgressBarSection` with `#FF6B35` fill, and update the three control buttons to the blueprint layout (`#1A1A2E` skip buttons, `#FF6B35` play/pause button circle).
+**Car Mode:** Already uses `bg-black` (`#000000`) for the screen background — keep it. Per the 09-car-mode blueprint, add `ArticleInfoSection` (episode title + source in the upper area) and a `ProgressBarSection` (thin progress bar), and update the three large transport buttons to blueprint sizes: skip buttons 80×80 with `#1A1A2E` fill, play/pause button 140×140 with `#FF6B35` fill.
 
 **Source material:** `ui-studio/blueprints/11-settings/component-spec.md` · `ui-studio/blueprints/11-settings/tokens.json` · `ui-studio/blueprints/09-car-mode/component-spec.md` · `ui-studio/blueprints/09-car-mode/tokens.json`
 
@@ -24,111 +29,113 @@ No new exported types. All settings logic (`AppPrefs`, `getPrefs`, `setPrefs`, `
 
 ### Behavior
 
-#### `native/app/settings.tsx`
+#### `native/app/settings.tsx` — dark theme pass on existing rows
+
+**Keep current rows and functionality. These token swaps apply to the existing structure:**
 
 **Root `SafeAreaView`**
-- `className="flex-1 bg-gray-50"` → `backgroundColor: colors.backgroundScreen` (#0F0F1A)
+- Old `className="flex-1 bg-gray-50"` → `backgroundColor: colors.backgroundScreen` (#0F0F1A)
 
 **Header bar**
-- `className="flex-row items-center px-4 py-3 border-b border-gray-100"` →
-  - `borderBottomColor: colors.borderDivider`
-  - `borderBottomWidth: 1`
-- Back chevron: `color="#374151"` → `colors.textSecondary`
-- "Settings" title: `className="text-xl font-bold text-gray-900"` → `color: colors.textPrimary`, `fontSize: 22`, `fontWeight: '600'`
+- Old `borderBottomColor: "#E5E7EB"` (or `border-gray-100`) → `colors.borderDivider` (`rgba(255,255,255,0.06)`)
+- Back chevron: old `color="#374151"` → `colors.textSecondary`
+- "Settings" title: old `className="text-xl font-bold text-gray-900"` → `color: colors.textPrimary`, `fontSize: 22`, `fontWeight: '600'`
 
 **`SettingsSection` component** (`native/components/settings/SettingsSection.tsx`)
-The section wrapper is a separate sub-component. It needs dark theme:
-- Section header text (uppercase section title): `color: colors.textSecondary`, `fontSize: 12`, uppercase — was light-mode gray
-- Group card container: `backgroundColor: colors.surface` (#1A1A2E), `borderRadius: borderRadius.card` (10px)
-- No shadow, no border (elevation is color-only per design system)
+- Section header text (uppercase title): → `color: colors.textSecondary`, `fontSize: 12`, uppercase
+- Group card container: old light bg (`#fff`/`bg-white`/`bg-gray-50`) → `backgroundColor: colors.surface` (#1A1A2E), `borderRadius: borderRadius.card` (10px)
+- No shadow, no border on the group card
 
 **`SettingsDivider` component** (`native/components/settings/SettingsDivider.tsx`)
-- Divider line: `backgroundColor: colors.borderDivider` (was likely `#E5E7EB` or similar light color)
+- Divider line: old `backgroundColor: "#E5E7EB"` → `colors.borderDivider` (`rgba(255,255,255,0.06)`)
 
 **`SettingsRow` component** (`native/components/settings/SettingsRow.tsx`)
 - Row container: `backgroundColor: colors.surface` (#1A1A2E)
-- Label text: `color: colors.textPrimary`
-- Right label / value text: `color: colors.textSecondary`
-- Chevron icon: `color: colors.textTertiary`
-- Destructive label: `color: colors.statusError`
+- Label text: old `text-gray-900` → `color: colors.textPrimary` (#FFFFFF)
+- Right label / value text: old `text-gray-500` → `color: colors.textSecondary` (#9CA3AF)
+- Chevron icon: → `color: colors.textTertiary`
+- Destructive label: → `color: colors.statusError`
 
 **`SettingsToggleRow` component** (`native/components/settings/SettingsToggleRow.tsx`)
 - Row container: `backgroundColor: colors.surface`
-- Label text: `color: colors.textPrimary`
-- Subtitle text: `color: colors.textSecondary`
-- `Switch` component: `trackColor={{ false: colors.surfaceElevated, true: colors.accentPrimary }}`, `thumbColor: '#FFFFFF'` (the toggle track/thumb — was iOS default green)
+- Label text: old `text-gray-900` → `color: colors.textPrimary`
+- Subtitle text: old `text-gray-500` → `color: colors.textSecondary`
+- `Switch` toggle:
+  - `trackColor={{ false: colors.surfaceElevated, true: colors.accentPrimary }}` (active track → `#FF6B35`, inactive track → `#242438`)
+  - `thumbColor: '#FFFFFF'` (white thumb — both platforms)
 
 **Account section**
-- Avatar: `className="w-10 h-10 rounded-full bg-orange-100"` → `backgroundColor: 'rgba(255,107,53,0.15)'` (dark tint)
-- Avatar icon: `color="#EA580C"` → `colors.accentPrimary`
-- Name: `className="text-base font-semibold text-gray-900"` → `colors.textPrimary`
-- Email: `className="text-sm text-gray-500"` → `colors.textSecondary`
+- Avatar container: old `className="w-10 h-10 rounded-full bg-orange-100"` → `backgroundColor: 'rgba(255,107,53,0.15)'`
+- Avatar icon: old `color="#EA580C"` → `colors.accentPrimary`
+- Name: old `className="text-base font-semibold text-gray-900"` → `colors.textPrimary`
+- Email: old `className="text-sm text-gray-500"` → `colors.textSecondary`
 
 **ElevenLabs API key section**
-- Label: `className="text-base font-medium text-gray-900 mb-1"` → `colors.textPrimary`
-- Description: `className="text-xs text-gray-500 mb-3"` → `colors.textSecondary`
-- Input: `className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"` →
-  - `backgroundColor: colors.surfaceElevated`
-  - `borderColor: colors.borderInput`
-  - `borderRadius: borderRadius.card`
+- Label: old `text-gray-900` → `colors.textPrimary`
+- Description: old `text-gray-500` → `colors.textSecondary`
+- Input: old `className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"` →
+  - `backgroundColor: colors.surfaceElevated` (#242438)
+  - `borderColor: colors.borderInput` (`rgba(255,255,255,0.08)`)
+  - `borderRadius: borderRadius.card` (10px)
   - `color: colors.textPrimary`
   - `placeholderTextColor: colors.textSecondary`
-- Save button (active): `className="bg-brand"` → `backgroundColor: colors.accentPrimary`
-- Save button (inactive): `className="bg-gray-200"` → `backgroundColor: colors.surfaceElevated`
-- Save button text (active): `text-white` → `colors.textPrimary`
-- Save button text (inactive): `text-gray-400` → `colors.textTertiary`
+- Save button (active): old `className="bg-brand"` → `backgroundColor: colors.accentPrimary`
+- Save button (inactive): old `className="bg-gray-200"` → `backgroundColor: colors.surfaceElevated`
+- Save button text (active): `colors.textPrimary`
+- Save button text (inactive): `colors.textTertiary`
 
 **Storage section**
-- "Downloaded Episodes" label: `text-gray-900` → `colors.textPrimary`
-- File count/size: `text-gray-500` → `colors.textSecondary`
+- "Downloaded Episodes" label: old `text-gray-900` → `colors.textPrimary`
+- File count/size: old `text-gray-500` → `colors.textSecondary`
 
 **Playback speed badge** (inline in SettingsRow)
-- `className="bg-orange-100 px-3 py-1 rounded-full"` → `backgroundColor: 'rgba(255,107,53,0.15)'`
-- Text: `text-sm font-bold text-brand` → `color: colors.accentPrimary`
+- Old `className="bg-orange-100 px-3 py-1 rounded-full"` → `backgroundColor: 'rgba(255,107,53,0.15)'`
+- Text: old `text-brand` → `color: colors.accentPrimary`
 
 ---
 
 #### `native/components/CarMode.tsx`
 
-**Background** — Already correct: `className="flex-1 bg-black"` → keep `#000000` (blueprint `color-background-screen: #000000`, OLED black)
+Per the 09-car-mode blueprint, Car Mode is "pure `#000000` OLED black, 3 giant buttons, zero decoration." All content renders directly on the black background — no card containers, no surfaces.
 
-**Close button** — existing `absolute top-0 right-4 p-3`
-- Keep positioning
-- Icon: `color="white"` — unchanged
+**Background** — Already correct: keep `#000000` (`colors.backgroundOled`). Do NOT change to `#0F0F1A`.
 
-**NEW: ArticleInfoSection** (add above controls)
-Insert a `View` in the upper area showing current episode info:
+**Close button** — keep existing absolute top-right positioning; icon `color="white"` — unchanged.
+
+**NEW: ArticleInfoSection** (add to upper area of screen)
 - Container: `position: 'absolute'`, `top: insets.top + 48`, `left: 24`, `right: 24`
-- ArticleTitleText: `currentItem.title`, `fontSize: 28`, `fontWeight: '700'`, `color: '#FFFFFF'`, `lineHeight: 33.6`, `numberOfLines: 2`
-- SourceText: `currentItem.sourceDomain ?? currentItem.author ?? ''`, `fontSize: 16`, `fontWeight: '400'`, `color: '#9CA3AF'`, `marginTop: 8`
+- ArticleTitleText: `currentItem.title`, `fontSize: 28`, `fontWeight: '700'`, `color: '#FFFFFF'`, `lineHeight: 33.6`, `numberOfLines: 2`, `ellipsizeMode: 'tail'`
+- SourceText: `currentItem.sourceDomain ?? currentItem.author ?? ''`, `fontSize: 16`, `fontWeight: '400'`, `color: '#9CA3AF'`, `marginTop: 8`, `numberOfLines: 1`
 
 **NEW: ProgressBarSection** (add between article info and controls)
-Insert a thin progress bar between the article info and the playback controls:
-- Track: `height: 6`, `backgroundColor: '#1A1A2E'`, `borderRadius: 3`, `marginHorizontal: 40`, absolute or within flex column
-- Fill: computed from `position / duration * 100 + '%'` — use `usePlayer()` exposed `position` and `duration` values
-- Fill: `backgroundColor: colors.accentPrimary`, same height/radius
-- Position: between ArticleInfoSection and PlaybackControlsRow. Use flex column layout rather than absolute positioning for the body section.
+- Track `View`: `height: 6`, `backgroundColor: '#1A1A2E'`, `borderRadius: 3`, `marginHorizontal: 40`
+- Fill `View`: `backgroundColor: colors.accentPrimary` (#FF6B35), `height: 6`, `borderRadius: 3`
+- Fill width: computed from `position / Math.max(duration, 1)` — use `usePlayer()` `position` and `duration` values
+- Protect against division by zero: `Math.min(position / Math.max(duration, 1), 1) * 100 + '%'`
 
-**Main controls row** — existing layout preserved (3 buttons: skip back, play/pause, skip forward)
-- SkipBack/SkipForward buttons: change `borderColor: "rgba(255,255,255,0.3)"` → `backgroundColor: '#1A1A2E'` (fill the button). Remove border. Size stays 80×80.
-- SkipBack/SkipForward: add duration label text below icon: `{CAR_MODE_SKIP_SECS}s`, `fontSize: 11`, `color: 'rgba(255,255,255,0.7)'`
-- PlayPause button: change `borderColor: "white", borderWidth: 3` (outline only) → `backgroundColor: colors.accentPrimary`, remove border. Size stays 140×140.
-- PlayPause icon color: `color="white"` — unchanged
+**Main controls row** — existing 3-button layout updated per blueprint sizes:
+- SkipBack/SkipForward buttons:
+  - Old: border-only (`borderColor: "rgba(255,255,255,0.3)"`), no fill
+  - New: `backgroundColor: '#1A1A2E'`, no border. Size **80×80** px.
+  - Add duration label below icon: `{CAR_MODE_SKIP_SECS}s`, `fontSize: 11`, `color: 'rgba(255,255,255,0.7)'`
+- PlayPause button:
+  - Old: border-only (`borderColor: "white", borderWidth: 3`), no fill
+  - New: `backgroundColor: colors.accentPrimary` (#FF6B35), no border. Size **140×140** px.
+  - Play/pause icon: `color="white"` — unchanged
 
-**Episode title at bottom** — REMOVE this element now that `ArticleInfoSection` is shown at top. The episode title is no longer shown twice.
+**Episode title at bottom** — REMOVE this element. Episode info is now shown in ArticleInfoSection at the top. Avoid showing episode title twice.
 
-**Layout restructure**
-The current layout uses a centered `flex-row` for controls. Add flex column structure:
+**Layout structure** (flex column instead of centered flex-row for controls only):
 ```
 CarMode View (flex:1, bg:#000000, items:center)
   CloseButton (absolute, top-right)
+  ArticleInfoSection (absolute, top: insets.top+48, left:24, right:24)
   ContentArea (flex:1, justifyContent:'center', width:'100%')
-    ArticleInfoSection (px:24, mb:40)
     ProgressBarSection (mx:40, mb:48)
     PlaybackControlsRow (flex-row, gap:10, justify:center)
-      SkipBackButton (#1A1A2E fill, 80×80)
-      PlayPauseButton (accentPrimary fill, 140×140)
-      SkipForwardButton (#1A1A2E fill, 80×80)
+      SkipBackButton (#1A1A2E fill, 80×80, borderRadius:40)
+      PlayPauseButton (accentPrimary fill, 140×140, borderRadius:70)
+      SkipForwardButton (#1A1A2E fill, 80×80, borderRadius:40)
 ```
 
 ---
@@ -136,35 +143,45 @@ CarMode View (flex:1, bg:#000000, items:center)
 ## 3. Acceptance Criteria
 
 **Settings:**
-- [ ] Root background: `#0F0F1A` (was gray-50)
-- [ ] Header border: `rgba(255,255,255,0.06)` (was gray-100)
-- [ ] "Settings" title: white, 22px/600 (was gray-900)
-- [ ] Section group cards: `#1A1A2E` bg, 10px radius, no shadow (was white with shadow)
-- [ ] All row labels: white (was gray-900)
-- [ ] All row secondary values: `#9CA3AF` (was gray-500)
-- [ ] Toggle tracks: `#FF6B35` when ON (was iOS green)
-- [ ] ElevenLabs input: `#242438` bg, input border, white text (was gray-50, gray-200 border)
-- [ ] Save Key button active: `#FF6B35` bg (was `bg-brand` = `#EA580C`)
-- [ ] Playback speed badge: `rgba(255,107,53,0.15)` bg, `#FF6B35` text (was orange-100)
-- [ ] Account avatar bg: `rgba(255,107,53,0.15)` (was orange-100)
+
+| # | Criterion | Verification |
+|---|-----------|-------------|
+| AC-1 | Root background: `#0F0F1A` (was gray-50) | Visual |
+| AC-2 | Header border: `rgba(255,255,255,0.06)` (was gray-100) | Code review |
+| AC-3 | "Settings" title: white, 22px/600 (was gray-900) | Code review |
+| AC-4 | Section group cards: `#1A1A2E` bg, 10px radius, no shadow (was white with shadow) | Visual + `rg 'shadowColor\|elevation' native/components/settings/SettingsSection.tsx` |
+| AC-5 | All row labels: white (was gray-900) | Visual: all rows show white label text |
+| AC-6 | All row secondary values: `#9CA3AF` (was gray-500) | Visual |
+| AC-7 | Toggle tracks: `#FF6B35` when ON (was iOS default green), `#242438` when OFF | Visual: toggle a setting on and off |
+| AC-8 | ElevenLabs input: `#242438` bg, input border, white text (was gray-50, gray-200 border) | Visual + code review |
+| AC-9 | Save Key button active: `#FF6B35` bg (was `bg-brand` = `#EA580C`) | Visual |
+| AC-10 | Playback speed badge: `rgba(255,107,53,0.15)` bg, `#FF6B35` text (was orange-100) | Visual |
+| AC-11 | Account avatar bg: `rgba(255,107,53,0.15)` (was orange-100) | Visual |
+| AC-12 | Current settings rows intact — account, playback, notifications, ElevenLabs, storage, about | Manual: verify all rows present and functional |
 
 **Car Mode:**
-- [ ] Screen background: `#000000` (unchanged, already correct)
-- [ ] ArticleInfoSection visible: episode title (white, 28/700) + source (gray, 16/400)
-- [ ] ProgressBarSection: 6px bar, `#1A1A2E` track, `#FF6B35` fill (fill advances with playback)
-- [ ] SkipBack/SkipForward: `#1A1A2E` filled circles, no border (was border-only white)
-- [ ] PlayPause: `#FF6B35` filled circle (was white border-only)
-- [ ] Episode title at bottom REMOVED (moved to ArticleInfoSection at top)
+
+| # | Criterion | Verification |
+|---|-----------|-------------|
+| AC-13 | Screen background: `#000000` (unchanged, already correct) | Visual |
+| AC-14 | ArticleInfoSection visible: episode title (white, 28/700, 2 lines) + source (`#9CA3AF`, 16/400) | Visual: open car mode with active episode |
+| AC-15 | ProgressBarSection: 6px bar, `#1A1A2E` track, `#FF6B35` fill advancing with playback | Visual: observe fill moving during playback |
+| AC-16 | SkipBack/SkipForward: `#1A1A2E` filled circles (80×80), no border (was border-only white) | Visual |
+| AC-17 | PlayPause: `#FF6B35` filled circle (140×140), no border (was white border-only) | Visual |
+| AC-18 | Episode title at bottom REMOVED (shown in ArticleInfoSection at top) | Code review: no bottom title element |
 
 ---
 
 ## 4. Edge Cases
 
-- **SettingsSection/SettingsRow sub-components:** These sub-components in `native/components/settings/` need dark theme updates. List them explicitly in Files to Modify. Do not assume they inherit dark styles automatically.
-- **`Switch` component on Android:** `Switch` on Android uses `trackColor` and `thumbColor` differently. The `thumbColor` prop on Android sets the thumb for all states. Set `thumbColor={colors.textPrimary}` (white) for both platforms.
-- **Car mode `position` and `duration` from `usePlayer()`:** `usePlayer()` already exposes `position` and `duration`. The progress bar just reads them. If `duration === 0`, show 0% fill (protect against division by zero: `Math.min(position / Math.max(duration, 1), 1)`).
-- **Car mode article info overflow:** Title `numberOfLines={2}` with `ellipsizeMode="tail"` to prevent overflow. Source text `numberOfLines={1}`.
-- **Settings scroll on small screens:** The `KeyboardAvoidingView` + `ScrollView` already handles this. Background is now dark — ensure no flash of white at scroll boundaries by setting `contentContainerStyle={{ backgroundColor: colors.backgroundScreen }}` if needed.
+| Case | Expected Behavior |
+|------|-------------------|
+| `SettingsSection`/`SettingsRow` sub-components | These sub-components in `native/components/settings/` need dark theme updates. Listed explicitly in Files to Modify. They do not inherit dark styles automatically. |
+| `Switch` on Android | `thumbColor` on Android sets the thumb for all states. Set `thumbColor='#FFFFFF'` (white) for both platforms. |
+| Car mode `position` and `duration` from `usePlayer()` | `usePlayer()` exposes `position` and `duration`. Progress bar reads them. If `duration === 0`, `Math.max(duration, 1)` prevents division by zero — shows 0% fill. |
+| Car mode article title overflow | `numberOfLines={2}` + `ellipsizeMode="tail"` on title. Source text `numberOfLines={1}`. |
+| Settings scroll on small screens | `KeyboardAvoidingView` + `ScrollView` already handles this. Set `contentContainerStyle={{ backgroundColor: colors.backgroundScreen }}` if white scroll boundary appears. |
+| Car mode `#000000` vs `#0F0F1A` | Car mode is the only screen using `colors.backgroundOled` (#000000). Do NOT change to `backgroundScreen` (#0F0F1A). The OLED black is intentional per design brief. |
 
 ---
 
@@ -172,12 +189,12 @@ CarMode View (flex:1, bg:#000000, items:center)
 
 | File | Change |
 |------|--------|
-| `native/app/settings.tsx` | Root bg, header, account row, ElevenLabs input, storage, speed badge |
-| `native/components/CarMode.tsx` | ArticleInfoSection (new), ProgressBarSection (new), button fill colors, remove bottom title |
-| `native/components/settings/SettingsSection.tsx` | Dark group card, section header text |
-| `native/components/settings/SettingsRow.tsx` | Dark label, value, chevron, destructive colors |
+| `native/app/settings.tsx` | Root bg, header, account row, ElevenLabs input, storage, speed badge — theme pass only |
+| `native/components/CarMode.tsx` | ArticleInfoSection (new), ProgressBarSection (new), button fill colors + blueprint sizes, remove bottom title |
+| `native/components/settings/SettingsSection.tsx` | Dark group card bg (`#1A1A2E`), dark section header text |
+| `native/components/settings/SettingsRow.tsx` | Dark label (`#FFFFFF`), value (`#9CA3AF`), chevron (`#6B7280`), destructive (`#EF4444`) |
 | `native/components/settings/SettingsToggleRow.tsx` | Toggle `trackColor` → `accentPrimary`, dark label/subtitle |
-| `native/components/settings/SettingsDivider.tsx` | `borderDivider` color |
+| `native/components/settings/SettingsDivider.tsx` | `borderDivider` color (`rgba(255,255,255,0.06)`) |
 
 ---
 
@@ -191,11 +208,12 @@ CarMode View (flex:1, bg:#000000, items:center)
 
 ## 7. Notes
 
-- Car mode `#000000` background is already correct and is the one case where `colors.backgroundOled` (not `colors.backgroundScreen`) is used. Do not change it to `#0F0F1A`.
-- The blueprint (09-car-mode) shows `PlayPauseButton` with `color-accent-primary` fill (`#FF6B35`) and skip buttons with `color-surface-button-secondary` fill (`#1A1A2E`). This is a significant change from the current all-outline buttons.
-- Anti-slop: Car mode is "pure `#000000` OLED black, 3 giant buttons, zero decoration." Do NOT add any `#1A1A2E` card surfaces behind the content area. The article info and progress bar render directly on `#000000`.
-- The `SettingsSection` wrapper currently renders section title as a prop. Look for the `title` prop rendering and update its color there.
-- `borderRadius.card` = 10. SettingsSection groups currently use `rounded-2xl` or similar — replace with explicit 10px.
+- **Settings: keep current rows and functionality.** Every existing settings row (account info, playback speed, notifications, ElevenLabs API key, storage, about) is preserved. The blueprint (11-settings) is used for styling reference only. Do not add or remove rows.
+- **Car mode uses `colors.backgroundOled` (#000000), not `colors.backgroundScreen`.** This is the one correct use of the OLED black token. Do NOT change the car mode background to `#0F0F1A`.
+- **Anti-slop for Car Mode:** "Pure `#000000` OLED black, 3 giant buttons, zero decoration." The article info and progress bar render directly on `#000000` — no card containers, no surface-colored panels behind them.
+- **Button sizes from 09-car-mode blueprint:** skip buttons 80×80 (`size-car-mode-skip-button: 80`), play/pause 140×140 (`size-car-mode-play-button: 140`). These exact values come from the blueprint tokens.
+- **`borderRadius.card` = 10.** SettingsSection groups currently use `rounded-2xl` or similar — replace with explicit `borderRadius: 10`.
+- **Settings sub-components in `native/components/settings/`.** There are 4 sub-component files that must each be updated. They do not automatically inherit colors from the parent screen.
 
 ---
 
@@ -204,7 +222,7 @@ CarMode View (flex:1, bg:#000000, items:center)
 _To be filled by implementing agent._
 
 ```
-settings.tsx
+settings.tsx (layout unchanged, theme pass)
 ├── SafeAreaView (bg: backgroundScreen)
 │   ├── Header (borderBottom: borderDivider)
 │   │   ├── BackChevron (textSecondary)
@@ -215,26 +233,31 @@ settings.tsx
 │           │   ├── AvatarCircle (rgba orange tint, accentPrimary icon)
 │           │   ├── Name (textPrimary)
 │           │   └── Email (textSecondary)
-│           ├── PlaybackSection → group using SettingsRow + SettingsToggleRow
+│           ├── PlaybackSection → SettingsRow + SettingsToggleRow (accentPrimary toggle)
 │           ├── NotificationsSection → SettingsToggleRow (accentPrimary toggle)
 │           ├── ElevenLabsSection
-│           │   └── APIKeyInput (surfaceElevated, borderInput)
-│           ├── StorageSection
+│           │   └── APIKeyInput (surfaceElevated, borderInput, r:10)
+│           ├── StorageSection (textPrimary label, textSecondary meta)
 │           └── AboutSection
 
-CarMode.tsx
-├── Modal (fullScreen, bg: #000000)
+SettingsSection.tsx: groupCard → surface #1A1A2E, r:10; sectionTitle → textSecondary
+SettingsRow.tsx: label → textPrimary; value → textSecondary; chevron → textTertiary
+SettingsToggleRow.tsx: trackColor {true: accentPrimary, false: surfaceElevated}; thumbColor → white
+SettingsDivider.tsx: → borderDivider rgba(255,255,255,0.06)
+
+CarMode.tsx (new elements + button updates)
+├── Modal (fullScreen, bg: #000000 = backgroundOled)
 │   └── View (flex:1, bg:#000000)
-│       ├── CloseButton (absolute, top-right)
+│       ├── CloseButton (absolute, top-right, white icon)
+│       ├── ArticleInfoSection (NEW, absolute, top:insets.top+48, px:24)
+│       │   ├── TitleText (white, 28/700, 2 lines)
+│       │   └── SourceText (#9CA3AF, 16/400)
 │       └── ContentArea (flex:1, justifyContent:center)
-│           ├── ArticleInfoSection (NEW, px:24)
-│           │   ├── TitleText (white, 28/700, 2 lines)
-│           │   └── SourceText (#9CA3AF, 16/400)
 │           ├── ProgressBarSection (NEW, mx:40, mb:48)
 │           │   └── Track (#1A1A2E, h:6, r:3)
 │           │       └── Fill (accentPrimary, computed width)
 │           └── PlaybackControlsRow (flex-row, gap:10)
-│               ├── SkipBackButton (#1A1A2E fill, 80×80)
-│               ├── PlayPauseButton (accentPrimary fill, 140×140)
-│               └── SkipForwardButton (#1A1A2E fill, 80×80)
+│               ├── SkipBackButton (#1A1A2E fill, 80×80, r:40)
+│               ├── PlayPauseButton (accentPrimary fill, 140×140, r:70)
+│               └── SkipForwardButton (#1A1A2E fill, 80×80, r:40)
 ```

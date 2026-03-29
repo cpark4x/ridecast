@@ -25,7 +25,7 @@ Create `native/lib/theme.ts` exporting five typed `as const` objects. No default
 export const colors = {
   // Backgrounds — 3-tier elevation model (no shadows, color only)
   backgroundScreen:  '#0F0F1A',   // base — every screen background
-  backgroundOled:    '#000000',   // car mode only, no other use
+  backgroundOled:    '#000000',   // Car Mode screen AND Expanded Player atmospheric background ONLY — no other use
 
   // Surfaces
   surface:           '#1A1A2E',   // cards, tab bar, bottom sheets, grouped lists
@@ -147,6 +147,10 @@ The `_layout.tsx` root changes are minimal surgical edits — no structural chan
 | AC-9 | `StatusBar` in `_layout.tsx` uses `style="light"` | Code review / grep: `rg 'StatusBar' native/app/_layout.tsx` shows `style="light"` |
 | AC-10 | Root View in `AppShell` has `backgroundColor` set to the `#0F0F1A` token | Code review: `AppShell` View style includes `backgroundColor: colors.backgroundScreen` |
 | AC-11 | `theme.ts` has zero imports from `react` or `react-native` | Unit test or lint: importing `theme.ts` in a plain Node test context does not throw |
+| AC-12 | No component that imports `theme.ts` applies `shadowColor`, `shadowOffset`, `shadowOpacity`, `shadowRadius`, or `elevation` styles sourced from theme tokens | Code review: grep `native/` for shadow props — none may reference theme values. Elevation is communicated by surface color tiers only. |
+| AC-13 | No component uses `backdrop-filter`, `blur`, glass effects, or frosted-glass treatments | Code review: grep for `BlurView`, `backdrop-filter`, `blurRadius` in component files — none present |
+| AC-14 | No component references hardcoded light-theme fallback colors (e.g. `#fff`, `#ffffff`, `#f2f2f7`, `#e5e7eb`, `bg-white`, `bg-gray-*`) outside of intentional white-on-dark interactive elements (e.g. white button text, white play icon) | Code review: after all redesign specs are applied, grep for light-mode color strings in styled components — any found are bugs |
+| AC-15 | `colors.backgroundOled` (`#000000`) is used ONLY in Car Mode screen and Expanded Player atmospheric background | Code review: grep for `backgroundOled` or `#000000` usage — confirm restricted to those two contexts |
 
 ---
 
@@ -158,7 +162,7 @@ The `_layout.tsx` root changes are minimal surgical edits — no structural chan
 | TypeScript consumers use dot-notation on `colors` | All keys are narrowed to literal types via `as const`, enabling autocompletion and preventing typos at the call site |
 | A future token is added to `theme.ts` | The test file's "no undefined values" sweep catches any accidental `undefined` assignment automatically |
 | `_layout.tsx` renders on a device with a white status bar | `style="light"` forces white icons/text, which remain legible on `#0F0F1A` — no contrast issue |
-| `backgroundOled` token is used outside car mode | No enforcement in this spec — `backgroundOled` (`#000000`) should only be applied in the car mode screen; misuse is a future linting concern |
+| `backgroundOled` token is used outside Car Mode or Expanded Player atmospheric context | This is a bug — `backgroundOled` (`#000000`) applies only to Car Mode (pure OLED black screen) and the Expanded Player artwork atmosphere background. Using it as a general dark background is incorrect; use `backgroundScreen` (`#0F0F1A`) instead. |
 | Two tokens have the same hex value (`accentPrimary` and `contentBusiness` are close but distinct: `#FF6B35` vs `#EA580C`) | Values are distinct. The old `#EA580C` must not appear as `accentPrimary` — it was the incorrect pre-redesign accent. |
 
 ---
@@ -184,11 +188,14 @@ The `_layout.tsx` root changes are minimal surgical edits — no structural chan
 ## 7. Notes
 
 - **Anti-slop enforcement:** The `colors` object contains no gradients, no `rgba` accent variants, and no shadow values. Elevation is communicated entirely via the three surface colors. See `ui-studio/moodboard/aesthetic-brief.md` → Anti-Slop Notes.
+- **No shadows anywhere.** No component in this design system uses `shadowColor`, `shadowOffset`, `shadowOpacity`, `shadowRadius`, or `elevation`. These props are forbidden. Depth is expressed through the three-tier color model: `backgroundScreen` (#0F0F1A) → `surface` (#1A1A2E) → `surfaceElevated` (#242438).
+- **No glass effects.** `BlurView`, `backdrop-filter`, frosted glass, and similar treatments are not part of this design system. They are explicitly banned by the aesthetic brief.
+- **No light-theme fallbacks.** Every color reference must use a dark-system token from `theme.ts`. Inline light colors (`#fff`, `#f2f2f7`, Tailwind `bg-white`, `bg-gray-*`) are bugs, not defaults.
+- **`backgroundOled` is scoped.** `colors.backgroundOled` (`#000000`) is used in exactly two places: (1) the Car Mode fullscreen modal background (pure OLED black per design intent), and (2) the Expanded Player atmospheric gradient background behind the artwork. Any other use is a misapplication of this token.
 - **`#EA580C` is not the accent.** The current codebase uses `#EA580C` in `_layout.tsx` (`tabBarActiveTintColor`) and `PlayerBar.tsx` (progress bar). This is wrong — it is `colors.contentBusiness`. The correct accent is `#FF6B35`. Those call sites are corrected in F-P5-UI-02 (`nav-shell-redesign`), not here.
 - **No context provider.** Theme tokens are static constants. A React context adds indirection with zero benefit for static data. All consumers import directly from `'../lib/theme'` (or `'../../lib/theme'` from deeper paths).
 - **`typography.weights` are strings, not numbers.** React Native's `fontWeight` prop accepts `'400'` (string) not `400` (number). The `as const` assertion narrows them to the correct string literal types.
 - **Deferred:** Geist font loading is not part of this spec. The tokens define the intended weights; font loading will be addressed when screens are actively restyled in later specs.
-- **`backgroundOled`** is included for completeness (car mode uses it) but is not applied anywhere in this spec.
 
 ---
 
