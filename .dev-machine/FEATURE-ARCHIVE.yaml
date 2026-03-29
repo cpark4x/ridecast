@@ -415,3 +415,37 @@ features:
     description: Add .docx/.doc/.md file upload support via mammoth extractor + expanded MIME types
     size: M
     depends_on: []
+  dark-theme-foundation:
+    status: done
+    started_at: '2026-03-29T00:21:00+00:00'
+    completed_at: '2026-03-29T00:31:00+00:00'
+    spec: specs/features/phase5/dark-theme-foundation.md
+    description: Create shared theme.ts token module + apply dark background and light StatusBar to root layout
+    size: M
+  redesign-upload-modal:
+    status: done
+    started_at: '2026-03-29T00:39:00+00:00'
+    completed_at: '2026-03-29T00:48:00+00:00'
+    spec: specs/features/phase5/redesign-upload-modal.md
+    description: "Upload Modal + Duration Picker dark theme \u2014 bottom sheet, inputs, chips, drop zone"
+    size: M
+    depends_on:
+    - dark-theme-foundation
+  redesign-processing:
+    status: done
+    started_at: '2026-03-29T00:33:00+00:00'
+    completed_at: '2026-03-29T00:38:00+00:00'
+    spec: specs/features/phase5/redesign-processing.md
+    description: "Processing screen dark theme \u2014 stage indicators, progress bar, dark fullscreen"
+    size: S
+    depends_on:
+    - dark-theme-foundation
+  redesign-settings-carmode:
+    status: done
+    started_at: '2026-03-29T00:49:00+00:00'
+    completed_at: '2026-03-29T01:04:00+00:00'
+    spec: specs/features/phase5/redesign-settings-carmode.md
+    description: Settings dark modal sheet + Car Mode pure OLED black with giant controls
+    size: S
+    depends_on:
+    - dark-theme-foundation

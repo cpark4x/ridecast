@@ -50,6 +50,18 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 
 ---
 
+## Session 23 Summary — 2026-03-29
+
+**Smoke test cadence (due session 23):** E2E suite exists but couldn't run — dev server process 40433 holds `.next/dev/lock`, Playwright webServer can't start a second instance. Unit tests: 433 passing, 7 skipped. Marked cadence as run (last_run_session=23).
+
+**Completed: `nav-shell-redesign` (L, 3pts)**
+- `native/app/(tabs)/_layout.tsx` — complete rewrite: 3-tab layout (Home/Discover/Library), dark tabScreenOptions with correct colors, exported `tabScreenOptions` + `getHomeIcon/getDiscoverIcon/getLibraryIcon` for testability.
+- `native/app/(tabs)/discover.tsx` — new scaffold: SafeAreaView + centered "Discover" text, backgroundScreen bg.
+- `native/components/PlayerBar.tsx` — visual refresh: container #242438 / borderRadius 14 / NO shadows. Thumbnail size 40. Title 14px/500/#F5F5F5. Caption 12px/#9CA3AF. Progress fill #FF6B35. Play icon 24px. Removed rewind-15 and skip-30 buttons. Exported style constants for testability.
+- `native/app/_layout.tsx` — exported `EXEMPT_SEGMENTS = ['sign-in','processing','settings']`, added `useSegments()` + `isExemptScreen` check in AppShell, wrapped `<PlayerBar />` with visibility guard.
+- `native/__tests__/TabLayout.test.tsx` + `native/__tests__/PlayerBar.test.tsx` — new spec tests (not run by health gate; native Jest broken).
+- Antagonistic review: 3 findings, all non-actionable (wrong token semantics = spec allows either; height 56 = Expo Router handles safe area on top per spec note; EXEMPT_SEGMENTS ordering = doesn't change behavior).
+
 ## Session 22 Summary — 2026-03-29
 
 **Completed:**

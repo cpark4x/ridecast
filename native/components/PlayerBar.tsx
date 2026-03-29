@@ -7,6 +7,46 @@ import { smartTitle } from "../lib/libraryHelpers";
 import { Haptics } from "../lib/haptics";
 import { timeRemaining } from "../lib/utils";
 import SourceThumbnail from "./SourceThumbnail";
+import { colors, borderRadius, sizes } from "../lib/theme";
+
+// ---------------------------------------------------------------------------
+// Exported style constants — for testability (PlayerBar.test.tsx)
+// ---------------------------------------------------------------------------
+
+/** Container style object (AC-10, AC-11, AC-12) */
+export const PLAYER_BAR_CONTAINER_STYLES = {
+  marginHorizontal: 8,
+  borderRadius:     borderRadius.miniPlayer,  // 14
+  backgroundColor:  colors.surfaceElevated,  // '#242438'
+  overflow:         "hidden",
+  position:         "relative",
+  // No shadow props — anti-slop rule (depth via surfaceElevated bg only)
+} as const;
+
+/** Title text style (AC-14) */
+export const PLAYER_BAR_TITLE_STYLES = {
+  fontSize:      14,
+  fontWeight:    "500" as const,
+  color:         "#F5F5F5",
+  letterSpacing: -0.1,
+} as const;
+
+/** Caption (time remaining) text style (AC-15) */
+export const PLAYER_BAR_CAPTION_STYLES = {
+  fontSize:  12,
+  color:     colors.textSecondary,  // '#9CA3AF'
+  marginTop: 1,
+} as const;
+
+/** Progress bar fill color (AC-16) */
+export const PLAYER_BAR_PROGRESS_FILL_COLOR = colors.accentPrimary;  // '#FF6B35'
+
+/** Play/pause icon size (AC-17) */
+export const PLAYER_BAR_PLAY_ICON_SIZE = sizes.iconNav;  // 24
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function PlayerBar() {
   const insets = useSafeAreaInsets();
@@ -14,8 +54,6 @@ export default function PlayerBar() {
     currentItem,
     isPlaying,
     togglePlay,
-    skipBack,
-    skipForward,
     position,
     duration,
     setExpandedPlayerVisible,
@@ -39,22 +77,14 @@ export default function PlayerBar() {
 
   return (
     /*
-     * Floating card: 8px margin on sides, 8px bottom gap before tab bar,
-     * dark near-black background, 16px corner radius, subtle shadow.
+     * Floating card: 8px margin on sides, bottom gap before tab bar.
+     * surfaceElevated (#242438) background, 14px corner radius.
+     * No shadow — depth via color elevation only (anti-slop rule).
      */
     <View
       style={{
-        marginHorizontal: 8,
-        marginBottom:     Math.max(insets.bottom, 8),
-        borderRadius:     16,
-        backgroundColor:  "#1c1c1e",
-        overflow:         "hidden",
-        shadowColor:      "#000",
-        shadowOffset:     { width: 0, height: 4 },
-        shadowOpacity:    0.25,
-        shadowRadius:     12,
-        elevation:        8,
-        position:         "relative",
+        ...PLAYER_BAR_CONTAINER_STYLES,
+        marginBottom: Math.max(insets.bottom, 8),
       }}
     >
       {/* Tappable body — opens expanded player */}
@@ -69,103 +99,49 @@ export default function PlayerBar() {
           gap:           10,
         }}
       >
-        {/* ── Thumbnail: 36×36 rounded rectangle ── */}
+        {/* ── Thumbnail: 40×40 rounded rectangle (blueprint: size-mini-player-thumbnail = 40) ── */}
         <SourceThumbnail
           sourceType={currentItem.sourceType}
           sourceUrl={currentItem.sourceUrl}
           sourceName={currentItem.sourceName}
-          size={36}
+          size={40}
         />
 
         {/* ── Title + time ── */}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
-            style={{
-              fontSize:      13,
-              fontWeight:    "600",
-              color:         "#fff",
-              letterSpacing: -0.1,
-            }}
+            style={PLAYER_BAR_TITLE_STYLES}
             numberOfLines={1}
           >
             {displayTitle}
           </Text>
           <Text
-            style={{
-              fontSize:  11,
-              color:     "rgba(255,255,255,0.5)",
-              marginTop: 1,
-            }}
+            style={PLAYER_BAR_CAPTION_STYLES}
             numberOfLines={1}
           >
             {timeLabel}
           </Text>
         </View>
 
-        {/* ── Controls: rewind-15 · play/pause · skip-30 ── */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-          {/* Rewind 15s */}
-          <TouchableOpacity
-            onPress={() => {
-              void Haptics.light();
-              skipBack(15).catch((err: unknown) =>
-                console.warn("[PlayerBar] skipBack error:", err),
-              );
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{
-              width:           32,
-              height:          32,
-              alignItems:      "center",
-              justifyContent:  "center",
-              borderRadius:    16,
-            }}
-            accessibilityLabel="Rewind 15 seconds"
-          >
-            <Ionicons name="play-back" size={20} color="white" />
-          </TouchableOpacity>
-
-          {/* Play / Pause */}
-          <TouchableOpacity
-            onPress={() => { void Haptics.light(); void togglePlay(); }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{
-              width:           32,
-              height:          32,
-              alignItems:      "center",
-              justifyContent:  "center",
-              borderRadius:    16,
-            }}
-            accessibilityLabel={isPlaying ? "Pause" : "Play"}
-          >
-            <Ionicons
-              name={isPlaying ? "pause" : "play"}
-              size={22}
-              color="white"
-            />
-          </TouchableOpacity>
-
-          {/* Skip 30s */}
-          <TouchableOpacity
-            onPress={() => {
-              void Haptics.light();
-              skipForward(30).catch((err: unknown) =>
-                console.warn("[PlayerBar] skipForward error:", err),
-              );
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{
-              width:           32,
-              height:          32,
-              alignItems:      "center",
-              justifyContent:  "center",
-              borderRadius:    16,
-            }}
-            accessibilityLabel="Skip 30 seconds"
-          >
-            <Ionicons name="play-forward" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
+        {/* ── Controls: play/pause only (rewind-15 and skip-30 removed per blueprint) ── */}
+        <TouchableOpacity
+          onPress={() => { void Haptics.light(); void togglePlay(); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{
+            width:           36,
+            height:          36,
+            alignItems:      "center",
+            justifyContent:  "center",
+            borderRadius:    18,
+          }}
+          accessibilityLabel={isPlaying ? "Pause" : "Play"}
+        >
+          <Ionicons
+            name={isPlaying ? "pause" : "play"}
+            size={PLAYER_BAR_PLAY_ICON_SIZE}
+            color="white"
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
 
       {/* ── Progress bar: 2px at very bottom, inside border-radius ── */}
@@ -178,7 +154,7 @@ export default function PlayerBar() {
         <View
           style={{
             height:          2,
-            backgroundColor: "#EA580C",
+            backgroundColor: PLAYER_BAR_PROGRESS_FILL_COLOR,
             width:           `${progressPercent}%`,
           }}
         />
