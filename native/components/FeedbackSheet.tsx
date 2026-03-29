@@ -22,7 +22,12 @@ import {
 } from "@gorhom/bottom-sheet";
 import type { BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 import { usePathname } from "expo-router";
-import { Audio } from "expo-av";
+import {
+  useAudioRecorder,
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+} from "expo-audio";
 import { Ionicons } from "@expo/vector-icons";
 import { usePlayer } from "../lib/usePlayer";
 import { submitTextFeedback, submitVoiceFeedback } from "../lib/api";
@@ -45,12 +50,16 @@ type SheetState = "idle" | "recording" | "preview" | "submitting" | "done";
 
 const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
   const modalRef = useRef<BottomSheetModal>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  // expo-audio: single stable recorder instance created by the hook.
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // true when the recorder has been started (record() called); false otherwise.
+  const isRecordingActiveRef = useRef(false);
+  // Monotonically incremented whenever isRecordingActiveRef changes so that
+  // async stop error-recovery can detect if another operation raced it.
   const recordingVersionRef = useRef(0);
   const startRecordingPromiseRef = useRef<Promise<void> | null>(null);
-  const stopRecordingPromisesRef = useRef<WeakMap<Audio.Recording, Promise<void>>>(
-    new WeakMap()
-  );
+  // Tracks a single in-flight stop promise (replaces the per-instance WeakMap).
+  const stopInFlightRef = useRef<Promise<void> | null>(null);
   // Invalidate pending async UI transitions whenever the sheet session resets.
   const uiGenerationRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -111,54 +120,59 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     }, 1000);
   }, [clearDurationTimer]);
 
-  const setCurrentRecording = useCallback((recording: Audio.Recording | null) => {
-    if (recordingRef.current === recording) {
+  /** Toggle the recorder's active flag and bump the version so racing async
+   *  operations can detect that the state changed while they were awaiting. */
+  const setRecorderActive = useCallback((active: boolean) => {
+    if (isRecordingActiveRef.current === active) {
       return;
     }
-
-    recordingRef.current = recording;
+    isRecordingActiveRef.current = active;
     recordingVersionRef.current += 1;
   }, []);
 
-  const stopCurrentRecording = useCallback((recording: Audio.Recording) => {
-    const inFlightStopPromise =
-      stopRecordingPromisesRef.current.get(recording);
+  /** Stop the single shared audioRecorder, deduplicating concurrent calls via
+   *  a shared in-flight promise ref (replaces the per-instance WeakMap). */
+  const stopCurrentRecording = useCallback(() => {
+    const inFlightStopPromise = stopInFlightRef.current;
     if (inFlightStopPromise) {
       return inFlightStopPromise;
     }
 
-    const wasActiveRecording = recordingRef.current === recording;
-    const clearedRecordingVersion = wasActiveRecording
+    const wasActive = isRecordingActiveRef.current;
+    // Capture the version that setRecorderActive(false) will produce so the
+    // error handler can detect if another operation raced the stop.
+    const clearedRecordingVersion = wasActive
       ? recordingVersionRef.current + 1
       : null;
-    if (wasActiveRecording) {
-      setCurrentRecording(null);
+    if (wasActive) {
+      setRecorderActive(false);
     }
 
     const stopPromise = (async () => {
       try {
-        await recording.stopAndUnloadAsync();
+        await audioRecorder.stop();
       } catch (error: unknown) {
+        // Roll back the active flag only if nothing else touched it in between.
         if (
-          wasActiveRecording &&
-          recordingRef.current === null &&
+          wasActive &&
+          !isRecordingActiveRef.current &&
           recordingVersionRef.current === clearedRecordingVersion
         ) {
-          setCurrentRecording(recording);
+          setRecorderActive(true);
         }
         throw error;
       } finally {
-        stopRecordingPromisesRef.current.delete(recording);
+        stopInFlightRef.current = null;
       }
     })();
 
-    stopRecordingPromisesRef.current.set(recording, stopPromise);
+    stopInFlightRef.current = stopPromise;
     return stopPromise;
-  }, [setCurrentRecording]);
+  }, [audioRecorder, setRecorderActive]);
 
   const cleanupStaleRecording = useCallback(
-    (recording: Audio.Recording, logPrefix: string) => {
-      stopCurrentRecording(recording).catch((error: unknown) => {
+    (logPrefix: string) => {
+      stopCurrentRecording().catch((error: unknown) => {
         if (__DEV__) {
           console.warn(logPrefix, error);
         }
@@ -178,17 +192,16 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
       dismissTimerRef.current = null;
     }
 
-    const recording = recordingRef.current;
-    if (!recording) {
+    if (!isRecordingActiveRef.current) {
       return;
     }
 
     // Intentionally fire-and-forget: cleanup runs on sheet dismiss / reopen
     // where we can't surface errors to the user. Log in dev so native
     // resource issues remain visible during development.
-    stopCurrentRecording(recording).catch((err: unknown) => {
+    stopCurrentRecording().catch((err: unknown) => {
       if (__DEV__) {
-        console.warn("[FeedbackSheet] cleanup stopAndUnloadAsync failed:", err);
+        console.warn("[FeedbackSheet] cleanup stop failed:", err);
       }
     });
   }, [clearDurationTimer, stopCurrentRecording]);
@@ -276,49 +289,43 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
 
     const startPromise = (async () => {
       try {
-        const existingRecording = recordingRef.current;
-        if (existingRecording) {
+        if (isRecordingActiveRef.current) {
           clearDurationTimer();
-          await stopCurrentRecording(existingRecording);
+          await stopCurrentRecording();
           if (isStale()) {
             return;
           }
         }
 
-        const { granted } = await Audio.requestPermissionsAsync();
+        const { granted } = await AudioModule.requestRecordingPermissionsAsync();
         if (isStale()) {
           return;
         }
         if (!granted) return;
 
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
         });
         if (isStale()) {
           return;
         }
 
-        const recording = new Audio.Recording();
-        await recording.prepareToRecordAsync(
-          Audio.RecordingOptionsPresets.HIGH_QUALITY
-        );
+        await audioRecorder.prepareToRecordAsync();
         if (isStale()) {
           cleanupStaleRecording(
-            recording,
             "[FeedbackSheet] stale prepare cleanup failed:"
           );
           return;
         }
-        await recording.startAsync();
+        audioRecorder.record();
         if (isStale()) {
           cleanupStaleRecording(
-            recording,
             "[FeedbackSheet] stale start cleanup failed:"
           );
           return;
         }
-        setCurrentRecording(recording);
+        setRecorderActive(true);
         setRecordingDuration(0);
         setState("recording");
         startDurationTimer();
@@ -338,27 +345,27 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
     startRecordingPromiseRef.current = startPromise;
     return startPromise;
   }, [
+    audioRecorder,
     cleanupStaleRecording,
     clearDurationTimer,
-    setCurrentRecording,
+    setRecorderActive,
     startDurationTimer,
     stopCurrentRecording,
   ]);
 
   const stopRecording = useCallback(async () => {
-    const recording = recordingRef.current;
-    if (!recording) return;
+    if (!isRecordingActiveRef.current) return;
 
     clearDurationTimer();
     const uiGeneration = uiGenerationRef.current;
 
     try {
-      await stopCurrentRecording(recording);
+      await stopCurrentRecording();
       if (isStaleUiGeneration(uiGeneration)) {
         return;
       }
 
-      const uri = recording.getURI();
+      const uri = audioRecorder.uri;
       if (!uri) {
         Alert.alert("Recording Failed", "Could not access the recording. Please try again.");
         discardRecording();
@@ -372,13 +379,14 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
         return;
       }
 
-      if (recordingRef.current === recording) {
+      if (isRecordingActiveRef.current) {
         startDurationTimer();
       }
       Alert.alert("Recording Failed", "Could not stop recording. Please try again.");
       setState("recording");
     }
   }, [
+    audioRecorder,
     clearDurationTimer,
     discardRecording,
     isStaleUiGeneration,
