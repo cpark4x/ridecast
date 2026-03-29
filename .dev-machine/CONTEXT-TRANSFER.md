@@ -62,6 +62,12 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 - `native/__tests__/TabLayout.test.tsx` + `native/__tests__/PlayerBar.test.tsx` — new spec tests (not run by health gate; native Jest broken).
 - Antagonistic review: 3 findings, all non-actionable (wrong token semantics = spec allows either; height 56 = Expo Router handles safe area on top per spec note; EXEMPT_SEGMENTS ordering = doesn't change behavior).
 
+**Also completed this session: `redesign-library` (M, 2pts)**
+- `native/app/(tabs)/library.tsx` — dark token pass + FAB→header migration. SafeAreaView→backgroundScreen. Title textPrimary 28/700. Added "+" button (36×36, surface bg) as first header icon (same handler as removed FAB). Sort button and settings icon → textSecondary/surface. Search bar → surface + borderInput border + screenMargin. Filter/dropdown chips → accentPrimary active / surfaceElevated+borderInput inactive / textSecondary inactive text. Section headers → textTertiary + surfaceElevated badge. Sort badge → rgba(255,107,53,0.15)/accentPrimary. FAB deleted. Tooltip repositioned top:52 right:8 (arrow points up).
+- `native/components/EmptyState.tsx` — icon textTertiary, title textPrimary, subtitle textSecondary, action button accentPrimary.
+- `native/components/ShimmerCard.tsx` — card →surface (#1A1A2E), lines/pills →surfaceElevated (#242438), ALL shadow props removed.
+- Antagonistic review: CLEAR.
+
 **Also completed this session: `redesign-expanded-player` (M, 2pts)**
 - `native/components/ExpandedPlayer.tsx` — full dark theme pass. Removed ARTWORK_BG/artworkBg. Added contentTypeToColor helper (8-case mapping → content-type color tokens). Atmospheric glow: absolute 200×200 View behind artwork, color=contentTypeToColor(contentType)+'14'. All token swaps applied: backgroundScreen bg, '#3A3A4E' handles, textSecondary labels, surface artwork card (borderRadius 16), accentPrimary headset icon, scrubber #FF6B35/2C303E/white, textPrimary skip icons, accentPrimary play button (no elevation), surfaceElevated utility buttons, surface metadata card, sleep modal dark. Antagonistic review: CLEAR.
 

@@ -40,6 +40,7 @@ import { syncLibrary } from "../../lib/sync";
 import { showGeneratingToast } from "../../lib/toast";
 import { usePlayer } from "../../lib/usePlayer";
 import { Haptics } from "../../lib/haptics";
+import { colors, borderRadius, spacing } from "../../lib/theme";
 import type { AudioVersion, LibraryFilter, LibraryItem, PlayableItem } from "../../lib/types";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -409,17 +410,33 @@ function LibraryScreen() {
   const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
-        <Text className="text-2xl font-bold text-gray-900">Library</Text>
+        <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '700' }}>Library</Text>
         <View className="flex-row gap-1 items-center">
+          {/* Add button — was FAB, moved to header */}
+          <TouchableOpacity
+            onPress={() => { void dismissOnboardingHint(); setUploadModalVisible(true); }}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: borderRadius.card,
+              width: 36,
+              height: 36,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Add content"
+          >
+            <Ionicons name="add" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
           {/* Sort icon */}
           <TouchableOpacity
             onPress={handleSortPress}
             style={{
-              backgroundColor: "#f2f2f7",
-              borderRadius:    10,
+              backgroundColor: colors.surface,
+              borderRadius:    borderRadius.card,
               width:           36,
               height:          36,
               alignItems:      "center",
@@ -428,7 +445,7 @@ function LibraryScreen() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Sort episodes"
           >
-            <Ionicons name="reorder-three-outline" size={22} color="#3c3c43" />
+            <Ionicons name="reorder-three-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           {/* Settings gear */}
           <TouchableOpacity
@@ -436,16 +453,30 @@ function LibraryScreen() {
             className="p-2 -mr-1"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="settings-outline" size={22} color="#374151" />
+            <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* ── Search bar ──────────────────────────────────────────────────── */}
-      <View className="mx-4 mb-3 flex-row items-center bg-gray-100 rounded-xl px-3 py-2 gap-2">
+      <View
+        style={{
+          marginHorizontal: spacing.screenMargin,
+          marginBottom: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.surface,
+          borderRadius: borderRadius.card,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          gap: 8,
+          borderWidth: 1,
+          borderColor: colors.borderInput,
+        }}
+      >
         <Ionicons name="search" size={16} color="#9CA3AF" />
         <TextInput
-          className="flex-1 text-base text-gray-900"
+          style={{ flex: 1, fontSize: 15, color: colors.textPrimary }}
           placeholder="Search episodes…"
           placeholderTextColor="#9CA3AF"
           value={searchQuery}
@@ -470,14 +501,16 @@ function LibraryScreen() {
               paddingHorizontal: 16,
               paddingVertical:   8,
               borderRadius:      20,
-              backgroundColor:   filter === key ? "#EA580C" : "rgba(116,116,128,0.12)",
+              backgroundColor:   filter === key ? colors.accentPrimary : colors.surfaceElevated,
+              borderWidth: filter === key ? 0 : 1,
+              borderColor: filter === key ? undefined : colors.borderInput,
             }}
           >
             <Text
               style={{
                 fontSize:   15,
                 fontWeight: "600",
-                color:      filter === key ? "#fff" : "#3c3c43",
+                color:      filter === key ? "#fff" : colors.textSecondary,
               }}
             >
               {label}
@@ -494,11 +527,11 @@ function LibraryScreen() {
           style={{
             flexDirection: "row", alignItems: "center", gap: 4,
             paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-            backgroundColor: sourceFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
-            borderWidth: 1, borderColor: sourceFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
+            backgroundColor: sourceFilter ? colors.accentPrimary : colors.surfaceElevated,
+            borderWidth: 1, borderColor: sourceFilter ? colors.accentPrimary : colors.borderInput,
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: "500", color: sourceFilter ? "#fff" : "#3c3c43" }}>
+          <Text style={{ fontSize: 14, fontWeight: "500", color: sourceFilter ? "#fff" : colors.textSecondary }}>
             {sourceFilter ?? "Sources"}
           </Text>
           <Ionicons name={sourceFilter ? "close-circle" : "chevron-down"} size={13} color={sourceFilter ? "white" : "#9CA3AF"} />
@@ -510,11 +543,11 @@ function LibraryScreen() {
           style={{
             flexDirection: "row", alignItems: "center", gap: 4,
             paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-            backgroundColor: topicFilter ? "#EA580C" : "rgba(116,116,128,0.1)",
-            borderWidth: 1, borderColor: topicFilter ? "#EA580C" : "rgba(0,0,0,0.08)",
+            backgroundColor: topicFilter ? colors.accentPrimary : colors.surfaceElevated,
+            borderWidth: 1, borderColor: topicFilter ? colors.accentPrimary : colors.borderInput,
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: "500", color: topicFilter ? "#fff" : "#3c3c43" }}>
+          <Text style={{ fontSize: 14, fontWeight: "500", color: topicFilter ? "#fff" : colors.textSecondary }}>
             {topicFilter ?? "Topics"}
           </Text>
           <Ionicons name={topicFilter ? "close-circle" : "chevron-down"} size={13} color={topicFilter ? "white" : "#9CA3AF"} />
@@ -525,17 +558,26 @@ function LibraryScreen() {
       {/* ── Stale nudge ──────────────────────────────────────────────────── */}
       {/* Active sort indicator — shown when not using the default sort order */}
       {sortOrder !== "date_desc" && (
-        <View className="px-4 mb-2">
+        <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
           <TouchableOpacity
             onPress={() => setSortOrder("date_desc")}
-            className="self-start flex-row items-center gap-1 bg-orange-100 px-3 py-1 rounded-full"
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: 'rgba(255,107,53,0.15)',
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 9999,
+            }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             accessibilityLabel="Clear sort order"
           >
-            <Text className="text-xs font-medium text-orange-700">
+            <Text style={{ color: colors.accentPrimary, fontSize: 12, fontWeight: '500' }}>
               {SORT_LABELS[sortOrder]}
             </Text>
-            <Ionicons name="close" size={12} color="#C2410C" />
+            <Ionicons name="close" size={12} color={colors.accentPrimary} />
           </TouchableOpacity>
         </View>
       )}
@@ -613,7 +655,7 @@ function LibraryScreen() {
                   style={{
                     fontSize:      13,
                     fontWeight:    "600",
-                    color:         "#8e8e93",
+                    color:         colors.textTertiary,
                     textTransform: "uppercase",
                     letterSpacing: 0.6,
                   }}
@@ -622,7 +664,7 @@ function LibraryScreen() {
                 </Text>
                 <View
                   style={{
-                    backgroundColor:  "rgba(116,116,128,0.12)",
+                    backgroundColor:  colors.surfaceElevated,
                     borderRadius:     10,
                     paddingHorizontal: 7,
                     paddingVertical:  1,
@@ -632,7 +674,7 @@ function LibraryScreen() {
                     style={{
                       fontSize:   11,
                       fontWeight: "600",
-                      color:      "#8e8e93",
+                      color:      colors.textTertiary,
                     }}
                   >
                     {data.length}
@@ -675,34 +717,22 @@ function LibraryScreen() {
         />
       )}
 
-      {/* ── FAB ──────────────────────────────────────────────────────────── */}
-      <TouchableOpacity
-        onPress={() => { void Haptics.medium(); void dismissOnboardingHint(); setUploadModalVisible(true); }}
-        className="absolute bottom-8 right-6 w-14 h-14 bg-brand rounded-full items-center justify-center shadow-lg"
-        style={{ elevation: 6 }}
-        accessibilityLabel="Add content"
-      >
-        <Ionicons name="add" size={28} color="white" />
-      </TouchableOpacity>
-
-
       {/* Onboarding Tooltip */}
       {showOnboardingHint && (
         <TouchableOpacity
           onPress={() => void dismissOnboardingHint()}
-          className="absolute bottom-24 right-4"
+          style={{ position: 'absolute', top: 52, right: 8 }}
           activeOpacity={0.8}
         >
-          <View className="bg-gray-900 rounded-2xl px-4 py-3 max-w-52">
-            <Text className="text-sm text-white font-medium">
+          <View style={{ backgroundColor: colors.surface, borderRadius: borderRadius.card, paddingHorizontal: 16, paddingVertical: 12, maxWidth: 208 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '500' }}>
               Tap + to add your first episode
             </Text>
-            <Text className="text-xs text-gray-400 mt-0.5">
+            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
               Paste a URL or upload a file
             </Text>
             <View
-              className="absolute -bottom-2 right-6 w-3 h-3 bg-gray-900"
-              style={{ transform: [{ rotate: "45deg" }] }}
+              style={{ position: 'absolute', top: -6, right: 10, width: 12, height: 12, backgroundColor: colors.surface, transform: [{ rotate: '45deg' }] }}
             />
           </View>
         </TouchableOpacity>

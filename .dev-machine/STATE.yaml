@@ -184,7 +184,7 @@ recently_shipped:
 phase: 5
 phase_name: phase-5-platform-expansion
 epoch: 23
-next_action: "Session 23 progress: nav-shell-redesign (L, 3pts) + redesign-expanded-player (M, 2pts) = 5pts done. Next: redesign-library (M, 2pts) — FAB→header migration, dark tokens, EmptyState/SkeletonList update. Also unblocked: redesign-home-screens (M, 2pts)."native\" to exclude\
+next_action: "Session 23 DONE: 7pts completed (nav-shell-redesign L=3, redesign-expanded-player M=2, redesign-library M=2). Also: smoke_test cadence run (E2E blocked by dev server lock). Next: redesign-home-screens (M, 2pts) — EpisodeCard dark theme, greeting header, Play All button. Also unblocked: discover-ftue (M), source-detail (M)."native\" to exclude\
   \ list (pre-existing build failure from expo-av\u2192expo-audio migration)."
 completed_features:
 - empty-states
@@ -203,6 +203,7 @@ completed_features:
 - redesign-settings-carmode
 - nav-shell-redesign
 - redesign-expanded-player
+- redesign-library
 features:
   nav-shell-redesign:
     status: done
@@ -242,7 +243,9 @@ features:
     depends_on:
     - dark-theme-foundation
   redesign-library:
-    status: ready
+    status: done
+    started_at: '2026-03-29T01:50:00+00:00'
+    completed_at: '2026-03-29T02:00:00+00:00'
     spec: specs/features/phase5/redesign-library.md
     description: "Library screen dark theme \u2014 search bar, filter chips, time-grouped list, header + button"
     size: M

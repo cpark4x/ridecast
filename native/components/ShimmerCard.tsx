@@ -54,20 +54,15 @@ export default function ShimmerCard() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#1A1A2E",
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 12,
     height: 96,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
   },
   body: { padding: 16 },
-  line: { height: 14, backgroundColor: "#F3F4F6", borderRadius: 99 },
+  line: { height: 14, backgroundColor: "#242438", borderRadius: 99 },
   footer: { flexDirection: "row", gap: 8 },
-  pill: { height: 20, backgroundColor: "#F3F4F6", borderRadius: 99 },
+  pill: { height: 20, backgroundColor: "#242438", borderRadius: 99 },
 });
