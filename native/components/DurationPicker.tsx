@@ -2,6 +2,7 @@ import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Slider from "@react-native-community/slider";
 import { DURATION_PRESETS, DURATION_SLIDER } from "../lib/constants";
+import { colors, borderRadius } from "../lib/theme";
 
 // ---------------------------------------------------------------------------
 // Pure helper — exported for unit tests
@@ -47,16 +48,25 @@ export default function DurationPicker({ value, onChange }: DurationPickerProps)
             <TouchableOpacity
               key={preset.minutes}
               onPress={() => onChange(preset.minutes)}
-              className={`px-3 py-1.5 rounded-full ${
-                isActive ? "bg-brand" : "bg-gray-100"
-              }`}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: borderRadius.full,
+                backgroundColor: isActive ? colors.accentPrimary : colors.surfaceElevated,
+                ...(isActive ? {} : {
+                  borderWidth: 1,
+                  borderColor: colors.borderInput,
+                }),
+              }}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
             >
               <Text
-                className={`text-sm font-medium ${
-                  isActive ? "text-white" : "text-gray-700"
-                }`}
+                style={{
+                  fontSize: 14,
+                  fontWeight: "500",
+                  color: isActive ? colors.textPrimary : colors.textSecondary,
+                }}
               >
                 {preset.label}
               </Text>
@@ -66,19 +76,21 @@ export default function DurationPicker({ value, onChange }: DurationPickerProps)
       </ScrollView>
 
       {/* Slider */}
-      <View className="mt-3">
+      <View style={{ marginTop: 12 }}>
         <Slider
           style={{ width: "100%", height: 40 }}
           minimumValue={DURATION_SLIDER.min}
           maximumValue={DURATION_SLIDER.max}
           step={DURATION_SLIDER.step}
           value={value}
-          minimumTrackTintColor="#EA580C"
-          maximumTrackTintColor="#E5E7EB"
-          thumbTintColor="#EA580C"
+          minimumTrackTintColor={colors.accentPrimary}
+          maximumTrackTintColor={colors.surfaceElevated}
+          thumbTintColor={colors.accentPrimary}
           onValueChange={(v) => onChange(Math.round(v))}
         />
-        <Text className="text-sm text-gray-600 text-center font-medium">{value} min</Text>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: "center", fontWeight: "500" }}>
+          {value} min
+        </Text>
       </View>
     </View>
   );

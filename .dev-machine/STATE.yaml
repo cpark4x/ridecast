@@ -218,7 +218,9 @@ features:
 
   # ── UI Redesign Phase 3: Upload + Processing (3 pts) ──
   redesign-upload-modal:
-    status: ready
+    status: done
+    started_at: "2026-03-29T00:39:00+00:00"
+    completed_at: "2026-03-29T00:48:00+00:00"
     spec: specs/features/phase5/redesign-upload-modal.md
     description: "Upload Modal + Duration Picker dark theme — bottom sheet, inputs, chips, drop zone"
     size: M
@@ -246,7 +248,8 @@ features:
     size: M
     depends_on: [dark-theme-foundation, nav-shell-redesign]
   redesign-settings-carmode:
-    status: ready
+    status: in-progress
+    started_at: "2026-03-29T00:49:00+00:00"
     spec: specs/features/phase5/redesign-settings-carmode.md
     description: "Settings dark modal sheet + Car Mode pure OLED black with giant controls"
     size: S

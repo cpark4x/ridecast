@@ -21,17 +21,24 @@ import type { UploadResponse } from "../lib/types";
 import { estimateReadingTime } from "../lib/utils";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import DurationPicker from "./DurationPicker";
+import { colors, borderRadius } from "../lib/theme";
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // Constants
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MIN_TEXT_CHARS = 100;
+// Blueprint drag-handle color (not in theme — intentional narrow token)
+const DRAG_HANDLE_COLOR = "#3A3A4E";
+// Dark amber treatment (offline/truncation banners)
+const AMBER_BG    = "rgba(217,119,6,0.15)";
+const AMBER_BORDER = "rgba(217,119,6,0.3)";
+const AMBER_TEXT  = "#D97706";
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // URL validator (synchronous — no network call)
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 function validateUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -43,13 +50,13 @@ function validateUrl(raw: string): string | null {
     }
     return null; // valid
   } catch {
-    return "That doesn't look like a valid URL. Try something like https://example.com/article\u2026";
+    return "That doesn't look like a valid URL. Try something like https://example.com/article…";
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // Error message humaniser
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 function humaniseError(err: unknown, statusCode?: number): string {
   if (statusCode === 409) {
@@ -75,33 +82,58 @@ function humaniseError(err: unknown, statusCode?: number): string {
   return "Something went wrong. Please try again.";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // Offline banner (from offline-guards spec — preserved)
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 function OfflineModalBanner() {
   return (
-    <View className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex-row items-center gap-2">
-      <Ionicons name="wifi-outline" size={18} color="#D97706" />
-      <Text className="text-sm text-amber-700 font-medium flex-1">
+    <View style={{
+      backgroundColor: AMBER_BG,
+      borderWidth: 1,
+      borderColor: AMBER_BORDER,
+      borderRadius: borderRadius.card,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginBottom: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    }}>
+      <Ionicons name="wifi-outline" size={18} color={AMBER_TEXT} />
+      <Text style={{ fontSize: 14, color: AMBER_TEXT, fontWeight: "500", flex: 1 }}>
         No internet connection — uploads are disabled until you reconnect.
       </Text>
     </View>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// OR Divider
+// ──────────────────────────────────────────────────────────────────────────────
+
+function OrDivider({ label = "or" }: { label?: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 12 }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.borderDivider }} />
+      <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: "500" }}>{label}</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.borderDivider }} />
+    </View>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Props
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 interface UploadModalProps {
   visible: boolean;
   onDismiss: () => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 // Component
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
   const router = useRouter();
@@ -119,7 +151,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
 
   const urlInputRef = useRef<TextInput>(null);
 
-  // ── Reset when modal opens / closes ────────────────────────────────────────
+  // ── Reset when modal opens / closes ──────────────────────────────────────
   function handleDismiss() {
     setUrlText("");
     setRawTextInput("");
@@ -130,7 +162,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     onDismiss();
   }
 
-  // ── URL upload ─────────────────────────────────────────────────────────────
+  // ── URL upload ────────────────────────────────────────────────────────────
   async function handleUrlSubmit() {
     if (offline) {
       Alert.alert("No Connection", "Please check your internet connection and try again.");
@@ -167,7 +199,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     }
   }
 
-  // ── File upload ────────────────────────────────────────────────────────────
+  // ── File upload ───────────────────────────────────────────────────────────
   async function handleFilePick() {
     if (offline) {
       Alert.alert("No Connection", "Please check your internet connection and try again.");
@@ -214,7 +246,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     }
   }
 
-  // ── Text paste ──────────────────────────────────────────────
+  // ── Text paste ────────────────────────────────────────────────────────────
   async function handleTextSubmit() {
     if (offline) {
       Alert.alert("No Connection", "Please check your internet connection and try again.");
@@ -244,7 +276,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     }
   }
 
-  // ── Create Episode ─────────────────────────────────────────────────────────
+  // ── Create Episode ────────────────────────────────────────────────────────
   function handleCreateEpisode() {
     if (!uploadResult) return;
     if (offline) {
@@ -266,6 +298,27 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     ? estimateReadingTime(uploadResult.wordCount)
     : null;
 
+  // Shared input style
+  const inputStyle = {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderInput,
+    borderRadius: borderRadius.card,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+  } as const;
+
+  // Shared primary button style
+  const primaryBtnStyle = {
+    backgroundColor: colors.accentPrimary,
+    paddingVertical: 12,
+    borderRadius: borderRadius.card,
+    alignItems: "center" as const,
+    marginTop: 12,
+  };
+
   return (
     <Modal
       visible={visible}
@@ -276,229 +329,279 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1, backgroundColor: "white" }}
+        style={{ flex: 1, backgroundColor: colors.surface }}
       >
         {/* Drag handle — iOS pageSheet supports native swipe-to-dismiss */}
         <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
-          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB" }} />
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: DRAG_HANDLE_COLOR }} />
         </View>
 
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          style={{ backgroundColor: colors.surface }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: 40,
+            backgroundColor: colors.surface,
+          }}
         >
-            <Text className="text-xl font-bold text-gray-900 mt-3 mb-5">
-              Add Content
-            </Text>
+          <Text style={{ fontSize: 22, fontWeight: "600", color: colors.textPrimary, marginTop: 12, marginBottom: 20 }}>
+            Add Content
+          </Text>
 
-            {/* Offline banner */}
-            {offline && <OfflineModalBanner />}
+          {/* Offline banner */}
+          {offline && <OfflineModalBanner />}
 
-            {/* ── Section 1: Input ──────────────────────────────────────── */}
-            {!uploadResult && (
-              <>
-                {/* URL input */}
-                <TextInput
-                  ref={urlInputRef}
-                  className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
-                  placeholder="Paste a URL\u2026"
-                  placeholderTextColor="#9CA3AF"
-                  keyboardType="url"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={urlText}
-                  onChangeText={(t) => {
-                    setUrlText(t);
-                    if (errorMsg) setErrorMsg(null); // clear stale error on new input
-                  }}
-                  returnKeyType="go"
-                  onSubmitEditing={handleUrlSubmit}
-                  autoFocus
-                  editable={!loading && !offline}
-                />
+          {/* ── Section 1: Input ──────────────────────────────────────── */}
+          {!uploadResult && (
+            <>
+              {/* URL input */}
+              <TextInput
+                ref={urlInputRef}
+                style={inputStyle}
+                placeholder="Paste a URL…"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={urlText}
+                onChangeText={(t) => {
+                  setUrlText(t);
+                  if (errorMsg) setErrorMsg(null); // clear stale error on new input
+                }}
+                returnKeyType="go"
+                onSubmitEditing={handleUrlSubmit}
+                autoFocus
+                editable={!loading && !offline}
+              />
 
-                {/* Inline error */}
-                {errorMsg && (
-                  <View className="mt-2 flex-row items-start gap-2">
-                    <Ionicons name="alert-circle" size={14} color="#EF4444" />
-                    <Text className="text-xs text-red-500 flex-1">{errorMsg}</Text>
-                  </View>
-                )}
-
-                {/* Fetch URL button */}
-                {urlText.trim().length > 0 && (
-                  <TouchableOpacity
-                    onPress={handleUrlSubmit}
-                    disabled={loading || offline}
-                    className={`mt-3 bg-brand py-3 rounded-xl items-center ${loading || offline ? "opacity-70" : ""}`}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-white font-semibold text-sm">
-                        Fetch URL
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                {/* OR divider */}
-                <View className="flex-row items-center my-4 gap-3">
-                  <View className="flex-1 h-px bg-gray-200" />
-                  <Text className="text-xs text-gray-400 font-medium">or</Text>
-                  <View className="flex-1 h-px bg-gray-200" />
+              {/* Inline error */}
+              {errorMsg && (
+                <View style={{ marginTop: 8, flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                  <Ionicons name="alert-circle" size={14} color={colors.statusError} />
+                  <Text style={{ fontSize: 12, color: colors.statusError, flex: 1 }}>{errorMsg}</Text>
                 </View>
+              )}
 
-                {/* File picker */}
+              {/* Fetch URL button */}
+              {urlText.trim().length > 0 && (
                 <TouchableOpacity
-                  onPress={handleFilePick}
+                  onPress={handleUrlSubmit}
                   disabled={loading || offline}
-                  className={`flex-row items-center justify-center border-2 border-dashed rounded-xl py-4 gap-2 ${
-                    offline ? "border-gray-200 opacity-50" : "border-gray-300"
-                  }`}
+                  style={[primaryBtnStyle, (loading || offline) ? { opacity: 0.7 } : {}]}
                 >
-                  <Ionicons name="document-outline" size={20} color={offline ? "#D1D5DB" : "#6B7280"} />
-                  <Text className={`text-base font-medium ${offline ? "text-gray-400" : "text-gray-600"}`}>
-                    Choose File
-                  </Text>
-                  <Text className="text-xs text-gray-400">(PDF, EPUB, TXT, DOCX)</Text>
-                </TouchableOpacity>
-
-                {/* OR divider — text paste */}
-                <View className="flex-row items-center my-4 gap-3">
-                  <View className="flex-1 h-px bg-gray-200" />
-                  <Text className="text-xs text-gray-400 font-medium">or paste text</Text>
-                  <View className="flex-1 h-px bg-gray-200" />
-                </View>
-
-                {/* Raw text input */}
-                <TextInput
-                  className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
-                  placeholder="Paste article text here…"
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                  numberOfLines={5}
-                  textAlignVertical="top"
-                  style={{ minHeight: 100 }}
-                  value={rawTextInput}
-                  onChangeText={(t) => {
-                    setRawTextInput(t);
-                    if (errorMsg) setErrorMsg(null);
-                  }}
-                  editable={!loading && !offline}
-                />
-
-                {/* Live word count hint */}
-                {rawTextInput.trim().length > 0 && (
-                  <Text className="text-xs text-gray-400 mt-1 text-right">
-                    ~{rawTextInput.trim().split(/\s+/).length} words
-                  </Text>
-                )}
-
-                {/* Use This Text button */}
-                {rawTextInput.trim().length >= MIN_TEXT_CHARS && (
-                  <TouchableOpacity
-                    onPress={handleTextSubmit}
-                    disabled={loading || offline}
-                    className={`mt-3 bg-brand py-3 rounded-xl items-center ${loading || offline ? "opacity-70" : ""}`}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-white font-semibold text-sm">
-                        Use This Text
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                {/* File upload loading (only for file picks, not text submits) */}
-                {loading && !urlText.trim() && rawTextInput.trim().length < MIN_TEXT_CHARS && (
-                  <View className="items-center mt-6">
-                    <ActivityIndicator size="large" color="#EA580C" />
-                    <Text className="text-sm text-gray-500 mt-2">
-                      Processing\u2026
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-
-            {/* ── Section 2: Preview + Duration picker ──────────────────── */}
-            {uploadResult && (
-              <>
-                {/* Truncation warning */}
-                {uploadResult.truncationWarning && (
-                  <View className="mb-4 flex-row items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                    <Ionicons name="warning-outline" size={16} color="#D97706" />
-                    <Text className="text-xs text-amber-700 flex-1">
-                      {uploadResult.truncationWarning}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Content preview */}
-                <View className="bg-gray-50 rounded-2xl p-4 mb-5">
-                  <Text
-                    className="text-base font-bold text-gray-900 mb-1"
-                    numberOfLines={2}
-                  >
-                    {uploadResult.title}
-                  </Text>
-                  {uploadResult.author && (
-                    <Text className="text-sm text-gray-500 mb-2">
-                      {uploadResult.author}
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={{ color: colors.textPrimary, fontWeight: "600", fontSize: 14 }}>
+                      Fetch URL
                     </Text>
                   )}
-                  <View className="flex-row gap-3 flex-wrap">
-                    <View className="bg-white border border-gray-200 px-2 py-0.5 rounded-full">
-                      <Text className="text-xs text-gray-600">
-                        {uploadResult.wordCount.toLocaleString()} words
+                </TouchableOpacity>
+              )}
+
+              {/* OR divider */}
+              <OrDivider />
+
+              {/* File picker */}
+              <TouchableOpacity
+                onPress={handleFilePick}
+                disabled={loading || offline}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.borderDropzone,
+                  borderRadius: borderRadius.card,
+                  paddingVertical: 16,
+                  gap: 8,
+                  opacity: offline ? 0.5 : 1,
+                }}
+              >
+                <Ionicons name="document-outline" size={20} color={offline ? colors.textTertiary : colors.textSecondary} />
+                <Text style={{ fontSize: 16, fontWeight: "500", color: offline ? colors.textSecondary : colors.textPrimary }}>
+                  Choose File
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>(PDF, EPUB, TXT, DOCX)</Text>
+              </TouchableOpacity>
+
+              {/* OR divider — text paste */}
+              <OrDivider label="or paste text" />
+
+              {/* Raw text input */}
+              <TextInput
+                style={[inputStyle, { minHeight: 100, textAlignVertical: "top" }]}
+                placeholder="Paste article text here…"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={5}
+                textAlignVertical="top"
+                value={rawTextInput}
+                onChangeText={(t) => {
+                  setRawTextInput(t);
+                  if (errorMsg) setErrorMsg(null);
+                }}
+                editable={!loading && !offline}
+              />
+
+              {/* Live word count hint */}
+              {rawTextInput.trim().length > 0 && (
+                <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4, textAlign: "right" }}>
+                  ~{rawTextInput.trim().split(/\s+/).length} words
+                </Text>
+              )}
+
+              {/* Use This Text button */}
+              {rawTextInput.trim().length >= MIN_TEXT_CHARS && (
+                <TouchableOpacity
+                  onPress={handleTextSubmit}
+                  disabled={loading || offline}
+                  style={[primaryBtnStyle, (loading || offline) ? { opacity: 0.7 } : {}]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={{ color: colors.textPrimary, fontWeight: "600", fontSize: 14 }}>
+                      Use This Text
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {/* File upload loading (only for file picks, not text submits) */}
+              {loading && !urlText.trim() && rawTextInput.trim().length < MIN_TEXT_CHARS && (
+                <View style={{ alignItems: "center", marginTop: 24 }}>
+                  <ActivityIndicator size="large" color={colors.accentPrimary} />
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 8 }}>
+                    Processing…
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* ── Section 2: Preview + Duration picker ──────────────────── */}
+          {uploadResult && (
+            <>
+              {/* Truncation warning */}
+              {uploadResult.truncationWarning && (
+                <View style={{
+                  marginBottom: 16,
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: 8,
+                  backgroundColor: AMBER_BG,
+                  borderWidth: 1,
+                  borderColor: AMBER_BORDER,
+                  borderRadius: borderRadius.card,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}>
+                  <Ionicons name="warning-outline" size={16} color={AMBER_TEXT} />
+                  <Text style={{ fontSize: 12, color: AMBER_TEXT, flex: 1 }}>
+                    {uploadResult.truncationWarning}
+                  </Text>
+                </View>
+              )}
+
+              {/* Content preview */}
+              <View style={{
+                backgroundColor: colors.surfaceElevated,
+                borderRadius: borderRadius.card,
+                padding: 16,
+                marginBottom: 20,
+              }}>
+                <Text
+                  style={{ fontSize: 16, fontWeight: "700", color: colors.textPrimary, marginBottom: 4 }}
+                  numberOfLines={2}
+                >
+                  {uploadResult.title}
+                </Text>
+                {uploadResult.author && (
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 8 }}>
+                    {uploadResult.author}
+                  </Text>
+                )}
+                <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+                  <View style={{
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.borderInput,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: borderRadius.full,
+                  }}>
+                    <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                      {uploadResult.wordCount.toLocaleString()} words
+                    </Text>
+                  </View>
+                  {readingTime !== null && (
+                    <View style={{
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.borderInput,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: borderRadius.full,
+                    }}>
+                      <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                        ~{readingTime} min read
                       </Text>
                     </View>
-                    {readingTime !== null && (
-                      <View className="bg-white border border-gray-200 px-2 py-0.5 rounded-full">
-                        <Text className="text-xs text-gray-600">
-                          ~{readingTime} min read
-                        </Text>
-                      </View>
-                    )}
-                    <View className="bg-orange-100 px-2 py-0.5 rounded-full">
-                      <Text className="text-xs text-orange-700 font-medium">
-                        {uploadResult.sourceType.toUpperCase()}
-                      </Text>
-                    </View>
+                  )}
+                  <View style={{
+                    backgroundColor: "rgba(255,107,53,0.15)",
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: borderRadius.full,
+                  }}>
+                    <Text style={{ fontSize: 12, color: colors.accentPrimary, fontWeight: "500" }}>
+                      {uploadResult.sourceType.toUpperCase()}
+                    </Text>
                   </View>
                 </View>
+              </View>
 
-                {/* Duration picker */}
-                <Text className="text-sm font-semibold text-gray-700 mb-3">
-                  Episode Length
+              {/* Duration picker */}
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginBottom: 12 }}>
+                Episode Length
+              </Text>
+              <DurationPicker value={targetMinutes} onChange={setTargetMinutes} />
+
+              {/* Create Episode button */}
+              <TouchableOpacity
+                onPress={handleCreateEpisode}
+                disabled={offline}
+                style={{
+                  marginTop: 24,
+                  paddingVertical: 16,
+                  borderRadius: borderRadius.card,
+                  alignItems: "center",
+                  backgroundColor: offline ? colors.surface : colors.accentPrimary,
+                }}
+              >
+                <Text style={{
+                  fontWeight: "700",
+                  fontSize: 16,
+                  color: offline ? colors.textTertiary : colors.textPrimary,
+                }}>
+                  Create Episode
                 </Text>
-                <DurationPicker value={targetMinutes} onChange={setTargetMinutes} />
+              </TouchableOpacity>
 
-                {/* Create Episode button */}
-                <TouchableOpacity
-                  onPress={handleCreateEpisode}
-                  disabled={offline}
-                  className={`mt-6 py-4 rounded-2xl items-center ${offline ? "bg-gray-300" : "bg-brand"}`}
-                >
-                  <Text className={`font-bold text-base ${offline ? "text-gray-500" : "text-white"}`}>
-                    Create Episode
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Change content */}
-                <TouchableOpacity
-                  onPress={() => setUploadResult(null)}
-                  className="mt-3 items-center"
-                >
-                  <Text className="text-sm text-gray-400">
-                    Use different content
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+              {/* Change content */}
+              <TouchableOpacity
+                onPress={() => setUploadResult(null)}
+                style={{ marginTop: 12, alignItems: "center" }}
+              >
+                <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+                  Use different content
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
