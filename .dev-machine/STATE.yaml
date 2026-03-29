@@ -82,6 +82,19 @@ known_issues:
 
     '
 recently_shipped:
+- session: '22'
+  date: '2026-03-29'
+  commits:
+  - 44a5f06 feat(native): dark-theme-foundation
+  - dfe6495 feat(native): redesign-processing
+  - 046a1cd feat(native): redesign-upload-modal
+  - 02080b1 feat(native): redesign-settings-carmode
+  title: "Session 22: 4 features \u2014 Phase 5 UI Redesign Batch 1 (dark-theme-foundation, redesign-processing, redesign-upload-modal,\
+    \ redesign-settings-carmode)"
+  notes: '6pts completed. Created native/lib/theme.ts (pure dark token module). Applied dark theme to processing.tsx, UploadModal.tsx,
+    DurationPicker.tsx, settings.tsx + 4 sub-components, CarMode.tsx. CarMode gains ArticleInfoSection, ProgressBarSection,
+    blueprint-size controls. redesign-sign-in BLOCKED (Clerk <SignIn/> not native-compatible). Fixed tsconfig.json to exclude
+    native/ (pre-existing build failure from expo-av→expo-audio migration). 433 tests passing.'
 - session: '19'
   date: '2026-03-26'
   commits:
@@ -170,10 +183,12 @@ recently_shipped:
     '
 phase: 5
 phase_name: phase-5-platform-expansion
-epoch: 21
-next_action: 'Phase 5 Batch 1 complete (medium-url-extraction, double-logo-fix, paste-raw-text, basic-file-types). Next: close
-  stale GitHub issues (#24-#41), then pick next features from proposed_features (episode-sharing-expanded M, verbatim-read-mode
-  M, estimated-read-time S).'
+epoch: 22
+next_action: 'Phase 5 UI Redesign Batch 1 complete (dark-theme-foundation M, redesign-processing S, redesign-upload-modal M,
+  redesign-settings-carmode S — 6pts). Next session: nav-shell-redesign (L, 3pts) is unblocked — start here. Then redesign-home-screens
+  (M) + redesign-expanded-player (M) + redesign-library (M). redesign-sign-in BLOCKED (Clerk <SignIn /> not native-compatible, see
+  blocker in redesign-sign-in entry). Fixed tsconfig.json: added "native" to exclude list (pre-existing build failure from
+  expo-av→expo-audio migration).'
 completed_features:
 - empty-states
 - library-redesign
@@ -358,7 +373,7 @@ next_steps:
   action: 'Options: in-app-feedback-system (fully designed, supports active TestFlight cycle), pocket-refugee-capture (time-sensitive,
     specced), ios-share-extension (specced, M), source-author-following (fully specced, L), episode-sharing (no spec, high
     growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M).'
-last_session: '2026-03-26T20:36:00+00:00'
+last_session: '2026-03-29T01:07:00+00:00'
 quality_cadences:
   smoke_test:
     interval: 5
@@ -372,9 +387,9 @@ quality_cadences:
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 68
-  last_updated: '2026-03-26'
-  session_count: 21
+  total_features_completed: 72
+  last_updated: '2026-03-29'
+  session_count: 22
   zero_change_sessions: 0
-  last_session_head: 3d09eda329de91705af6120e359cffe49875e6ff
+  last_session_head: 02080b1
 completed_features_tombstone: 68 features completed (duration-accuracy through medium-url-extraction). Full list in FEATURE-ARCHIVE.yaml.
