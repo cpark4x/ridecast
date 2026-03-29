@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, View } from "react-native";
+import { colors, borderRadius } from "../../lib/theme";
 
 interface SettingsSectionProps {
   title: string;
@@ -8,11 +9,24 @@ interface SettingsSectionProps {
 
 export default function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <View className="mt-6">
-      <Text className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+    <View style={{ marginTop: 24 }}>
+      <Text style={{
+        paddingHorizontal: 16,
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.textSecondary,
+        textTransform: "uppercase",
+        letterSpacing: 0.8,
+        marginBottom: 8,
+      }}>
         {title}
       </Text>
-      <View className="mx-4 bg-white rounded-2xl overflow-hidden border border-gray-100">
+      <View style={{
+        marginHorizontal: 16,
+        backgroundColor: colors.surface,
+        borderRadius: borderRadius.card,
+        overflow: "hidden",
+      }}>
         {children}
       </View>
     </View>

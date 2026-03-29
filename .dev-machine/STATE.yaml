@@ -248,8 +248,9 @@ features:
     size: M
     depends_on: [dark-theme-foundation, nav-shell-redesign]
   redesign-settings-carmode:
-    status: in-progress
+    status: done
     started_at: "2026-03-29T00:49:00+00:00"
+    completed_at: "2026-03-29T01:04:00+00:00"
     spec: specs/features/phase5/redesign-settings-carmode.md
     description: "Settings dark modal sheet + Car Mode pure OLED black with giant controls"
     size: S

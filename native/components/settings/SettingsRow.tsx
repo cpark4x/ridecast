@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../lib/theme";
 
 interface SettingsRowProps {
   label: string;
@@ -21,27 +22,36 @@ export default function SettingsRow({
   destructive = false,
   disabled = false,
 }: SettingsRowProps) {
+  const labelColor = destructive
+    ? colors.statusError
+    : disabled
+      ? colors.textTertiary
+      : colors.textPrimary;
+
   const inner = (
-    <View className="px-4 py-4 flex-row items-center justify-between">
-      <View className="flex-1 mr-3">
-        <Text
-          className={`text-base font-medium ${
-            destructive ? "text-red-500" : disabled ? "text-gray-400" : "text-gray-900"
-          }`}
-        >
+    <View style={{
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.surface,
+    }}>
+      <View style={{ flex: 1, marginRight: 12 }}>
+        <Text style={{ fontSize: 16, fontWeight: "500", color: labelColor }}>
           {label}
         </Text>
         {subtitle ? (
-          <Text className="text-xs text-gray-400 mt-0.5">{subtitle}</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>{subtitle}</Text>
         ) : null}
       </View>
       {children ?? (
-        <View className="flex-row items-center gap-1">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           {rightLabel ? (
-            <Text className="text-sm text-gray-400">{rightLabel}</Text>
+            <Text style={{ fontSize: 14, color: colors.textSecondary }}>{rightLabel}</Text>
           ) : null}
           {onPress ? (
-            <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
           ) : null}
         </View>
       )}

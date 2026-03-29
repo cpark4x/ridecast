@@ -58,12 +58,19 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 - `redesign-processing` — Full dark theme pass on `native/app/processing.tsx`. Replaced all Tailwind classNames with inline style objects using theme tokens. Added progress bar (track: surfaceElevated, fill: accentPrimary, width from getStageIndex). Antagonistic review caught: Math.round(2/3×100)=67 not 66 → fixed to Math.floor. Removed dead `delay` function.
 - `redesign-upload-modal` — Dark theme pass on `UploadModal.tsx` + `DurationPicker.tsx`. Both KAV and ScrollView set to surface (#1A1A2E). Drag handle #3A3A4E. Inputs to surfaceElevated/borderInput. File drop zone dashed borderDropzone. Active chip: accentPrimary no border; inactive: surfaceElevated + borderInput. Slider tokens updated. Truncation+offline banners → dark amber rgba. OrDivider extracted as inline component. Antagonistic review caught: borderDropzone should be unconditional (not offline-conditional) → fixed. Pre-existing: double-onDismiss in Modal (not introduced, not fixing per "no logic changes" rule).
 
+- `redesign-settings-carmode` — Dark theme pass on settings.tsx + CarMode.tsx + 4 settings sub-components (SettingsSection, SettingsRow, SettingsToggleRow, SettingsDivider). CarMode: added ArticleInfoSection (absolute top, title+source), ProgressBarSection (track #1A1A2E, fill accentPrimary), updated skip buttons (80×80 #1A1A2E fill), play button (140×140 accentPrimary fill), removed bottom title. Antagonistic review caught pre-existing bugs (chevron on disabled rows, handleSignOut no error handling) — deferred per "no logic changes" rule. Also fixed tsconfig.json: added `"native"` to exclude list to prevent Next.js type-checker from processing React Native files (pre-existing build failure from 86bbed7 expo-av→expo-audio commit).
+
 ## What's Next
 
-**Phase 5 UI Redesign Batch 1 (Session 22):** After dark-theme-foundation:
-- `redesign-processing` (S, 1pt) — theme pass on processing.tsx
-- `redesign-upload-modal` (M, 2pts) — theme pass on UploadModal.tsx + DurationPicker.tsx
-- `redesign-settings-carmode` (S, 1pt) — theme pass on settings.tsx + CarMode.tsx + settings sub-components
+**Phase 5 UI Redesign Batch 2:** Session 22 completed 6 pts (dark-theme-foundation M, redesign-processing S, redesign-upload-modal M, redesign-settings-carmode S). Remaining ready features:
+- `nav-shell-redesign` (L, 3pts) — 3-tab layout + dark mini player
+- `redesign-home-screens` (M, 2pts) — depends on nav-shell-redesign
+- `redesign-expanded-player` (M, 2pts) — Expanded Player dark theme
+- `redesign-library` (M, 2pts) — Library screen dark theme
+- `discover-ftue` (M, 2pts) — Discover FTUE
+- `source-detail` (M, 2pts) — Source Detail screen
+- `discover-screens` (L, 3pts) — Discover Main + Topic Drilldown
+- `redesign-sign-in` BLOCKED — see STATE.yaml blocker note
 
 ---
 

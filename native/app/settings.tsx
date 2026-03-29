@@ -27,6 +27,7 @@ import SettingsRow from "../components/settings/SettingsRow";
 import SettingsToggleRow from "../components/settings/SettingsToggleRow";
 import SettingsDivider from "../components/settings/SettingsDivider";
 import { useFeedbackSheet } from "../lib/useFeedbackSheet";
+import { colors, borderRadius } from "../lib/theme";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -171,17 +172,24 @@ function SettingsScreen() {
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
       {/* Header with back button */}
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
+      <View style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderDivider,
+      }}>
         <TouchableOpacity
           onPress={() => router.back()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="mr-3"
+          style={{ marginRight: 12 }}
         >
-          <Ionicons name="chevron-back" size={24} color="#374151" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-gray-900">Settings</Text>
+        <Text style={{ fontSize: 22, fontWeight: "600", color: colors.textPrimary }}>Settings</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -189,22 +197,29 @@ function SettingsScreen() {
         style={{ flex: 1 }}
       >
       <ScrollView
-        className="flex-1"
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Account ──────────────────────────────────────── */}
+        {/* ── Account ─────────────────────────────────────────────────── */}
         <SettingsSection title="Account">
-          <View className="px-4 py-4 flex-row items-center gap-3">
-            <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center">
-              <Ionicons name="person" size={18} color="#EA580C" />
+          <View style={{ paddingHorizontal: 16, paddingVertical: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "rgba(255,107,53,0.15)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <Ionicons name="person" size={18} color={colors.accentPrimary} />
             </View>
-            <View className="flex-1">
+            <View style={{ flex: 1 }}>
               {fullName ? (
-                <Text className="text-base font-semibold text-gray-900">{fullName}</Text>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: colors.textPrimary }}>{fullName}</Text>
               ) : null}
               {email ? (
-                <Text className="text-sm text-gray-500" numberOfLines={1}>{email}</Text>
+                <Text style={{ fontSize: 14, color: colors.textSecondary }} numberOfLines={1}>{email}</Text>
               ) : null}
             </View>
           </View>
@@ -214,11 +229,11 @@ function SettingsScreen() {
             onPress={handleSignOut}
             destructive
           >
-            <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+            <Ionicons name="log-out-outline" size={18} color={colors.statusError} />
           </SettingsRow>
         </SettingsSection>
 
-        {/* ── Playback ─────────────────────────────────────── */}
+        {/* ── Playback ─────────────────────────────────────────────────── */}
         <SettingsSection title="Playback">
           <SettingsRow
             label="Default Duration"
@@ -239,13 +254,20 @@ function SettingsScreen() {
             subtitle="Tap to cycle through speeds"
             onPress={handleSpeedCycle}
           >
-            <View className="bg-orange-100 px-3 py-1 rounded-full">
-              <Text className="text-sm font-bold text-brand">{speed.toFixed(2)}x</Text>
+            <View style={{
+              backgroundColor: "rgba(255,107,53,0.15)",
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: borderRadius.full,
+            }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.accentPrimary }}>
+                {speed.toFixed(2)}x
+              </Text>
             </View>
           </SettingsRow>
         </SettingsSection>
 
-        {/* ── Notifications ──────────────────────────────────── */}
+        {/* ── Notifications ─────────────────────────────────────────────── */}
         <SettingsSection title="Notifications">
           <SettingsToggleRow
             label="Episode Ready"
@@ -255,17 +277,28 @@ function SettingsScreen() {
           />
         </SettingsSection>
 
-        {/* ── ElevenLabs ────────────────────────────────────── */}
+        {/* ── ElevenLabs ───────────────────────────────────────────────── */}
         <SettingsSection title="ElevenLabs">
-          <View className="px-4 pt-4 pb-3">
-            <Text className="text-base font-medium text-gray-900 mb-1">API Key</Text>
-            <Text className="text-xs text-gray-500 mb-3">
+          <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: "500", color: colors.textPrimary, marginBottom: 4 }}>
+              API Key
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>
               Optional. Enables premium voice quality for your episodes.
             </Text>
             <TextInput
-              className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
+              style={{
+                backgroundColor: colors.surfaceElevated,
+                borderWidth: 1,
+                borderColor: colors.borderInput,
+                borderRadius: borderRadius.card,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 16,
+                color: colors.textPrimary,
+              }}
               placeholder="sk-..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
@@ -279,28 +312,32 @@ function SettingsScreen() {
             <TouchableOpacity
               onPress={handleSaveKey}
               disabled={!keyDirty}
-              className={`mt-3 py-2.5 rounded-xl items-center ${
-                keyDirty ? "bg-brand" : "bg-gray-200"
-              }`}
+              style={{
+                marginTop: 12,
+                paddingVertical: 10,
+                borderRadius: borderRadius.card,
+                alignItems: "center",
+                backgroundColor: keyDirty ? colors.accentPrimary : colors.surfaceElevated,
+              }}
             >
-              <Text
-                className={`text-sm font-semibold ${
-                  keyDirty ? "text-white" : "text-gray-400"
-                }`}
-              >
+              <Text style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: keyDirty ? colors.textPrimary : colors.textTertiary,
+              }}>
                 {keySaved ? "Saved ✓" : "Save Key"}
               </Text>
             </TouchableOpacity>
           </View>
         </SettingsSection>
 
-        {/* ── Storage ───────────────────────────────────────── */}
+        {/* ── Storage ──────────────────────────────────────────────────── */}
         <SettingsSection title="Storage">
-          <View className="px-4 py-4 flex-row items-center justify-between">
-            <Text className="text-base font-medium text-gray-900">
+          <View style={{ paddingHorizontal: 16, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ fontSize: 16, fontWeight: "500", color: colors.textPrimary }}>
               Downloaded Episodes
             </Text>
-            <Text className="text-sm text-gray-500">
+            <Text style={{ fontSize: 14, color: colors.textSecondary }}>
               {storageCount} file{storageCount !== 1 ? "s" : ""} ·{" "}
               {formatStorageSize(storageBytes)}
             </Text>
@@ -315,23 +352,23 @@ function SettingsScreen() {
             <Ionicons
               name="trash-outline"
               size={18}
-              color={storageCount === 0 ? "#D1D5DB" : "#EF4444"}
+              color={storageCount === 0 ? colors.textTertiary : colors.statusError}
             />
           </SettingsRow>
         </SettingsSection>
 
-
-        {/* ─── Support ───────────────────────────────────────────────────────────── */}
+        {/* ── Support ──────────────────────────────────────────────────── */}
         <SettingsSection title="Support">
           <SettingsRow
             label="Send Feedback"
             subtitle="Report a bug or share an idea"
             onPress={openFeedbackSheet}
           >
-            <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />
+            <Ionicons name="chatbubble-outline" size={18} color={colors.textTertiary} />
           </SettingsRow>
         </SettingsSection>
-        {/* ── About ─────────────────────────────────────────── */}
+
+        {/* ── About ────────────────────────────────────────────────────── */}
         <SettingsSection title="About">
           <SettingsRow
             label="Ridecast"
