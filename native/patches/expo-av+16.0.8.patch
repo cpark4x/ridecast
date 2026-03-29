@@ -17,14 +17,14 @@ index 42a79e1..094a2be 100644
  
  typedef NS_OPTIONS(NSUInteger, EXAudioInterruptionMode)
 diff --git a/node_modules/expo-av/ios/EXAV/EXAV.m b/node_modules/expo-av/ios/EXAV/EXAV.m
-index 7153d28..574b1a9 100644
+index 7153d28..3ae9315 100644
 --- a/node_modules/expo-av/ios/EXAV/EXAV.m
 +++ b/node_modules/expo-av/ios/EXAV/EXAV.m
 @@ -1,9 +1,13 @@
  // Copyright 2017-present 650 Industries. All rights reserved.
  
  #import <AVFoundation/AVFoundation.h>
-+#import <EXAV/EXAVCompat.h>
++#import "EXAVCompat.h"
  
  #import <ExpoModulesCore/EXUIManager.h>
 -#import <ExpoModulesCore/EXEventEmitterService.h>
@@ -64,26 +64,26 @@ index 0000000..269ccc3
 +
 +#endif
 diff --git a/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m b/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
-index 6f6998d..7fc2bf8 100644
+index 6f6998d..38ea4c6 100644
 --- a/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
 +++ b/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
 @@ -1,6 +1,7 @@
  // Copyright 2017-present 650 Industries. All rights reserved.
  
  #import <EXAV/EXAVPlayerData.h>
-+#import <EXAV/EXAVCompat.h>
++#import "EXAVCompat.h"
  #import <MobileCoreServices/MobileCoreServices.h>
  
  // This struct is passed between the MTAudioProcessingTap callbacks.
 diff --git a/node_modules/expo-av/ios/EXAV/EXAVTV.m b/node_modules/expo-av/ios/EXAV/EXAVTV.m
-index b6fccda..ce15879 100644
+index b6fccda..c54fb44 100644
 --- a/node_modules/expo-av/ios/EXAV/EXAVTV.m
 +++ b/node_modules/expo-av/ios/EXAV/EXAVTV.m
 @@ -1,9 +1,13 @@
  // Copyright 2017-present 650 Industries. All rights reserved.
  
  #import <AVFoundation/AVFoundation.h>
-+#import <EXAV/EXAVCompat.h>
++#import "EXAVCompat.h"
  
  #import <ExpoModulesCore/EXUIManager.h>
 -#import <ExpoModulesCore/EXEventEmitterService.h>
@@ -95,14 +95,14 @@ index b6fccda..ce15879 100644
  #import <ExpoModulesCore/EXFileSystemInterface.h>
  #import <ExpoModulesCore/EXPermissionsInterface.h>
 diff --git a/node_modules/expo-av/ios/EXAV/EXAudioRecordingPermissionRequester.m b/node_modules/expo-av/ios/EXAV/EXAudioRecordingPermissionRequester.m
-index 7d8375a..bc15cc1 100644
+index 7d8375a..f82daed 100644
 --- a/node_modules/expo-av/ios/EXAV/EXAudioRecordingPermissionRequester.m
 +++ b/node_modules/expo-av/ios/EXAV/EXAudioRecordingPermissionRequester.m
 @@ -1,8 +1,17 @@
  // Copyright 2016-present 650 Industries. All rights reserved.
  
  #import <EXAV/EXAudioRecordingPermissionRequester.h>
-+#import <EXAV/EXAVCompat.h>
++#import "EXAVCompat.h"
  #import <ExpoModulesCore/EXDefines.h>
  
 +// EXFatal and EXErrorWithMessage removed in expo-modules-core@55.x — inline definitions
