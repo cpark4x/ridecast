@@ -14,10 +14,11 @@ import { formatDuration, nextSpeed } from "../lib/utils";
 import { smartTitle } from "../lib/libraryHelpers";
 import { Haptics } from "../lib/haptics";
 import CarMode from "./CarMode";
+import { colors, borderRadius, spacing } from "../lib/theme";
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 // Constants
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 
 const SPEEDS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -29,31 +30,24 @@ const SLEEP_OPTIONS: { label: string; value: number | "end" | null }[] = [
   { label: "End of episode", value: "end" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Artwork background by content/source type
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
+// Content-type atmosphere color
+// ────────────────────────────────────────────────────────────────────────────
 
-const ARTWORK_BG: Record<string, string> = {
-  article: "#FFF7ED",
-  url:     "#FFF7ED",
-  pdf:     "#FFF1F2",
-  epub:    "#FAF5FF",
-  txt:     "#F9FAFB",
-};
-
-function artworkBg(contentType?: string | null, sourceType?: string | null): string {
-  if (contentType && ARTWORK_BG[contentType.toLowerCase()]) {
-    return ARTWORK_BG[contentType.toLowerCase()];
-  }
-  if (sourceType && ARTWORK_BG[sourceType.toLowerCase()]) {
-    return ARTWORK_BG[sourceType.toLowerCase()];
-  }
-  return "#F8FAFC";
+function contentTypeToColor(contentType?: string | null): string {
+  const t = (contentType ?? "").toLowerCase();
+  if (t === "tech" || t === "ai")                                   return colors.contentTech;      // #2563EB
+  if (t === "business" || t === "finance")                          return colors.contentBusiness;  // #EA580C
+  if (t === "science")                                              return colors.contentScience;   // #0D9488
+  if (t === "fiction" || t === "psychology" || t === "philosophy")  return colors.contentFiction;   // #7C3AED
+  if (t === "news" || t === "politics")                             return colors.contentNews;      // #DB2777
+  if (t === "biography")                                            return colors.contentBiography; // #059669
+  return colors.accentPrimary; // fallback: #FF6B35
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 // ExpandedPlayer
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 
 interface ExpandedPlayerProps {
   visible:   boolean;
@@ -80,32 +74,36 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
   } = usePlayer();
 
   // Local scrub position — only used while the user is dragging the slider
-  const [scrubPosition, setScrubPosition]       = useState<number | null>(null);
+  const [scrubPosition, setScrubPosition]        = useState<number | null>(null);
   const [sleepModalVisible, setSleepModalVisible] = useState(false);
 
   if (!currentItem) return null;
 
   const displayPosition = scrubPosition ?? position;
   const remaining       = Math.max(0, duration - displayPosition);
-  const bg              = artworkBg(currentItem.contentType, currentItem.sourceType);
+  const atmosphereColor = contentTypeToColor(currentItem.contentType);
 
   // smart-titles: clean the display title
-  const displayTitle = smartTitle(currentItem.title, currentItem.sourceType ?? "url", currentItem.sourceDomain);
+  const displayTitle = smartTitle(
+    currentItem.title,
+    currentItem.sourceType ?? "url",
+    currentItem.sourceDomain,
+  );
 
-  // ── Speed cycling ──────────────────────────────────────────────────────────
+  // ── Speed cycling ────────────────────────────────────────────────────────
   function handleSpeedPress() {
     void Haptics.light();
     const newSpeed = nextSpeed(speed, SPEEDS);
     setSpeed(newSpeed).catch((err) => console.warn("[player] setSpeed error:", err));
   }
 
-  // ── Sleep timer ────────────────────────────────────────────────────────────
+  // ── Sleep timer ──────────────────────────────────────────────────────────
   function handleSleepOption(value: number | "end" | null) {
     setSleepTimer(value);
     setSleepModalVisible(false);
   }
 
-  // ── Scrubber ───────────────────────────────────────────────────────────────
+  // ── Scrubber ─────────────────────────────────────────────────────────────
   function handleSlidingComplete(value: number) {
     setScrubPosition(null);
     seekTo(value).catch((err) => console.warn("[player] seekTo error:", err));
@@ -119,13 +117,24 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
       onRequestClose={onDismiss}
     >
       <View
-        className="flex-1 bg-white"
-        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+        style={{
+          flex: 1,
+          backgroundColor: colors.backgroundScreen,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
       >
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <View className="items-center pt-2 pb-1">
           {/* Drag handle */}
-          <View className="w-10 h-1 rounded-full bg-gray-300" />
+          <View
+            style={{
+              width: 40,
+              height: 4,
+              borderRadius: 9999,
+              backgroundColor: "#3A3A4E",
+            }}
+          />
         </View>
         <View className="flex-row items-center justify-between px-4 pb-2">
           <TouchableOpacity
@@ -133,55 +142,94 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className="p-2 -ml-2"
           >
-            <Ionicons name="chevron-down" size={26} color="#374151" />
+            <Ionicons name="chevron-down" size={26} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text className="text-base font-semibold text-gray-700">Now Playing</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: "500" }}>
+            Now Playing
+          </Text>
           <View style={{ width: 42 }} />
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: spacing.sectionGap }}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Artwork ───────────────────────────────────────────────────── */}
+          {/* ── Artwork ─────────────────────────────────────────────────── */}
           <View className="items-center px-8 mt-4 mb-6">
+            {/* Atmospheric glow */}
             <View
-              className="w-70 h-70 rounded-3xl items-center justify-center"
-              style={{ width: 280, height: 280, backgroundColor: bg }}
+              style={{
+                position: "absolute",
+                width: 200,
+                height: 200,
+                borderRadius: 100,
+                backgroundColor: atmosphereColor + "14",
+              }}
+            />
+
+            {/* Artwork card */}
+            <View
+              style={{
+                width: 280,
+                height: 280,
+                borderRadius: 16,
+                backgroundColor: colors.surface,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Ionicons name="headset" size={96} color="#EA580C" style={{ opacity: 0.7 }} />
+              <Ionicons
+                name="headset"
+                size={96}
+                color={colors.accentPrimary}
+                style={{ opacity: 0.7 }}
+              />
             </View>
 
             {/* Title + author */}
             <Text
-              className="text-xl font-bold text-gray-900 mt-5 text-center"
+              style={{
+                color: colors.textPrimary,
+                fontSize: 20,
+                fontWeight: "600",
+                letterSpacing: 0.3,
+                marginTop: 20,
+                textAlign: "center",
+              }}
               numberOfLines={2}
             >
               {displayTitle}
             </Text>
             {currentItem.author ? (
-              <Text className="text-base text-gray-500 mt-1 text-center" numberOfLines={1}>
+              <Text
+                style={{ color: colors.textSecondary, marginTop: 4, textAlign: "center" }}
+                numberOfLines={1}
+              >
                 {currentItem.author}
               </Text>
             ) : null}
           </View>
 
-          {/* ── Scrubber ──────────────────────────────────────────────────── */}
+          {/* ── Scrubber ─────────────────────────────────────────────────── */}
           <View className="px-5 mb-2">
             <Slider
               style={{ width: "100%", height: 40 }}
               minimumValue={0}
               maximumValue={duration > 0 ? duration : 1}
               value={displayPosition}
-              minimumTrackTintColor="#EA580C"
-              maximumTrackTintColor="#E5E7EB"
-              thumbTintColor="#EA580C"
+              minimumTrackTintColor={colors.accentPrimary}
+              maximumTrackTintColor="#2C303E"
+              thumbTintColor="#FFFFFF"
               onValueChange={(v) => setScrubPosition(v)}
               onSlidingComplete={handleSlidingComplete}
             />
             <View className="flex-row justify-between px-1 -mt-1">
-              <Text className="text-xs text-gray-500">{formatDuration(displayPosition)}</Text>
-              <Text className="text-xs text-gray-500">-{formatDuration(remaining)}</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {formatDuration(displayPosition)}
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                -{formatDuration(remaining)}
+              </Text>
             </View>
           </View>
 
@@ -192,14 +240,20 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
               onPress={() => { void Haptics.light(); void skipBack(5); }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="play-back" size={30} color="#374151" />
+              <Ionicons name="play-back" size={30} color={colors.textPrimary} />
             </TouchableOpacity>
 
             {/* Play / Pause */}
             <TouchableOpacity
               onPress={() => { void Haptics.light(); void togglePlay(); }}
-              className="w-16 h-16 rounded-full bg-brand items-center justify-center"
-              style={{ elevation: 4 }}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: colors.accentPrimary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               <Ionicons
                 name={isPlaying ? "pause" : "play"}
@@ -214,50 +268,63 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
               onPress={() => { void Haptics.light(); void skipForward(15); }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="play-forward" size={30} color="#374151" />
+              <Ionicons name="play-forward" size={30} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
-          {/* ── Secondary controls ────────────────────────────────────────── */}
+          {/* ── Secondary controls ─────────────────────────────────────────── */}
           <View className="flex-row items-center justify-center gap-8 px-8 mb-6">
             {/* Speed */}
             <TouchableOpacity
               onPress={handleSpeedPress}
-              className="bg-gray-100 px-3 py-1.5 rounded-full min-w-[52px] items-center"
+              style={{
+                backgroundColor: colors.surfaceElevated,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: borderRadius.card,
+                minWidth: 52,
+                alignItems: "center",
+              }}
             >
-              <Text className="text-sm font-bold text-gray-800">{speed.toFixed(2)}x</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "700" }}>
+                {speed.toFixed(2)}x
+              </Text>
             </TouchableOpacity>
 
             {/* Sleep timer */}
             <TouchableOpacity
               onPress={() => setSleepModalVisible(true)}
-              className={`p-2 rounded-full ${sleepTimer !== null ? "bg-brand" : "bg-gray-100"}`}
+              style={
+                sleepTimer !== null
+                  ? { backgroundColor: colors.accentPrimary, padding: 8, borderRadius: borderRadius.card }
+                  : { backgroundColor: colors.surfaceElevated, padding: 8, borderRadius: borderRadius.card }
+              }
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
               <Ionicons
                 name="moon-outline"
                 size={22}
-                color={sleepTimer !== null ? "white" : "#374151"}
+                color={sleepTimer !== null ? "white" : colors.textSecondary}
               />
             </TouchableOpacity>
 
             {/* Queue — TODO: show current queue list in a Modal (future sprint) */}
             <TouchableOpacity
               onPress={() => { /* TODO: open queue modal */ }}
-              className="bg-gray-100 p-2 rounded-full"
+              style={{ backgroundColor: colors.surfaceElevated, padding: 8, borderRadius: borderRadius.card }}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="list-outline" size={22} color="#374151" />
+              <Ionicons name="list-outline" size={22} color={colors.textSecondary} />
             </TouchableOpacity>
 
             {/* Car mode */}
             <TouchableOpacity
               onPress={() => setCarModeVisible(true)}
-              className="bg-gray-100 p-2 rounded-full"
+              style={{ backgroundColor: colors.surfaceElevated, padding: 8, borderRadius: borderRadius.card }}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               accessibilityLabel="Car mode"
             >
-              <Ionicons name="car-outline" size={22} color="#374151" />
+              <Ionicons name="car-outline" size={22} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -265,33 +332,71 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
           {(currentItem.summary ||
             currentItem.contentType ||
             (currentItem.themes && currentItem.themes.length > 0)) && (
-            <View className="mx-5 bg-gray-50 rounded-2xl p-4">
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: borderRadius.card,
+                marginHorizontal: 20,
+                padding: 16,
+              }}
+            >
               {/* Summary */}
               {currentItem.summary ? (
-                <Text className="text-sm text-gray-700 leading-5 mb-3">
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 14,
+                    lineHeight: 20,
+                    marginBottom: 12,
+                  }}
+                >
                   {currentItem.summary}
                 </Text>
               ) : null}
 
               {/* Format + Content type + Themes pills */}
               <View className="flex-row flex-wrap gap-2">
-                <View className="bg-orange-100 px-2.5 py-1 rounded-full">
-                  <Text className="text-xs font-medium text-orange-700">
+                <View
+                  style={{
+                    backgroundColor: "rgba(255,107,53,0.15)",
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 9999,
+                  }}
+                >
+                  <Text style={{ color: colors.accentPrimary, fontSize: 12, fontWeight: "500" }}>
                     {currentItem.format}
                   </Text>
                 </View>
 
                 {currentItem.contentType ? (
-                  <View className="bg-blue-100 px-2.5 py-1 rounded-full">
-                    <Text className="text-xs font-medium text-blue-700">
+                  <View
+                    style={{
+                      backgroundColor: "rgba(37,99,235,0.15)",
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 9999,
+                    }}
+                  >
+                    <Text style={{ color: colors.contentTech, fontSize: 12, fontWeight: "500" }}>
                       {currentItem.contentType}
                     </Text>
                   </View>
                 ) : null}
 
                 {currentItem.themes?.map((theme) => (
-                  <View key={theme} className="bg-gray-200 px-2.5 py-1 rounded-full">
-                    <Text className="text-xs font-medium text-gray-700">{theme}</Text>
+                  <View
+                    key={theme}
+                    style={{
+                      backgroundColor: colors.surfaceElevated,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 9999,
+                    }}
+                  >
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "500" }}>
+                      {theme}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -300,7 +405,7 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
         </ScrollView>
       </View>
 
-      {/* ── Sleep timer modal ──────────────────────────────────────────────── */}
+      {/* ── Sleep timer modal ─────────────────────────────────────────────── */}
       <Modal
         visible={sleepModalVisible}
         transparent
@@ -308,15 +413,45 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
         onRequestClose={() => setSleepModalVisible(false)}
       >
         <TouchableOpacity
-          className="flex-1 bg-black/40 items-center justify-end pb-12"
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.4)",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            paddingBottom: 48,
+          }}
           activeOpacity={1}
           onPress={() => setSleepModalVisible(false)}
         >
-          <View className="bg-white w-full mx-0 rounded-t-3xl overflow-hidden">
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              width: "100%",
+              borderTopLeftRadius: 14,
+              borderTopRightRadius: 14,
+              overflow: "hidden",
+            }}
+          >
             <View className="items-center pt-3 pb-1">
-              <View className="w-10 h-1 rounded-full bg-gray-300" />
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  borderRadius: 9999,
+                  backgroundColor: "#3A3A4E",
+                }}
+              />
             </View>
-            <Text className="text-base font-bold text-gray-900 px-5 pt-2 pb-3">
+            <Text
+              style={{
+                color: colors.textPrimary,
+                fontSize: 16,
+                fontWeight: "700",
+                paddingHorizontal: 20,
+                paddingTop: 8,
+                paddingBottom: 12,
+              }}
+            >
               Sleep Timer
             </Text>
             {SLEEP_OPTIONS.map(({ label, value }) => {
@@ -326,17 +461,28 @@ export default function ExpandedPlayer({ visible, onDismiss }: ExpandedPlayerPro
                 <TouchableOpacity
                   key={label}
                   onPress={() => handleSleepOption(value)}
-                  className={`px-5 py-4 flex-row items-center justify-between border-t border-gray-100 ${
-                    isActive ? "bg-orange-50" : ""
-                  }`}
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 16,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderTopWidth: 1,
+                    borderTopColor: colors.borderDivider,
+                    backgroundColor: isActive ? "rgba(255,107,53,0.10)" : "transparent",
+                  }}
                 >
                   <Text
-                    className={`text-base ${isActive ? "text-brand font-semibold" : "text-gray-900"}`}
+                    style={{
+                      fontSize: 16,
+                      color: isActive ? colors.accentPrimary : colors.textPrimary,
+                      fontWeight: isActive ? "600" : "400",
+                    }}
                   >
                     {label}
                   </Text>
                   {isActive && (
-                    <Ionicons name="checkmark" size={20} color="#EA580C" />
+                    <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />
                   )}
                 </TouchableOpacity>
               );

@@ -62,6 +62,9 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 - `native/__tests__/TabLayout.test.tsx` + `native/__tests__/PlayerBar.test.tsx` — new spec tests (not run by health gate; native Jest broken).
 - Antagonistic review: 3 findings, all non-actionable (wrong token semantics = spec allows either; height 56 = Expo Router handles safe area on top per spec note; EXEMPT_SEGMENTS ordering = doesn't change behavior).
 
+**Also completed this session: `redesign-expanded-player` (M, 2pts)**
+- `native/components/ExpandedPlayer.tsx` — full dark theme pass. Removed ARTWORK_BG/artworkBg. Added contentTypeToColor helper (8-case mapping → content-type color tokens). Atmospheric glow: absolute 200×200 View behind artwork, color=contentTypeToColor(contentType)+'14'. All token swaps applied: backgroundScreen bg, '#3A3A4E' handles, textSecondary labels, surface artwork card (borderRadius 16), accentPrimary headset icon, scrubber #FF6B35/2C303E/white, textPrimary skip icons, accentPrimary play button (no elevation), surfaceElevated utility buttons, surface metadata card, sleep modal dark. Antagonistic review: CLEAR.
+
 ## Session 22 Summary — 2026-03-29
 
 **Completed:**
