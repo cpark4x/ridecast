@@ -44,7 +44,8 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-web-browser",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "./plugins/withExpoAvShim"
     ],
     "experiments": {
       "typedRoutes": true
