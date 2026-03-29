@@ -18,6 +18,7 @@ import {
   getStageIndex,
   type ProcessingStage,
 } from "../lib/constants";
+import { colors, borderRadius } from "../lib/theme";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -47,24 +48,24 @@ function StageRow({ stage, currentStage }: StageRowProps) {
 
   const iconColor =
     status === "complete"
-      ? "#16A34A"
+      ? colors.statusSuccess
       : status === "active"
-        ? "#EA580C"
-        : "#D1D5DB";
+        ? colors.accentPrimary
+        : colors.textTertiary;
 
   const labelColor =
     status === "complete"
-      ? "text-green-700"
+      ? colors.statusSuccess
       : status === "active"
-        ? "text-brand"
-        : "text-gray-400";
+        ? colors.accentPrimary
+        : colors.textTertiary;
 
   return (
-    <View className="flex-row items-center gap-4 py-3.5">
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 14 }}>
       {/* Icon / spinner */}
-      <View className="w-8 items-center">
+      <View style={{ width: 32, alignItems: "center" }}>
         {status === "active" ? (
-          <ActivityIndicator size="small" color="#EA580C" />
+          <ActivityIndicator size="small" color={colors.accentPrimary} />
         ) : (
           <Ionicons
             name={
@@ -77,12 +78,12 @@ function StageRow({ stage, currentStage }: StageRowProps) {
       </View>
 
       {/* Label */}
-      <View className="flex-1">
-        <Text className={`text-base font-semibold ${labelColor}`}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: labelColor }}>
           {meta.label}
         </Text>
         {status === "active" && STAGE_COPY[stage] ? (
-          <Text className="text-xs text-gray-500 mt-0.5">
+          <Text style={{ fontSize: 12, color: colors.textTertiary, marginTop: 2 }}>
             {STAGE_COPY[stage]}
           </Text>
         ) : null}
@@ -223,57 +224,119 @@ export default function ProcessingScreen() {
     }
   }
 
+  // Progress bar fill: analyzing=0%, scripting=33%, generating=66%, ready=100%
+  const progressFill =
+    getStageIndex(stage) / (STAGE_LABELS.length - 1);
+  const progressWidthPct = `${Math.floor(progressFill * 100)}%` as `${number}%`;
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
       {/* Cancel button top-left */}
-      <View className="px-4 pt-2 pb-1">
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
         <TouchableOpacity onPress={handleCancel} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text className="text-sm text-gray-400">Cancel</Text>
+          <Text style={{ fontSize: 14, color: colors.textSecondary }}>Cancel</Text>
         </TouchableOpacity>
       </View>
 
-      <View className="flex-1 items-center justify-center px-8">
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
         {/* Title */}
-        <Text className="text-2xl font-bold text-gray-900 mb-2">Creating Episode</Text>
-        <Text className="text-sm text-gray-500 mb-10 text-center">
+        <Text style={{ fontSize: 24, fontWeight: "700", color: colors.textPrimary, marginBottom: 8 }}>
+          Creating Episode
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 40, textAlign: "center" }}>
           This usually takes 30–60 seconds
         </Text>
 
         {/* Stage list */}
-        <View className="w-full bg-gray-50 rounded-2xl px-5 py-2 mb-8">
+        <View style={{
+          width: "100%",
+          backgroundColor: colors.surface,
+          borderRadius: borderRadius.card,
+          paddingHorizontal: 20,
+          paddingVertical: 8,
+          marginBottom: 32,
+        }}>
           {STAGE_LABELS.map(({ stage: s }) => (
             <StageRow key={s} stage={s} currentStage={stage} />
           ))}
         </View>
 
+        {/* Progress bar */}
+        <View style={{
+          width: "100%",
+          height: 6,
+          backgroundColor: colors.surfaceElevated,
+          borderRadius: 3,
+          marginBottom: 32,
+        }}>
+          <View style={{
+            backgroundColor: colors.accentPrimary,
+            height: 6,
+            borderRadius: 3,
+            width: progressWidthPct,
+            minWidth: 0,
+          }} />
+        </View>
+
         {/* Error state */}
         {errorMsg && (
-          <View className="w-full items-center">
-            <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 w-full mb-4">
-              <Text className="text-sm text-red-700 text-center">{errorMsg}</Text>
+          <View style={{ width: "100%", alignItems: "center" }}>
+            <View style={{
+              backgroundColor: "rgba(239,68,68,0.12)",
+              borderColor: "rgba(239,68,68,0.3)",
+              borderWidth: 1,
+              borderRadius: borderRadius.card,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              width: "100%",
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 14, color: colors.statusError, textAlign: "center" }}>
+                {errorMsg}
+              </Text>
             </View>
 
             {audioError ? (
-              <View className="flex-row gap-3 w-full">
+              <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
                 <TouchableOpacity
                   onPress={handleRetryAudio}
-                  className="flex-1 bg-brand py-3 rounded-xl items-center"
+                  style={{
+                    flex: 1,
+                    backgroundColor: colors.accentPrimary,
+                    paddingVertical: 12,
+                    borderRadius: borderRadius.card,
+                    alignItems: "center",
+                  }}
                 >
-                  <Text className="text-white font-semibold">Retry Audio</Text>
+                  <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Retry Audio</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleTryAgain}
-                  className="flex-1 border border-gray-300 py-3 rounded-xl items-center"
+                  style={{
+                    flex: 1,
+                    borderColor: colors.borderInput,
+                    borderWidth: 1,
+                    paddingVertical: 12,
+                    borderRadius: borderRadius.card,
+                    alignItems: "center",
+                  }}
                 >
-                  <Text className="text-gray-700 font-semibold">Start Over</Text>
+                  <Text style={{ color: colors.textSecondary, fontWeight: "600" }}>Start Over</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
                 onPress={handleTryAgain}
-                className="bg-brand py-3 px-8 rounded-xl items-center w-full"
+                style={{
+                  backgroundColor: colors.accentPrimary,
+                  paddingVertical: 12,
+                  paddingHorizontal: 32,
+                  borderRadius: borderRadius.card,
+                  alignItems: "center",
+                  width: "100%",
+                }}
               >
-                <Text className="text-white font-semibold">Try Again</Text>
+                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Try Again</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -283,10 +346,4 @@ export default function ProcessingScreen() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

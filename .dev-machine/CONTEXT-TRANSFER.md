@@ -55,6 +55,7 @@ Pre-existing. Health gates use Vitest (`npm run test`) not native Jest.
 **Completed:**
 - `dark-theme-foundation` — Created `native/lib/theme.ts` (pure data module, 80 LOC, all 5 token objects + convenience bundle). Modified `native/app/_layout.tsx`: StatusBar "dark" → "light", AppShell root View gains `backgroundColor: colors.backgroundScreen`. Created `native/__tests__/theme.test.ts` (21 tests with pinned value assertions). Antagonistic review caught missing value-pin tests for typography.sizes, sizes, and borderRadius — all fixed. Also removed redundant inner `as const` from weight literals.
 - `redesign-sign-in` BLOCKED — `@clerk/clerk-expo` v2.19 wraps `<SignIn />` in a `WrapComponent()` that throws "not supported in native environments" on iOS. Spec needs update to use `useSSO()` hook with custom Apple/Google buttons. Visual changes can proceed once auth approach is updated.
+- `redesign-processing` — Full dark theme pass on `native/app/processing.tsx`. Replaced all Tailwind classNames with inline style objects using theme tokens. Added progress bar (track: surfaceElevated, fill: accentPrimary, width from getStageIndex). Antagonistic review caught: Math.round(2/3×100)=67 not 66 → fixed to Math.floor. Removed dead `delay` function.
 
 ## What's Next
 
