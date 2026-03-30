@@ -104,7 +104,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <View style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
         <OfflineBanner />
         {children}
-        {!isExemptScreen && <PlayerBar />}
+        {!isExemptScreen && (
+          <View
+            pointerEvents="box-none"
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
+          >
+            <PlayerBar />
+          </View>
+        )}
         <ExpandedPlayer
           visible={expandedPlayerVisible}
           onDismiss={() => setExpandedPlayerVisible(false)}

@@ -4,7 +4,6 @@
 
 import React, { useState } from "react";
 import {
-  FlatList,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -59,26 +58,29 @@ function TopicChip({
       onPress={() => onToggle(item.id)}
       activeOpacity={0.8}
       style={{
-        flex: 1,
+        width: '31%',
         backgroundColor: selected ? colors.accentPrimary : colors.surface,
         borderWidth: selected ? 0 : 1,
         borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 16,
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 8,
         alignItems: "center",
         justifyContent: "center",
+        gap: 4,
       }}
     >
+      <Text style={{ fontSize: 22, lineHeight: 28 }}>{item.emoji}</Text>
       <Text
         style={{
-          fontSize: 16,
+          fontSize: 13,
           fontWeight: "600",
           color: selected ? "#0F0F1A" : colors.textPrimary,
           textAlign: "center",
+          marginTop: 2,
         }}
       >
-        {item.emoji} {item.label}
+        {item.label}
       </Text>
     </TouchableOpacity>
   );
@@ -92,7 +94,7 @@ export default function DiscoverFTUETopicsScreen(): JSX.Element {
   const router = useRouter();
   const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
 
-  const canContinue = selectedTopics.size >= 3;
+  const canContinue = selectedTopics.size >= 1;
 
   function toggleTopic(id: string) {
     void Haptics.light();
@@ -154,27 +156,22 @@ export default function DiscoverFTUETopicsScreen(): JSX.Element {
               marginTop: 16,
             }}
           >
-            Pick at least 3 topics to personalize your Discover feed.
+            Pick topics to personalize your Discover feed.
           </Text>
         </View>
 
         {/* Topic grid — 3 columns */}
         <View style={{ marginTop: 32 }}>
-          <FlatList
-            data={TOPICS}
-            numColumns={3}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            columnWrapperStyle={{ gap: 12 }}
-            contentContainerStyle={{ gap: 16 }}
-            renderItem={({ item }) => (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {TOPICS.map((item) => (
               <TopicChip
+                key={item.id}
                 item={item}
                 selected={selectedTopics.has(item.id)}
                 onToggle={toggleTopic}
               />
-            )}
-          />
+            ))}
+          </View>
         </View>
 
         {/* Bottom actions */}

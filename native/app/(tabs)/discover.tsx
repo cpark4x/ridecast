@@ -137,6 +137,19 @@ function getCategoryColor(category: DiscoveryArticle["badgeCategory"]): string {
   }
 }
 
+function getCategoryEmoji(category: DiscoveryArticle["badgeCategory"]): string {
+  switch (category) {
+    case "science":    return "🧬";
+    case "tech":       return "🤖";
+    case "business":   return "📈";
+    case "psychology": return "🧠";
+    case "fiction":    return "🎭";
+    case "news":       return "📰";
+    case "biography":  return "👤";
+    default:           return "📖";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -167,16 +180,20 @@ function ArticleCard({ article }: { article: DiscoveryArticle }) {
         overflow: "hidden",
       }}
     >
-      {/* Image area (placeholder) */}
+      {/* Image area — category color + emoji */}
       <View
         style={{
           width: "100%",
           height: 140,
-          backgroundColor: colors.surfaceElevated,
+          backgroundColor: badgeColor + "33",   // category color at 20% opacity
           borderTopLeftRadius: borderRadius.card,
           borderTopRightRadius: borderRadius.card,
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <Text style={{ fontSize: 52 }}>{getCategoryEmoji(article.badgeCategory)}</Text>
+      </View>
       {/* Context badge — absolute top-left, category color at 90% opacity */}
       <View
         style={{

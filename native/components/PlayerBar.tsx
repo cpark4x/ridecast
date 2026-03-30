@@ -84,7 +84,7 @@ export default function PlayerBar() {
     <View
       style={{
         ...PLAYER_BAR_CONTAINER_STYLES,
-        marginBottom: Math.max(insets.bottom, 8),
+        marginBottom: insets.bottom + sizes.tabBarHeight + 8,
       }}
     >
       {/* Tappable body — opens expanded player */}
