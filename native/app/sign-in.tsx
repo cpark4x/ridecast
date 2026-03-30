@@ -76,7 +76,7 @@ export default function SignInScreen() {
         {/* AC-3: Real logo asset, NOT generic icon */}
         {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
         <Image
-          source={require("../../ui-studio/components/ridecast-logo-clean.png")}
+          source={require("../assets/images/ridecast-logo-clean.png")}
           style={{ width: 200, height: 56, resizeMode: "contain" }}
         />
         {/* App name */}
