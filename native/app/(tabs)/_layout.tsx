@@ -63,7 +63,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 1: Discover — scaffold placeholder, full implementation in discover-screens spec */}
+      {/* Tab 1: Discover — full implementation (discover-screens spec, F-P5-UI-11) */}
       <Tabs.Screen
         name="discover"
         options={{
@@ -88,6 +88,12 @@ export default function TabLayout() {
       {/* Hidden drill-down: Source Detail — accessible from Library or Discover */}
       <Tabs.Screen
         name="source-detail"
+        options={{ href: null, headerShown: false }}
+      />
+
+      {/* Hidden drill-down: Discover Topic — registered in tab shell so tab bar + mini player remain visible */}
+      <Tabs.Screen
+        name="discover-topic"
         options={{ href: null, headerShown: false }}
       />
     </Tabs>

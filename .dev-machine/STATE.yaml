@@ -32,158 +32,65 @@ health_gates:
   command: npm run lint
   status: PASS
   duration: 2.7s
-  notes: '8 problems (1 error severity, 7 warnings). eslint.config.mjs now excludes
-    .worktrees/** and native/** (same reason native/ is excluded from tsconfig.json
-    — RN files are incompatible with Next.js ESLint rules). Pre-existing: react-hooks/set-state-in-effect
-    in LibraryScreen.tsx (exitcode=0, non-blocking). @typescript-eslint/no-unused-vars
-    warnings across seed, routes, tests. Non-blocking; safe to defer.'
+  notes: "8 problems (1 error severity, 7 warnings). eslint.config.mjs now excludes .worktrees/** and native/** (same reason\
+    \ native/ is excluded from tsconfig.json \u2014 RN files are incompatible with Next.js ESLint rules). Pre-existing: react-hooks/set-state-in-effect\
+    \ in LibraryScreen.tsx (exitcode=0, non-blocking). @typescript-eslint/no-unused-vars warnings across seed, routes, tests.\
+    \ Non-blocking; safe to defer."
 - id: test
   command: npm run test
   status: PASS
-  duration: 4.80s
-  notes: 'Vitest: 433 passing, 7 skipped, 0 failures (47 test files). Skipped: 1
-    in db.test.ts, 6 in seed.test.ts (intentional). Verified blocker-resolution session
-    2026-03-29.'
+  duration: 5.0s
+  notes: 'Vitest: 433 passing, 7 skipped, 0 failures (47 test files). Session 25 — no regressions.'
 - id: build
   command: npm run build
   status: PASS
-  duration: 5.1s
-  notes: 'Next.js 16.1.6 with Turbopack builds successfully.
-
-    Non-blocking: MODULE_TYPELESS_PACKAGE_JSON (tailwind), themeColor metadata.
-
-    '
+  duration: 5.3s
+  notes: 'Next.js 16.1.6 with Turbopack builds successfully. Session 25 — no new errors.'
 - id: e2e
   command: npm run test:e2e
   status: PASS
   exit_code: 0
   duration: 15.2s
   scenarios: 5/5 passing
-  notes: 'All scenarios passing as of PR #16 (merged 2026-03-06).
-
-    Pattern A (Library selector) fixed. Pattern B (Target Duration race) fixed.
-
-    '
+  notes: 'All scenarios passing as of PR #16 (merged 2026-03-06).'
 known_issues:
 - id: type-check-caveat
   severity: P2
   title: 'Type-check caveat: Request vs NextRequest mismatch'
   affected_file: src/app/api/playback/route.test.ts
-  notes: 'npx tsc --noEmit fails but npm run build succeeds.
-
-    Next.js handles Request/NextRequest internally. Not gating.
-
-    '
+  notes: 'npx tsc --noEmit fails but npm run build succeeds. Next.js handles Request/NextRequest internally. Not gating.'
 - id: lint-warnings
   severity: P3
   title: 10 no-unused-vars warnings across seed, routes, tests
-  notes: 'Non-blocking. Deferred. Address in a cleanup pass.
-
-    '
+  notes: 'Non-blocking. Deferred. Address in a cleanup pass.'
 recently_shipped:
-- session: '22'
+- session: '25'
   date: '2026-03-29'
   commits:
-  - 44a5f06 feat(native): dark-theme-foundation
-  - dfe6495 feat(native): redesign-processing
-  - 046a1cd feat(native): redesign-upload-modal
-  - 02080b1 feat(native): redesign-settings-carmode
-  title: "Session 22: 4 features \u2014 Phase 5 UI Redesign Batch 1 (dark-theme-foundation, redesign-processing, redesign-upload-modal,\
-    \ redesign-settings-carmode)"
-  notes: "6pts completed. Created native/lib/theme.ts (pure dark token module). Applied dark theme to processing.tsx, UploadModal.tsx,\
-    \ DurationPicker.tsx, settings.tsx + 4 sub-components, CarMode.tsx. CarMode gains ArticleInfoSection, ProgressBarSection,\
-    \ blueprint-size controls. redesign-sign-in BLOCKED (Clerk <SignIn/> not native-compatible). Fixed tsconfig.json to exclude\
-    \ native/ (pre-existing build failure from expo-av\u2192expo-audio migration). 433 tests passing."
+  - WIP feat(native): discover-screens + redesign-sign-in
+  title: "Session 25: discover-screens (L, 3pts) + redesign-sign-in (S, 1pt) = 4pts"
+  notes: "discover-screens: full Discover feed (discover.tsx) + Topic Drilldown (discover-topic.tsx) + _layout.tsx update.\
+    \ redesign-sign-in: dark bg, atmospheric glows, real logo, white pill CTA. Antagonistic reviews: CLEAR on both.\
+    \ 433 tests passing."
+- session: '22'
+  date: '2026-03-29'
+  title: "Session 22: 4 features \u2014 Phase 5 UI Redesign Batch 1 (dark-theme-foundation, redesign-processing,\
+    \ redesign-upload-modal, redesign-settings-carmode)"
 - session: '19'
   date: '2026-03-26'
-  commits:
-  - ab03e63 feat(native): double-logo-fix
-  - 5c27a93 feat(upload): paste-raw-text
-  - d218116 feat(extractors): basic-file-types
   title: "Session 19: 3 features \u2014 double-logo-fix, paste-raw-text, basic-file-types (Phase 5 Batch 1 complete)"
-  notes: '3 features completed (4 pts). 12 new tests (430 total). mammoth package added for DOCX extraction. Upload route
-    now handles JSON body (rawText) + formData. Antagonistic reviews: fixed double-spinner bug, added corrupt-file error handler.'
 - session: '15'
   date: '2026-03-11'
-  commits:
-  - ccfd6fa feat(library): "rewrite LibraryScreen \u2014 search, filter chips, progress bars, played state, process new version,\
-      \ empty states"
   title: "Session 15: 1 feature \u2014 library-screen-rewrite (Phase 3 COMPLETE)"
-  notes: Final Phase 3 feature completed (3 pts). 25 new tests. Antagonistic review found no actionable bugs. All 316 tests
-    passing. Phase 3 done \u2014 43 features across 15 sessions.
 - session: '13'
   date: '2026-03-11'
-  commits:
-  - 9c2c7e0 feat(player): "rewrite ExpandedPlayer \u2014 scrollable layout, rich metadata, 5s/15s skips, sleep timer, dynamic\
-      \ gradients"
-  - 7dec82c feat(library): extract UploadModal component from AppShell
-  - 6dc8857 feat(library): "add ProcessNewVersionModal \u2014 duration preset picker"
-  - 3864ac0 fix(player): sync sleep timer local state from context to prevent desync
   title: "Session 13: 3 features \u2014 expanded-player-rewrite, upload-modal, process-new-version"
-  notes: 3 features completed (6 pts). 1 feature remaining (library-screen-rewrite). Antagonistic review caught 1 bug (sleep
-    timer desync, fixed).
-- session: '12'
-  date: '2026-03-11'
-  commits:
-  - fadc894 feat(library): add useLibraryFilter hook
-  - f7b87ac feat(library): add library-progress utilities
-  - 4d220f6 feat(home): "complete rewrite \u2014 greeting, Play All, queue cards, progress bars"
-  - 28904c1 feat(player): update PlayerBar with dynamic gradient and richer subtitle
-  - 88d4852 fix(library): respect completed flag + guard unplayed vacuous truth
-  title: "Session 12: 4 features \u2014 home-screen-rewrite, minibar, search-filter, progress-display"
-  notes: 4 features completed (8 pts). 4 features remaining. Antagonistic review caught 2 bugs (fixed).
-- session: '11'
-  date: '2026-03-11'
-  commits:
-  - 733d360 feat(player): add queue support
-  - d3d8ac6 feat(process): persist AI-generated summary
-  - bc69055 feat(api): return rich metadata for expanded player
-  - 837dccc feat(player): extend PlayableItem with rich metadata
-  - 85fe472 feat(player): add sleep timer
-  - 68f2a09 feat(library): add author display to cards
-  title: "Session 11: 6 features \u2014 queue, summary, API, playable-item, sleep-timer, library-card"
-  notes: 6 features completed. 8 features remaining across home-screen, expanded-player, library-redesign.
-- session: '10'
-  date: '2026-03-11'
-  commits:
-  - 718b2ee feat(api): join PlaybackState and return author/sourceUrl
-  - 4e9c5dd fix(player): remove hardcoded userId
-  - 3e15e6d feat(upload): add 2-min and 3-min duration presets
-  - 1ee7e19 refactor: extract shared content-display utils
-  - bce42ad feat(nav): restructure to 2 tabs + FAB + modal overlay
-  - 6f3d1ca feat(schema): add nullable summary column to Script model
-  title: 'Session 10: home-screen-redesign (tasks 1,2,4,5,6,8) + expanded-player-schema'
-  notes: 7 features completed. 14 features remaining across home-screen, expanded-player, library-redesign.
-- session: '8'
-  date: '2026-03-06'
-  commits:
-  - a476a7b
-  - 3b39547
-  - 7750c49
-  title: 'Phase 0 complete: multi-user-schema + azure-deployment + stripe-subscription'
-  notes: All 6 Phase 0 specs implemented. App ready for Azure deployment.
-- pr: '#17'
-  merged: '2026-03-06'
-  title: 'fix: restore 409 status for duplicate-content upload response'
-  notes: Regression from PR
-- pr: '#16'
-  merged: '2026-03-06'
-  title: 'fix: reset upload form state and fix E2E race conditions'
-  notes: 'Upload form resets after audio generation (#4 closed).
-
-    E2E Pattern A + B fixed. 5/5 scenarios passing.
-
-    Phase 1 specs written: duration-accuracy.md, pipeline-error-resilience.md.
-
-    Competitive analysis + mobile UI research docs added.
-
-    ROADMAP.md + VISION.md updated to reflect iOS strategy.
-
-    '
 phase: 5
 phase_name: phase-5-platform-expansion
-epoch: 24
-next_action: "Session 24 DONE: 6pts completed (redesign-home-screens M=2, discover-ftue M=2, source-detail M=2). EpisodeCard dark theme, empty states dark, Discover FTUE 2-screen flow, SourceDetail screen. Next: discover-screens (L, 3pts, depends on discover-ftue now done). Also ready: redesign-sign-in BLOCKED. Session budget allows discover-screens + 1 more S/M feature."
+epoch: 25
+next_action: 'Session 25 DONE: 4pts completed (discover-screens L=3, redesign-sign-in S=1). All Phase 5 UI Redesign features
+  now complete. Next session: propose new Phase 5 batch \u2014 ios-share-extension (M), source-author-following (L),
+  content-type-expansion (M), or episode-sharing (no spec yet, needs spec written).'
 completed_features:
 - empty-states
 - library-redesign
@@ -205,76 +112,9 @@ completed_features:
 - redesign-home-screens
 - discover-ftue
 - source-detail
+- discover-screens
+- redesign-sign-in
 features:
-  nav-shell-redesign:
-    status: done
-    started_at: '2026-03-29T01:16:00+00:00'
-    completed_at: '2026-03-29T01:32:00+00:00'
-    spec: specs/features/phase5/nav-shell-redesign.md
-    description: 3-tab layout (Home/Discover/Library) with dark theme + redesigned mini player bar matching nav-shell spec
-    size: L
-    depends_on:
-    - dark-theme-foundation
-  redesign-sign-in:
-    status: ready
-    spec: specs/features/phase5/redesign-sign-in.md
-    description: "Sign In screen dark theme — atmospheric glows, dark background, white pill CTA. Keeps useOAuth auth pattern (Clerk SignIn component not supported on native)."
-    size: S
-    depends_on:
-    - dark-theme-foundation
-  redesign-home-screens:
-    status: in-progress
-    started_at: '2026-03-29T17:00:00+00:00'
-    spec: specs/features/phase5/redesign-home-screens.md
-    description: "Home Empty + Home Daily dark refresh \u2014 EpisodeCard redesign, greeting header, Play All button"
-    size: M
-    depends_on:
-    - dark-theme-foundation
-    - nav-shell-redesign
-  redesign-expanded-player:
-    status: done
-    started_at: '2026-03-29T01:35:00+00:00'
-    completed_at: '2026-03-29T01:50:00+00:00'
-    spec: specs/features/phase5/redesign-expanded-player.md
-    description: "Expanded Player dark theme \u2014 artwork color-bleed atmosphere, dark scrubber, controls"
-    size: M
-    depends_on:
-    - dark-theme-foundation
-  redesign-library:
-    status: done
-    started_at: '2026-03-29T01:50:00+00:00'
-    completed_at: '2026-03-29T02:00:00+00:00'
-    spec: specs/features/phase5/redesign-library.md
-    description: "Library screen dark theme \u2014 search bar, filter chips, time-grouped list, header + button"
-    size: M
-    depends_on:
-    - dark-theme-foundation
-    - nav-shell-redesign
-  discover-ftue:
-    status: ready
-    spec: specs/features/phase5/discover-ftue.md
-    description: "Discover FTUE \u2014 topic chip grid selection + source suggestion cards, AsyncStorage gate"
-    size: M
-    depends_on:
-    - dark-theme-foundation
-    - nav-shell-redesign
-  discover-screens:
-    status: ready
-    spec: specs/features/phase5/discover-screens.md
-    description: Discover Main feed (For You, Topics, Recommended) + Topic Drilldown screen
-    size: L
-    depends_on:
-    - dark-theme-foundation
-    - nav-shell-redesign
-    - discover-ftue
-  source-detail:
-    status: ready
-    spec: specs/features/phase5/source-detail.md
-    description: "Source Detail screen \u2014 source header, episode list, follow button, Play Unplayed CTA"
-    size: M
-    depends_on:
-    - dark-theme-foundation
-    - redesign-library
   pocket-refugee-capture:
     status: deferred
     spec: specs/features/phase3/pocket-refugee-capture.md
@@ -292,16 +132,6 @@ features:
     spec: specs/features/phase4/content-type-expansion.md
     description: Support .docx, Google Docs, Notion, GitHub, Markdown
     size: M
-  generic-url-handling:
-    status: deferred
-    spec: specs/features/phase4/generic-url-handling.md
-    description: Homepage detection, article extraction, multi-select picker
-    size: M
-  browser-extension:
-    status: deferred
-    spec: specs/features/phase4/browser-extension.md
-    description: "Chrome extension \u2014 right-click any article, send to Ridecast"
-    size: L
   ios-share-extension:
     status: deferred
     spec: specs/features/phase4/ios-share-extension.md
@@ -323,13 +153,6 @@ proposed_features:
     description: Skip AI scripting, TTS source directly. New format alongside Narrator/Two-Host. User-requested.
     size: M
     source: user-feedback-2026-03-26
-  estimated-read-time:
-    status: already-done
-    priority: 7
-    type: feature
-    description: Already implemented in UploadScreen.tsx (readTime = wordCount / 250, displayed as '~X min read').
-    size: S
-    source: user-feedback-2026-03-26
   auto-subscribe-newsletter:
     status: new
     priority: 6
@@ -337,32 +160,18 @@ proposed_features:
     description: 'Full autopilot: follow a source, auto-generate when they publish. Depends on source-author-following + scheduled-production.'
     size: L
     source: user-feedback-2026-03-26
-  amplifier-ridecast-integration:
-    status: parked
-    priority: 9
-    type: feature
-    description: "Send content from Amplifier to Ridecast via skill/API. Shape TBD. Narrow audience \u2014 general-user equivalents\
-      \ (Share Extension, Browser Extension) ship first."
-    size: M
-    source: user-feedback-2026-03-26
 next_steps:
 - step: 1
-  task: Close stale GitHub issues
-  action: 'Close #24-#32 (dupes of #33-#41). Close #33-#41 (all shipped). Close #3,#6,#7,#9 (already implemented).'
-- step: 2
-  task: Pick first Phase 5 feature
-  action: 'Options: in-app-feedback-system (fully designed, supports active TestFlight cycle), pocket-refugee-capture (time-sensitive,
-    specced), ios-share-extension (specced, M), source-author-following (fully specced, L), episode-sharing (no spec, high
-    growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M).'
-last_session: '2026-03-30T00:15:37.842229+00:00'
+  task: Pick next Phase 5 feature batch
+  action: 'Options: ios-share-extension (M, specced), source-author-following (L, specced), content-type-expansion (M, specced),
+    episode-sharing-expanded (M, no spec yet). Recommend writing episode-sharing spec first (highest growth leverage).'
+last_session: '2026-03-29T17:50:00+00:00'
 quality_cadences:
   smoke_test:
     interval: 5
     last_run_session: 23
-    last_run_note: 'Session 23: E2E suite exists (e2e/ dir, 5 specs). Could not run because
-      a dev server already holds the .next/dev/lock (process 40433 on port 3000). This
-      is an environmental constraint. Unit tests: 433 passing, 7 skipped. No regressions
-      detected in unit suite. E2E health: last confirmed PASS at session 22 (2026-03-29).'
+    last_run_note: 'Session 23: E2E suite exists (e2e/ dir, 5 specs). Could not run \u2014 dev server process holds .next/dev/lock.
+      Unit tests: 433 passing, 7 skipped. No regressions.'
   performance_profile:
     interval: 15
     last_run_session: 15
@@ -372,11 +181,9 @@ quality_cadences:
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 17
+  total_features_completed: 22
   last_updated: '2026-03-29'
-  blocker_resolution: '2026-03-29 — fixed malformed next_action YAML; added .worktrees/**
-    and native/** to eslint.config.mjs ignores; lint/test/build all PASS'
-  session_count: 24
+  session_count: 25
   zero_change_sessions: 0
-  last_session_head: c010a9f63de9bc5317e9ccd83ef3e5d482240b06
-completed_features_tombstone: 68 features completed (duration-accuracy through medium-url-extraction). Full list in FEATURE-ARCHIVE.yaml.
+  last_session_head: 00a29d98dff06d090f1a1e0f3ceb74a68d0e93b0
+completed_features_tombstone: 73 features completed (duration-accuracy through redesign-sign-in). Full list in FEATURE-ARCHIVE.yaml.

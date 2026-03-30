@@ -449,3 +449,31 @@ features:
     size: S
     depends_on:
     - dark-theme-foundation
+  nav-shell-redesign:
+    status: done
+    started_at: '2026-03-29T01:16:00+00:00'
+    completed_at: '2026-03-29T01:32:00+00:00'
+    spec: specs/features/phase5/nav-shell-redesign.md
+    description: 3-tab layout (Home/Discover/Library) with dark theme + redesigned mini player bar matching nav-shell spec
+    size: L
+    depends_on:
+    - dark-theme-foundation
+  redesign-expanded-player:
+    status: done
+    started_at: '2026-03-29T01:35:00+00:00'
+    completed_at: '2026-03-29T01:50:00+00:00'
+    spec: specs/features/phase5/redesign-expanded-player.md
+    description: "Expanded Player dark theme \u2014 artwork color-bleed atmosphere, dark scrubber, controls"
+    size: M
+    depends_on:
+    - dark-theme-foundation
+  redesign-library:
+    status: done
+    started_at: '2026-03-29T01:50:00+00:00'
+    completed_at: '2026-03-29T02:00:00+00:00'
+    spec: specs/features/phase5/redesign-library.md
+    description: "Library screen dark theme \u2014 search bar, filter chips, time-grouped list, header + button"
+    size: M
+    depends_on:
+    - dark-theme-foundation
+    - nav-shell-redesign
