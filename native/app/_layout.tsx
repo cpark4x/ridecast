@@ -28,9 +28,14 @@ const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 // ---------------------------------------------------------------------------
 // EXEMPT_SEGMENTS — exported for testability and extensibility
 // Screens in this list cause PlayerBar to hide (they are fullscreen modals).
-// The discover-ftue spec may extend this array by importing it.
 // ---------------------------------------------------------------------------
-export const EXEMPT_SEGMENTS = ["sign-in", "processing", "settings"] as const;
+export const EXEMPT_SEGMENTS = [
+  "sign-in",
+  "processing",
+  "settings",
+  "discover-ftue-topics",    // fullscreen FTUE, no mini player
+  "discover-ftue-sources",   // fullscreen FTUE, no mini player
+] as const;
 if (!CLERK_KEY) {
   throw new Error(
     "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Check your .env or EAS environment config.",
@@ -67,7 +72,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function AppShell({ children }: { children: React.ReactNode }) {
   const { expandedPlayerVisible, setExpandedPlayerVisible } = usePlayer();
   const feedbackRef = useRef<FeedbackSheetRef>(null);
-  // Hide PlayerBar on fullscreen modal screens (sign-in, processing, settings)
+  // Hide PlayerBar on fullscreen modal screens (sign-in, processing, settings, FTUE)
   const segments = useSegments();
   const isExemptScreen = EXEMPT_SEGMENTS.some((s) => segments[0] === s);
   const feedbackCtx = useMemo(
@@ -142,6 +147,14 @@ export default function RootLayout() {
                     presentation: "fullScreenModal",
                     gestureEnabled: false,
                   }}
+                />
+                <Stack.Screen
+                  name="discover-ftue-topics"
+                  options={{ headerShown: false, presentation: "fullScreenModal" }}
+                />
+                <Stack.Screen
+                  name="discover-ftue-sources"
+                  options={{ headerShown: false, presentation: "fullScreenModal" }}
                 />
               </Stack>
             </AppShell>

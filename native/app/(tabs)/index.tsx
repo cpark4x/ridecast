@@ -27,6 +27,7 @@ import {
 
 import type { AudioVersion, LibraryItem, PlayableItem } from "../../lib/types";
 import { Haptics } from "../../lib/haptics";
+import { colors, borderRadius, spacing } from "../../lib/theme";
 
 import GreetingHeader from "../../components/GreetingHeader";
 import EpisodeCard from "../../components/EpisodeCard";
@@ -56,7 +57,7 @@ function HomeScreen() {
 
   const firstName = user?.firstName ?? null;
 
-  // —— Data loading ──────────────────────────────────────────────────────────
+  // —— Data loading ─────────────────────────────────────────────────────────
 
   useEffect(() => {
     loadLocal();
@@ -96,7 +97,7 @@ function HomeScreen() {
     }
   }, []);
 
-  // —— Derived data ──────────────────────────────────────────────────────────
+  // —— Derived data ─────────────────────────────────────────────────────────
 
   // Unlistened items with ready audio — shown in the Up Next list
   const unlistenedItems = getUnlistenedItems(episodes);
@@ -137,7 +138,7 @@ function HomeScreen() {
     ? Math.floor((Date.now() - newestMs) / (24 * 60 * 60 * 1000))
     : 0;
 
-  // —— Event handlers ────────────────────────────────────────────────────────
+  // —— Event handlers ──────────────────────────────────────────────────────
 
   function handlePlayAll() {
     const playables = upNextPairs.map(({ playable }) => playable);
@@ -201,7 +202,7 @@ function HomeScreen() {
   // —— Render ────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f2f2f7]">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
       <ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
@@ -211,7 +212,8 @@ function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#EA580C"
+            tintColor={colors.accentPrimary}
+            colors={[colors.accentPrimary]}
           />
         }
       >
@@ -230,80 +232,104 @@ function HomeScreen() {
               />
             )}
 
-            {/* White header block: greeting + Play All */}
-            <View style={{ backgroundColor: "#fff", paddingBottom: 8 }}>
-              {/* —— Greeting header —— */}
-              <GreetingHeader
-                firstName={firstName}
-                episodeCount={episodeCount}
-                totalDurationSecs={totalDurationSecs}
-              />
-
-              {/* —— Play All CTA —— */}
-              {episodeCount > 0 && (
-                <TouchableOpacity
-                  onPress={handlePlayAll}
-                  activeOpacity={0.85}
-                  style={{
-                    marginHorizontal: 20,
-                    marginBottom:     16,
-                    backgroundColor:  "#EA580C",
-                    borderRadius:     14,
-                    paddingVertical:  14,
-                    paddingHorizontal: 20,
-                    flexDirection:    "row",
-                    alignItems:       "center",
-                    gap:              8,
-                  }}
-                  accessibilityLabel={`Play all — ${episodeCount} episodes`}
-                >
-                  {/* Play icon circle */}
-                  <View
-                    style={{
-                      width:           28,
-                      height:          28,
-                      borderRadius:    14,
-                      backgroundColor: "rgba(255,255,255,0.25)",
-                      alignItems:      "center",
-                      justifyContent:  "center",
-                    }}
-                  >
-                    <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
-                  </View>
-
-                  {/* Label */}
-                  <Text
-                    style={{
-                      color:         "white",
-                      fontSize:      15,
-                      fontWeight:    "600",
-                      letterSpacing: -0.2,
-                    }}
-                  >
-                    Play All
-                  </Text>
-
-                  {/* Episode count — right-aligned */}
-                  <Text
-                    style={{
-                      color:      "rgba(255,255,255,0.7)",
-                      fontSize:   13,
-                      marginLeft: "auto",
-                      fontWeight: "400",
-                    }}
-                  >
-                    {episodeCount} episode{episodeCount === 1 ? "" : "s"}
-                  </Text>
-                </TouchableOpacity>
-              )}
+            {/* —— Dark header row: greeting + "+" button —— */}
+            <View
+              style={{
+                flexDirection:  "row",
+                alignItems:     "flex-start",
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <GreetingHeader
+                  firstName={firstName}
+                  episodeCount={episodeCount}
+                  totalDurationSecs={totalDurationSecs}
+                />
+              </View>
+              {/* Header "+" button — dark surface, 36×36, textSecondary icon */}
+              <TouchableOpacity
+                onPress={() => setUploadModalVisible(true)}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: colors.surface,
+                  borderRadius:    borderRadius.card,
+                  width:           36,
+                  height:          36,
+                  alignItems:      "center",
+                  justifyContent:  "center",
+                  marginTop:       20,
+                  marginRight:     spacing.screenMargin,
+                }}
+                accessibilityLabel="Add new episode"
+              >
+                <Ionicons name="add" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
+
+            {/* —— Play All CTA —— */}
+            {episodeCount > 0 && (
+              <TouchableOpacity
+                onPress={handlePlayAll}
+                activeOpacity={0.85}
+                style={{
+                  marginHorizontal: spacing.screenMargin,
+                  marginBottom:     16,
+                  backgroundColor:  colors.accentPrimary,
+                  borderRadius:     borderRadius.card,
+                  paddingVertical:  14,
+                  paddingHorizontal: 20,
+                  flexDirection:    "row",
+                  alignItems:       "center",
+                  gap:              8,
+                }}
+                accessibilityLabel={`Play all — ${episodeCount} episodes`}
+              >
+                {/* Play icon circle */}
+                <View
+                  style={{
+                    width:           28,
+                    height:          28,
+                    borderRadius:    14,
+                    backgroundColor: "rgba(255,255,255,0.25)",
+                    alignItems:      "center",
+                    justifyContent:  "center",
+                  }}
+                >
+                  <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
+                </View>
+
+                {/* Label */}
+                <Text
+                  style={{
+                    color:         "white",
+                    fontSize:      15,
+                    fontWeight:    "600",
+                    letterSpacing: -0.2,
+                  }}
+                >
+                  Play All
+                </Text>
+
+                {/* Episode count — right-aligned */}
+                <Text
+                  style={{
+                    color:      "rgba(255,255,255,0.7)",
+                    fontSize:   13,
+                    marginLeft: "auto",
+                    fontWeight: "400",
+                  }}
+                >
+                  {episodeCount} episode{episodeCount === 1 ? "" : "s"}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* —— Up Next list —— */}
             {upNextPairs.length > 0 && (
               <>
                 <View
                   style={{
-                    paddingHorizontal: 20,
+                    paddingHorizontal: spacing.screenMargin,
                     paddingTop:        20,
                     paddingBottom:     10,
                     flexDirection:     "row",
@@ -315,13 +341,13 @@ function HomeScreen() {
                     style={{
                       fontSize:      19,
                       fontWeight:    "700",
-                      color:         "#000",
+                      color:         colors.textPrimary,
                       letterSpacing: -0.3,
                     }}
                   >
                     Up Next
                   </Text>
-                  <Text style={{ fontSize: 13, color: "#8e8e93", fontWeight: "500" }}>
+                  <Text style={{ fontSize: 13, color: colors.textTertiary, fontWeight: "500" }}>
                     {upNextPairs.length}
                   </Text>
                 </View>

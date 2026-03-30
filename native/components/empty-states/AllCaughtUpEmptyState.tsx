@@ -6,6 +6,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, borderRadius } from "../../lib/theme";
 
 // ---------------------------------------------------------------------------
 // Confetti particle animation
@@ -79,14 +80,14 @@ function ConfettiParticle({ color, offsetX, offsetY, delay, size = 6 }: Confetti
 // ---------------------------------------------------------------------------
 
 const CONFETTI_DOTS = [
-  { color: "#EA580C", offsetX: 14,  offsetY: 20,  delay: 0    },
-  { color: "#FBBF24", offsetX: 44,  offsetY: 10,  delay: 300  },
-  { color: "#60A5FA", offsetX: 94,  offsetY: 18,  delay: 600  },
-  { color: "#34C759", offsetX: 84,  offsetY: 12,  delay: 900  },
-  { color: "#A78BFA", offsetX: 6,   offsetY: 28,  delay: 1200 },
-  { color: "#F472B6", offsetX: 104, offsetY: 8,   delay: 1500 },
-  { color: "#FBBF24", offsetX: 28,  offsetY: 30,  delay: 400  },
-  { color: "#EA580C", offsetX: 74,  offsetY: 22,  delay: 700, size: 4 },
+  { color: colors.accentPrimary, offsetX: 14,  offsetY: 20,  delay: 0    },
+  { color: "#FBBF24",            offsetX: 44,  offsetY: 10,  delay: 300  },
+  { color: "#60A5FA",            offsetX: 94,  offsetY: 18,  delay: 600  },
+  { color: colors.statusSuccess, offsetX: 84,  offsetY: 12,  delay: 900  },
+  { color: "#A78BFA",            offsetX: 6,   offsetY: 28,  delay: 1200 },
+  { color: "#F472B6",            offsetX: 104, offsetY: 8,   delay: 1500 },
+  { color: "#FBBF24",            offsetX: 28,  offsetY: 30,  delay: 400  },
+  { color: colors.accentPrimary, offsetX: 74,  offsetY: 22,  delay: 700, size: 4 },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -128,26 +129,21 @@ function CheckCircleScene() {
           height: 110,
           borderRadius: 55,
           borderWidth: 1.5,
-          borderColor: "rgba(34,197,94,0.2)",
+          borderColor: "rgba(22,163,74,0.2)",
         }}
       />
 
-      {/* Green check circle */}
+      {/* Green check circle — statusSuccess, no shadow */}
       <Animated.View
         style={{
           width: 80,
           height: 80,
           borderRadius: 40,
-          backgroundColor: "#22C55E",
+          backgroundColor: colors.statusSuccess,
           alignItems: "center",
           justifyContent: "center",
           transform: [{ scale }],
           opacity,
-          shadowColor: "#22C55E",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.35,
-          shadowRadius: 16,
-          elevation: 8,
         }}
       >
         <Ionicons name="checkmark" size={38} color="white" />
@@ -166,21 +162,18 @@ const SUGGESTIONS = [
     desc:     "Paste a Substack or email newsletter URL",
     accentColor: "#F97316",
     iconName: "mail-outline" as const,
-    iconColor: "#F97316",
   },
   {
     title:    "That PDF you've been putting off",
     desc:     "Upload a document and listen instead",
-    accentColor: "#34C759",
+    accentColor: colors.statusSuccess,
     iconName: "document-text-outline" as const,
-    iconColor: "#34C759",
   },
   {
     title:    "An article you saved",
     desc:     "Paste any URL — we'll extract and convert it",
     accentColor: "#60A5FA",
     iconName: "globe-outline" as const,
-    iconColor: "#60A5FA",
   },
 ] as const;
 
@@ -207,43 +200,104 @@ export default function AllCaughtUpEmptyState({
   onAddNew,
 }: AllCaughtUpEmptyStateProps) {
   return (
-    <View className="flex-1 items-center px-6 pt-6 pb-8">
+    <View style={{ flex: 1, alignItems: "center", paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}>
 
       {/* — Celebratory hero card — */}
-      <View className="w-full bg-gray-50 rounded-3xl pt-8 pb-6 px-4 mb-5 items-center">
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: colors.surface,
+          borderRadius: 24,
+          paddingTop: 32,
+          paddingBottom: 24,
+          paddingHorizontal: 16,
+          marginBottom: 20,
+          alignItems: "center",
+        }}
+      >
         <CheckCircleScene />
-        <Text className="text-xl font-bold text-gray-900 text-center mt-5 mb-2">
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: "700",
+            color: colors.textPrimary,
+            textAlign: "center",
+            marginTop: 20,
+            marginBottom: 8,
+          }}
+        >
           You're all caught up!
         </Text>
-        <Text className="text-sm text-gray-500 text-center leading-5 max-w-xs">
+        <Text
+          style={{
+            fontSize: 14,
+            color: colors.textSecondary,
+            textAlign: "center",
+            lineHeight: 20,
+            maxWidth: 280,
+          }}
+        >
           You've listened to everything in your queue.{"\n"}Nice work — here's what to add next.
         </Text>
       </View>
 
       {/* — Stats bar — */}
-      <View className="w-full flex-row bg-gray-50 border border-gray-100 rounded-2xl py-3 px-4 mb-5 items-center justify-around">
-        <View className="items-center">
-          <Text className="text-2xl font-bold text-gray-900">{stats.episodeCount}</Text>
-          <Text className="text-xs text-gray-500 mt-0.5">episodes</Text>
+      <View
+        style={{
+          width: "100%",
+          flexDirection: "row",
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          marginBottom: 20,
+          alignItems: "center",
+          justifyContent: "space-around",
+        }}
+      >
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 24, fontWeight: "700", color: colors.textPrimary }}>
+            {stats.episodeCount}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>episodes</Text>
         </View>
-        <View className="w-px h-8 bg-gray-200" />
-        <View className="items-center">
-          <Text className="text-2xl font-bold text-gray-900">{stats.totalHours.toFixed(1)}</Text>
-          <Text className="text-xs text-gray-500 mt-0.5">hours listened</Text>
+        <View style={{ width: 1, height: 32, backgroundColor: colors.borderDivider }} />
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 24, fontWeight: "700", color: colors.textPrimary }}>
+            {stats.totalHours.toFixed(1)}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>hours listened</Text>
         </View>
       </View>
 
       {/* — Suggestion cards — */}
-      <Text className="text-base font-bold text-gray-900 self-start mb-3">
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: "700",
+          color: colors.textPrimary,
+          alignSelf: "flex-start",
+          marginBottom: 12,
+        }}
+      >
         Add something new
       </Text>
-      <View className="w-full gap-2.5 mb-5">
+      <View style={{ width: "100%", gap: 10, marginBottom: 20 }}>
         {SUGGESTIONS.map((s) => (
           <TouchableOpacity
             key={s.title}
             onPress={onAddNew}
             activeOpacity={0.75}
-            className="w-full flex-row items-center gap-3 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm overflow-hidden"
+            style={{
+              width: "100%",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              padding: 16,
+              overflow: "hidden",
+            }}
           >
             {/* Left accent stripe */}
             <View
@@ -259,21 +313,34 @@ export default function AllCaughtUpEmptyState({
             />
             {/* Icon */}
             <View
-              className="w-10 h-10 rounded-xl items-center justify-center ml-2"
-              style={{ backgroundColor: `${s.accentColor}20` }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: 8,
+                backgroundColor: `${s.accentColor}20`,
+              }}
             >
-              <Ionicons name={s.iconName} size={20} color={s.iconColor} />
+              <Ionicons name={s.iconName} size={20} color={s.accentColor} />
             </View>
             {/* Text */}
-            <View className="flex-1 min-w-0">
-              <Text className="text-sm font-bold text-gray-900" numberOfLines={1}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                style={{ fontSize: 14, fontWeight: "700", color: colors.textPrimary }}
+                numberOfLines={1}
+              >
                 {s.title}
               </Text>
-              <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>
+              <Text
+                style={{ fontSize: 12, color: colors.textTertiary, marginTop: 2 }}
+                numberOfLines={1}
+              >
                 {s.desc}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
           </TouchableOpacity>
         ))}
       </View>
@@ -282,10 +349,18 @@ export default function AllCaughtUpEmptyState({
       <TouchableOpacity
         onPress={onAddNew}
         activeOpacity={0.85}
-        className="w-full bg-brand py-4 rounded-2xl items-center"
+        style={{
+          width: "100%",
+          backgroundColor: colors.accentPrimary,
+          paddingVertical: 16,
+          borderRadius: borderRadius.card,
+          alignItems: "center",
+        }}
         accessibilityLabel="Add Something New"
       >
-        <Text className="text-base font-bold text-white">Add Something New</Text>
+        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textPrimary }}>
+          Add Something New
+        </Text>
       </TouchableOpacity>
 
     </View>

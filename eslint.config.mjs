@@ -14,6 +14,11 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
     "next-env.d.ts",
+    // Git worktrees — each has its own .next build artifacts that must not be linted
+    ".worktrees/**",
+    // React Native / Expo directory — uses RN-specific patterns incompatible with
+    // Next.js ESLint rules (same reason native/ is excluded from tsconfig.json)
+    "native/**",
   ]),
 ]);
 

@@ -32,19 +32,18 @@ health_gates:
   command: npm run lint
   status: PASS
   duration: 2.7s
-  notes: '10 warnings (@typescript-eslint/no-unused-vars) across seed, route handlers,
-
-    and tests. Non-blocking; safe to defer.
-
-    '
+  notes: '8 problems (1 error severity, 7 warnings). eslint.config.mjs now excludes
+    .worktrees/** and native/** (same reason native/ is excluded from tsconfig.json
+    — RN files are incompatible with Next.js ESLint rules). Pre-existing: react-hooks/set-state-in-effect
+    in LibraryScreen.tsx (exitcode=0, non-blocking). @typescript-eslint/no-unused-vars
+    warnings across seed, routes, tests. Non-blocking; safe to defer.'
 - id: test
   command: npm run test
   status: PASS
-  duration: 3.35s
-  notes: 'Vitest: 316/323 tests passing, 7 skipped, 0 failures.
-
-    Previously failing 6 tests in src/app/api/process/route.test.ts now all pass (8/8). Skipped: 1 in db.test.ts, 6 in seed.test.ts
-    (intentional).'
+  duration: 4.80s
+  notes: 'Vitest: 433 passing, 7 skipped, 0 failures (47 test files). Skipped: 1
+    in db.test.ts, 6 in seed.test.ts (intentional). Verified blocker-resolution session
+    2026-03-29.'
 - id: build
   command: npm run build
   status: PASS
@@ -183,9 +182,8 @@ recently_shipped:
     '
 phase: 5
 phase_name: phase-5-platform-expansion
-epoch: 23
-next_action: "Session 23 DONE: 7pts completed (nav-shell-redesign L=3, redesign-expanded-player M=2, redesign-library M=2). Also: smoke_test cadence run (E2E blocked by dev server lock). Next: redesign-home-screens (M, 2pts) — EpisodeCard dark theme, greeting header, Play All button. Also unblocked: discover-ftue (M), source-detail (M)."native\" to exclude\
-  \ list (pre-existing build failure from expo-av\u2192expo-audio migration)."
+epoch: 24
+next_action: "Session 24 DONE: 6pts completed (redesign-home-screens M=2, discover-ftue M=2, source-detail M=2). EpisodeCard dark theme, empty states dark, Discover FTUE 2-screen flow, SourceDetail screen. Next: discover-screens (L, 3pts, depends on discover-ftue now done). Also ready: redesign-sign-in BLOCKED. Session budget allows discover-screens + 1 more S/M feature."
 completed_features:
 - empty-states
 - library-redesign
@@ -204,6 +202,9 @@ completed_features:
 - nav-shell-redesign
 - redesign-expanded-player
 - redesign-library
+- redesign-home-screens
+- discover-ftue
+- source-detail
 features:
   nav-shell-redesign:
     status: done
@@ -215,18 +216,15 @@ features:
     depends_on:
     - dark-theme-foundation
   redesign-sign-in:
-    status: blocked
+    status: ready
     spec: specs/features/phase5/redesign-sign-in.md
-    description: "Sign In screen dark theme \u2014 atmospheric glows, dark background, white pill CTA"
+    description: "Sign In screen dark theme — atmospheric glows, dark background, white pill CTA. Keeps useOAuth auth pattern (Clerk SignIn component not supported on native)."
     size: S
     depends_on:
     - dark-theme-foundation
-    blocker: '@clerk/clerk-expo v2.19 wraps <SignIn /> in WrapComponent() that throws ''not supported in native environments''
-      on iOS. Spec incorrectly assumes <SignIn /> is usable on native. Spec must be updated to use useSSO() hook (newer replacement
-      for deprecated useOAuth()) with custom Apple+Google auth buttons. Visual redesign (dark bg, atmospheric glows, logo,
-      legal text) can proceed once auth approach is clarified.'
   redesign-home-screens:
-    status: ready
+    status: in-progress
+    started_at: '2026-03-29T17:00:00+00:00'
     spec: specs/features/phase5/redesign-home-screens.md
     description: "Home Empty + Home Daily dark refresh \u2014 EpisodeCard redesign, greeting header, Play All button"
     size: M
@@ -356,7 +354,7 @@ next_steps:
   action: 'Options: in-app-feedback-system (fully designed, supports active TestFlight cycle), pocket-refugee-capture (time-sensitive,
     specced), ios-share-extension (specced, M), source-author-following (fully specced, L), episode-sharing (no spec, high
     growth leverage), browser-extension (fully specced, L), content-type-expansion (specced, M).'
-last_session: '2026-03-29T08:09:56.422452+00:00'
+last_session: '2026-03-30T00:15:37.842229+00:00'
 quality_cadences:
   smoke_test:
     interval: 5
@@ -374,9 +372,11 @@ quality_cadences:
 meta:
   project: ridecast2
   created: '2026-03-05'
-  total_features_completed: 14
+  total_features_completed: 17
   last_updated: '2026-03-29'
-  session_count: 23
+  blocker_resolution: '2026-03-29 — fixed malformed next_action YAML; added .worktrees/**
+    and native/** to eslint.config.mjs ignores; lint/test/build all PASS'
+  session_count: 24
   zero_change_sessions: 0
   last_session_head: c010a9f63de9bc5317e9ccd83ef3e5d482240b06
 completed_features_tombstone: 68 features completed (duration-accuracy through medium-url-extraction). Full list in FEATURE-ARCHIVE.yaml.

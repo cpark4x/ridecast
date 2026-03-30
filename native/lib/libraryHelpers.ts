@@ -1,6 +1,77 @@
 import type { AudioVersion, LibraryItem, LibraryFilter, PlayableItem } from "./types";
 import { sourceName } from "./utils";
 
+// ---------------------------------------------------------------------------
+// SourceEpisode — used by source-detail screen
+// ---------------------------------------------------------------------------
+
+export interface SourceEpisode {
+  id: string;
+  title: string;
+  durationMin: number;
+  format: string;
+  status: "new" | "in_progress" | "played" | "unplayed";
+  progressPct?: number;       // for in_progress (0–100)
+  thumbnailUrl?: string;
+  audioUrl?: string;
+  audioId?: string;
+}
+
+/**
+ * Map a LibraryItem to a SourceEpisode for the source-detail screen.
+ * Derives status from the primary version's playback state.
+ */
+export function itemToSourceEpisode(item: LibraryItem): SourceEpisode {
+  const primaryVersion = item.versions.find((v) => v.status === "ready") ?? item.versions[0];
+
+  let episodeStatus: SourceEpisode["status"] = "new";
+  let progressPct: number | undefined;
+
+  if (primaryVersion) {
+    if (primaryVersion.completed) {
+      episodeStatus = "played";
+    } else if (primaryVersion.position > 0) {
+      episodeStatus = "in_progress";
+      const totalSecs = primaryVersion.durationSecs ?? primaryVersion.targetDuration * 60;
+      progressPct = totalSecs > 0 ? Math.round((primaryVersion.position / totalSecs) * 100) : 0;
+    } else if (primaryVersion.status === "ready") {
+      episodeStatus = "new";
+    } else {
+      episodeStatus = "unplayed";
+    }
+  } else {
+    episodeStatus = "unplayed";
+  }
+
+  return {
+    id:          item.id,
+    title:       item.title,
+    durationMin: primaryVersion?.targetDuration ?? 0,
+    format:      primaryVersion?.format ?? "narrator",
+    status:      episodeStatus,
+    progressPct,
+    thumbnailUrl: item.thumbnailUrl ?? undefined,
+    audioUrl:    primaryVersion?.audioUrl ?? undefined,
+    audioId:     primaryVersion?.audioId ?? undefined,
+  };
+}
+
+/**
+ * Convert a SourceEpisode back to a PlayableItem for player consumption.
+ * Returns null if the episode has no audio yet (guards null audioId/audioUrl).
+ */
+export function toPlayableItem(episode: SourceEpisode): PlayableItem | null {
+  if (!episode.audioId || !episode.audioUrl) return null;
+  return {
+    id:       episode.audioId,
+    title:    episode.title,
+    duration: episode.durationMin * 60,
+    format:   episode.format,
+    audioUrl: episode.audioUrl,
+    thumbnailUrl: episode.thumbnailUrl ?? null,
+  };
+}
+
 export type SortOrder =
   | "date_desc"
   | "date_asc"

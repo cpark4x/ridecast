@@ -84,6 +84,12 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Hidden drill-down: Source Detail — accessible from Library or Discover */}
+      <Tabs.Screen
+        name="source-detail"
+        options={{ href: null, headerShown: false }}
+      />
     </Tabs>
   );
 }

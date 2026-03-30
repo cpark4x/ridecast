@@ -3,6 +3,7 @@
 import React from "react";
 import { Text, View } from "react-native";
 import { formatDurationMinutes } from "../lib/utils";
+import { colors } from "../lib/theme";
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -40,7 +41,7 @@ export default function GreetingHeader({
         style={{
           fontSize:      26,
           fontWeight:    "700",
-          color:         "#000",
+          color:         colors.textPrimary,
           letterSpacing: -0.5,
           lineHeight:    31,
         }}
@@ -52,7 +53,7 @@ export default function GreetingHeader({
         <Text
           style={{
             fontSize:   13,
-            color:      "#8e8e93",
+            color:      colors.textSecondary,
             marginTop:  3,
             fontWeight: "400",
           }}
@@ -64,7 +65,7 @@ export default function GreetingHeader({
         <Text
           style={{
             fontSize:   13,
-            color:      "#8e8e93",
+            color:      colors.textSecondary,
             marginTop:  3,
             fontWeight: "400",
           }}

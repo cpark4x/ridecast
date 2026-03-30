@@ -15,6 +15,7 @@ import { buildPlayableItem, smartTitle } from "../lib/libraryHelpers";
 import { humanizeContentType, sourceName } from "../lib/utils";
 import { Haptics } from "../lib/haptics";
 import SourceThumbnail, { registeredDomain } from "./SourceThumbnail";
+import { colors, borderRadius, spacing } from "../lib/theme";
 
 // ---------------------------------------------------------------------------
 // ShimmerPill — animated placeholder shown when isGenerating
@@ -34,7 +35,7 @@ function ShimmerPill() {
 
   const backgroundColor = shimmer.interpolate({
     inputRange:  [0, 1],
-    outputRange: ["#F3F4F6", "#E5E7EB"],
+    outputRange: [colors.surface, colors.surfaceElevated],
   });
 
   return (
@@ -43,7 +44,7 @@ function ShimmerPill() {
 }
 
 // ---------------------------------------------------------------------------
-// DurationPill — #f2f2f7 bg, #3c3c43 text, clock icon
+// DurationPill — surfaceElevated bg, textSecondary text+icon
 // ---------------------------------------------------------------------------
 
 function DurationPill({ label }: { label: string }) {
@@ -53,15 +54,15 @@ function DurationPill({ label }: { label: string }) {
         flexDirection:   "row",
         alignItems:      "center",
         gap:             4,
-        backgroundColor: "#f2f2f7",
+        backgroundColor: colors.surfaceElevated,
         borderRadius:    20,
         paddingVertical: 3,
         paddingHorizontal: 9,
       }}
     >
       {/* Clock icon */}
-      <Ionicons name="time-outline" size={10} color="#3c3c43" style={{ opacity: 0.6 }} />
-      <Text style={{ fontSize: 11, fontWeight: "600", color: "#3c3c43", letterSpacing: 0.1 }}>
+      <Ionicons name="time-outline" size={10} color={colors.textSecondary} style={{ opacity: 0.6 }} />
+      <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textSecondary, letterSpacing: 0.1 }}>
         {label}
       </Text>
     </View>
@@ -76,13 +77,13 @@ function VersionsBadge({ count }: { count: number }) {
   return (
     <View
       style={{
-        backgroundColor: "rgba(234,88,12,0.1)",
+        backgroundColor: "rgba(255,107,53,0.15)",
         borderRadius:    20,
         paddingVertical: 3,
         paddingHorizontal: 8,
       }}
     >
-      <Text style={{ fontSize: 11, fontWeight: "600", color: "#EA580C" }}>
+      <Text style={{ fontSize: 11, fontWeight: "600", color: colors.accentPrimary }}>
         {count} versions
       </Text>
     </View>
@@ -231,10 +232,18 @@ export default function EpisodeCard({
     return (
       <TouchableOpacity
         onPress={confirmDelete}
-        className="bg-red-500 mr-4 mb-3 rounded-2xl px-5 justify-center items-center"
+        style={{
+          backgroundColor: colors.statusError,
+          marginRight: 4,
+          marginBottom: 12,
+          borderRadius: borderRadius.card,
+          paddingHorizontal: 20,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
       >
         <Ionicons name="trash-outline" size={22} color="white" />
-        <Text className="text-white text-xs font-semibold mt-1">Delete</Text>
+        <Text style={{ color: "white", fontSize: 12, fontWeight: "600", marginTop: 4 }}>Delete</Text>
       </TouchableOpacity>
     );
   }
@@ -287,16 +296,11 @@ export default function EpisodeCard({
         delayLongPress={400}
         activeOpacity={0.75}
         style={{
-          backgroundColor: "#fff",
-          borderRadius:    16,
-          marginHorizontal: 16,
-          marginBottom:    8,
-          overflow:        "hidden",
-          shadowColor:     "#000",
-          shadowOffset:    { width: 0, height: 1 },
-          shadowOpacity:   0.06,
-          shadowRadius:    3,
-          elevation:       1,
+          backgroundColor:  colors.surface,
+          borderRadius:     borderRadius.card,
+          marginHorizontal: spacing.screenMargin,
+          marginBottom:     spacing.cardGap,
+          overflow:         "hidden",
         }}
       >
         <View
@@ -334,7 +338,7 @@ export default function EpisodeCard({
               style={{
                 fontSize:      14,
                 fontWeight:    "600",
-                color:         isAnonymous ? "#6d6d72" : "#000",
+                color:         isAnonymous ? colors.textTertiary : colors.textPrimary,
                 fontStyle:     isAnonymous ? "italic" : "normal",
                 lineHeight:    19,
                 letterSpacing: -0.1,
@@ -350,7 +354,7 @@ export default function EpisodeCard({
               <Text
                 style={{
                   fontSize:  12,
-                  color:     "#8e8e93",
+                  color:     colors.textSecondary,
                   marginBottom: 7,
                 }}
                 numberOfLines={1}
