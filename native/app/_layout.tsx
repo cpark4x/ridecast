@@ -2,6 +2,7 @@ import "../global.css";
 import { useEffect, useMemo, useRef } from "react";
 import { AppState, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
@@ -118,6 +119,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary fallbackTitle="Something went wrong">
     <GestureHandlerRootView style={{ flex: 1 }}>
+    <BottomSheetModalProvider>
     <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
       <ClerkLoaded>
         <StatusBar style="light" />
@@ -163,6 +165,7 @@ export default function RootLayout() {
         </AuthGate>
       </ClerkLoaded>
     </ClerkProvider>
+    </BottomSheetModalProvider>
     </GestureHandlerRootView>
     </ErrorBoundary>
   );

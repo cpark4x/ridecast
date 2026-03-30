@@ -19,6 +19,23 @@ vi.mock('@/lib/extractors', () => ({
   extractUrl: vi.fn(),
 }));
 
+// Mock new extractor sub-modules
+vi.mock('@/lib/extractors/markdown', () => ({
+  extractMarkdown: vi.fn(),
+}));
+
+vi.mock('@/lib/extractors/google-docs', () => ({
+  extractGoogleDoc: vi.fn(),
+}));
+
+vi.mock('@/lib/extractors/github', () => ({
+  extractGithub: vi.fn(),
+}));
+
+vi.mock('@/lib/extractors/notion', () => ({
+  extractNotion: vi.fn(),
+}));
+
 // Mock auth
 vi.mock('@/lib/auth', async () => {
   const actual = await vi.importActual<typeof import('@/lib/auth')>('@/lib/auth');
@@ -35,6 +52,9 @@ vi.mock('@/lib/subscription', () => ({
 
 import { prisma } from '@/lib/db';
 import { extractContent, extractTxt, extractUrl } from '@/lib/extractors';
+import { extractMarkdown } from '@/lib/extractors/markdown';
+import { extractGoogleDoc } from '@/lib/extractors/google-docs';
+import { extractGithub } from '@/lib/extractors/github';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { POST } from './route';
 
@@ -45,6 +65,9 @@ const mockUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
 const mockExtractContent = extractContent as ReturnType<typeof vi.fn>;
 const mockExtractTxt = extractTxt as ReturnType<typeof vi.fn>;
 const mockExtractUrl = extractUrl as ReturnType<typeof vi.fn>;
+const mockExtractMarkdown = extractMarkdown as ReturnType<typeof vi.fn>;
+const mockExtractGoogleDoc = extractGoogleDoc as ReturnType<typeof vi.fn>;
+const mockExtractGithub = extractGithub as ReturnType<typeof vi.fn>;
 
 function createMockFile(content: string, filename: string) {
   const encoder = new TextEncoder();
@@ -52,6 +75,7 @@ function createMockFile(content: string, filename: string) {
   return {
     name: filename,
     arrayBuffer: async () => bytes.buffer,
+    text: async () => content,
   };
 }
 
@@ -431,20 +455,20 @@ describe('POST /api/upload', () => {
     );
   });
 
-  it('accepts .md file upload, falls through to txt extraction', async () => {
+  it('accepts .md file upload, routes to extractMarkdown, stores as markdown', async () => {
     const file = createMockFile('# Markdown content\nSome text here', 'readme.md');
 
-    mockExtractContent.mockResolvedValue({
-      title: 'readme',
-      text: '# Markdown content\nSome text here',
-      wordCount: 5,
+    mockExtractMarkdown.mockReturnValue({
+      title: 'Markdown content',
+      text: 'Markdown content\nSome text here',
+      wordCount: 4,
     });
 
     const mockRecord = {
       id: 'md-id',
-      title: 'readme',
-      wordCount: 5,
-      sourceType: 'txt',
+      title: 'Markdown content',
+      wordCount: 4,
+      sourceType: 'markdown',
     };
     mockCreate.mockResolvedValue(mockRecord);
 
@@ -453,12 +477,9 @@ describe('POST /api/upload', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.sourceType).toBe('txt');
-    expect(mockExtractContent).toHaveBeenCalledWith(
-      expect.any(Buffer),
-      'readme.md',
-      'txt',
-    );
+    expect(data.sourceType).toBe('markdown');
+    expect(mockExtractMarkdown).toHaveBeenCalledWith('# Markdown content\nSome text here');
+    expect(mockExtractContent).not.toHaveBeenCalled();
   });
 
   it('rawText dedup: returns 409 when pasted text matches existing content hash', async () => {

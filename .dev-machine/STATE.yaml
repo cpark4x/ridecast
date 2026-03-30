@@ -40,12 +40,12 @@ health_gates:
   command: npm run test
   status: PASS
   duration: 5.0s
-  notes: 'Vitest: 433 passing, 7 skipped, 0 failures (47 test files). Session 25 — no regressions.'
+  notes: "Vitest: 433 passing, 7 skipped, 0 failures (47 test files). Session 25 \u2014 no regressions."
 - id: build
   command: npm run build
   status: PASS
   duration: 5.3s
-  notes: 'Next.js 16.1.6 with Turbopack builds successfully. Session 25 — no new errors.'
+  notes: "Next.js 16.1.6 with Turbopack builds successfully. Session 25 \u2014 no new errors."
 - id: e2e
   command: npm run test:e2e
   status: PASS
@@ -58,24 +58,24 @@ known_issues:
   severity: P2
   title: 'Type-check caveat: Request vs NextRequest mismatch'
   affected_file: src/app/api/playback/route.test.ts
-  notes: 'npx tsc --noEmit fails but npm run build succeeds. Next.js handles Request/NextRequest internally. Not gating.'
+  notes: npx tsc --noEmit fails but npm run build succeeds. Next.js handles Request/NextRequest internally. Not gating.
 - id: lint-warnings
   severity: P3
   title: 10 no-unused-vars warnings across seed, routes, tests
-  notes: 'Non-blocking. Deferred. Address in a cleanup pass.'
+  notes: Non-blocking. Deferred. Address in a cleanup pass.
 recently_shipped:
 - session: '25'
   date: '2026-03-29'
   commits:
   - WIP feat(native): discover-screens + redesign-sign-in
-  title: "Session 25: discover-screens (L, 3pts) + redesign-sign-in (S, 1pt) = 4pts"
-  notes: "discover-screens: full Discover feed (discover.tsx) + Topic Drilldown (discover-topic.tsx) + _layout.tsx update.\
-    \ redesign-sign-in: dark bg, atmospheric glows, real logo, white pill CTA. Antagonistic reviews: CLEAR on both.\
-    \ 433 tests passing."
+  title: 'Session 25: discover-screens (L, 3pts) + redesign-sign-in (S, 1pt) = 4pts'
+  notes: 'discover-screens: full Discover feed (discover.tsx) + Topic Drilldown (discover-topic.tsx) + _layout.tsx update.
+    redesign-sign-in: dark bg, atmospheric glows, real logo, white pill CTA. Antagonistic reviews: CLEAR on both. 433 tests
+    passing.'
 - session: '22'
   date: '2026-03-29'
-  title: "Session 22: 4 features \u2014 Phase 5 UI Redesign Batch 1 (dark-theme-foundation, redesign-processing,\
-    \ redesign-upload-modal, redesign-settings-carmode)"
+  title: "Session 22: 4 features \u2014 Phase 5 UI Redesign Batch 1 (dark-theme-foundation, redesign-processing, redesign-upload-modal,\
+    \ redesign-settings-carmode)"
 - session: '19'
   date: '2026-03-26'
   title: "Session 19: 3 features \u2014 double-logo-fix, paste-raw-text, basic-file-types (Phase 5 Batch 1 complete)"
@@ -87,10 +87,10 @@ recently_shipped:
   title: "Session 13: 3 features \u2014 expanded-player-rewrite, upload-modal, process-new-version"
 phase: 5
 phase_name: phase-5-platform-expansion
-epoch: 25
+epoch: 26
 next_action: 'Session 25 DONE: 4pts completed (discover-screens L=3, redesign-sign-in S=1). All Phase 5 UI Redesign features
-  now complete. Next session: propose new Phase 5 batch \u2014 ios-share-extension (M), source-author-following (L),
-  content-type-expansion (M), or episode-sharing (no spec yet, needs spec written).'
+  now complete. Next session: propose new Phase 5 batch \u2014 ios-share-extension (M), source-author-following (L), content-type-expansion
+  (M), or episode-sharing (no spec yet, needs spec written).'
 completed_features:
 - empty-states
 - library-redesign
@@ -128,12 +128,14 @@ features:
     depends_on:
     - episode-identity
   content-type-expansion:
-    status: deferred
+    status: in-progress
+    started_at: "2026-03-29T17:51:00+00:00"
     spec: specs/features/phase4/content-type-expansion.md
     description: Support .docx, Google Docs, Notion, GitHub, Markdown
     size: M
   ios-share-extension:
-    status: deferred
+    status: in-progress
+    started_at: "2026-03-29T17:51:00+00:00"
     spec: specs/features/phase4/ios-share-extension.md
     description: "iOS Share Extension \u2014 share from Safari or any app to Ridecast"
     size: M
@@ -165,7 +167,7 @@ next_steps:
   task: Pick next Phase 5 feature batch
   action: 'Options: ios-share-extension (M, specced), source-author-following (L, specced), content-type-expansion (M, specced),
     episode-sharing-expanded (M, no spec yet). Recommend writing episode-sharing spec first (highest growth leverage).'
-last_session: '2026-03-29T17:50:00+00:00'
+last_session: '2026-03-30T00:47:24.856386+00:00'
 quality_cadences:
   smoke_test:
     interval: 5
@@ -183,7 +185,7 @@ meta:
   created: '2026-03-05'
   total_features_completed: 22
   last_updated: '2026-03-29'
-  session_count: 25
+  session_count: 26
   zero_change_sessions: 0
-  last_session_head: 00a29d98dff06d090f1a1e0f3ceb74a68d0e93b0
+  last_session_head: 3b52a36d4122da8274b5de784a852c102c0ebd45
 completed_features_tombstone: 73 features completed (duration-accuracy through redesign-sign-in). Full list in FEATURE-ARCHIVE.yaml.

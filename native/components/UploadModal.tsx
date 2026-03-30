@@ -424,7 +424,7 @@ export default function UploadModal({ visible, onDismiss }: UploadModalProps) {
                 <Text style={{ fontSize: 16, fontWeight: "500", color: offline ? colors.textSecondary : colors.textPrimary }}>
                   Choose File
                 </Text>
-                <Text style={{ fontSize: 12, color: colors.textSecondary }}>(PDF, EPUB, TXT, DOCX)</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>(PDF, EPUB, TXT, Markdown, Word .docx)</Text>
               </TouchableOpacity>
 
               {/* OR divider — text paste */}

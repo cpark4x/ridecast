@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { extractContent, extractTxt, extractUrl } from '@/lib/extractors';
+import { extractMarkdown } from '@/lib/extractors/markdown';
+import { extractGoogleDoc } from '@/lib/extractors/google-docs';
+import { extractGithub } from '@/lib/extractors/github';
+import { extractNotion } from '@/lib/extractors/notion';
+import { detectContentType } from '@/lib/extractors/detect';
 import { contentHash } from '@/lib/utils/hash';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { requireSubscription } from '@/lib/subscription';
@@ -79,7 +84,7 @@ export async function POST(request: Request) {
     let title: string;
     let text: string;
     let wordCount: number;
-    let sourceType: 'url' | 'txt' | 'pdf' | 'epub';
+    let sourceType: string;
     let sourceUrl: string | null = null;
     let author: string | undefined;
 
@@ -90,16 +95,38 @@ export async function POST(request: Request) {
       wordCount = result.wordCount;
       sourceType = 'txt';
     } else if (url) {
-      const result = await extractUrl(url);
-      title = result.title;
-      text = result.text;
-      wordCount = result.wordCount;
-      sourceType = 'url';
       sourceUrl = url;
-      author = result.author;
+      const urlContentType = detectContentType(url, '');
+
+      if (urlContentType === 'google-doc') {
+        const result = await extractGoogleDoc(url);
+        title = result.title;
+        text = result.text;
+        wordCount = result.wordCount;
+        author = result.author;
+        sourceType = 'google-doc';
+      } else if (urlContentType === 'github') {
+        const result = await extractGithub(url);
+        title = result.title;
+        text = result.text;
+        wordCount = result.wordCount;
+        sourceType = 'github';
+      } else if (urlContentType === 'notion') {
+        // Always throws a helpful user-facing message — caught below as 422
+        await extractNotion(url);
+        // Unreachable, but satisfies TypeScript
+        throw new Error('Notion extraction failed');
+      } else {
+        const result = await extractUrl(url);
+        title = result.title;
+        text = result.text;
+        wordCount = result.wordCount;
+        sourceType = 'url';
+        author = result.author;
+      }
     } else if (file) {
       const extension = file.name.split('.').pop()?.toLowerCase();
-      let fileSourceType: 'txt' | 'pdf' | 'epub' | 'docx';
+      let fileSourceType: 'txt' | 'pdf' | 'epub' | 'docx' | 'markdown';
 
       if (extension === 'pdf') {
         fileSourceType = 'pdf';
@@ -107,20 +134,30 @@ export async function POST(request: Request) {
         fileSourceType = 'epub';
       } else if (extension === 'docx' || extension === 'doc') {
         fileSourceType = 'docx';
+      } else if (extension === 'md' || extension === 'markdown') {
+        fileSourceType = 'markdown';
       } else {
-        // txt, md, markdown, and unknown extensions → plain text
+        // txt and unknown extensions → plain text
         fileSourceType = 'txt';
       }
 
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const result = await extractContent(buffer, file.name, fileSourceType);
-
-      title = result.title;
-      text = result.text;
-      wordCount = result.wordCount;
-      // DOCX maps to 'txt' in the DB — no schema migration needed
-      sourceType = fileSourceType === 'docx' ? 'txt' : fileSourceType;
-      author = result.author;
+      if (fileSourceType === 'markdown') {
+        const content = await file.text();
+        const result = extractMarkdown(content);
+        title = result.title;
+        text = result.text;
+        wordCount = result.wordCount;
+        sourceType = 'markdown';
+      } else {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const result = await extractContent(buffer, file.name, fileSourceType);
+        title = result.title;
+        text = result.text;
+        wordCount = result.wordCount;
+        author = result.author;
+        // DOCX maps to 'txt' in the DB — no schema migration needed
+        sourceType = fileSourceType === 'docx' ? 'txt' : fileSourceType;
+      }
     } else {
       return NextResponse.json(
         { error: 'No file, URL, or text provided' },
