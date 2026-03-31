@@ -116,7 +116,7 @@ function getTopicAccentColor(topicId: string): string {
 // ArticleCard (topic drilldown variant)
 // ---------------------------------------------------------------------------
 
-function TopicArticleCard({ article }: { article: TopicArticle }) {
+function TopicArticleCard({ article, topicColor }: { article: TopicArticle; topicColor: string }) {
   return (
     <View
       style={{
@@ -129,16 +129,22 @@ function TopicArticleCard({ article }: { article: TopicArticle }) {
         marginBottom: spacing.md,
       }}
     >
-      {/* 72×72 thumbnail */}
+      {/* 72×72 thumbnail — source initial on topic accent color */}
       <View
         style={{
           width: 72,
           height: 72,
           borderRadius: borderRadius.thumbnail,
-          backgroundColor: colors.surfaceElevated,
+          backgroundColor: topicColor + "33",
           flexShrink: 0,
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <Text style={{ fontSize: 11, fontWeight: "700", color: topicColor, letterSpacing: 1 }}>
+          {article.sourceName.slice(0, 3).toUpperCase()}
+        </Text>
+      </View>
       {/* Body */}
       <View style={{ flex: 1, overflow: "hidden" }}>
         <Text
@@ -284,7 +290,7 @@ export default function DiscoverTopicScreen(): JSX.Element {
             />
           </View>
         }
-        renderItem={({ item }) => <TopicArticleCard article={item} />}
+        renderItem={({ item }) => <TopicArticleCard article={item} topicColor={accentColor} />}
       />
     </SafeAreaView>
   );

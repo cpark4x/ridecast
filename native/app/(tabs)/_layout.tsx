@@ -1,8 +1,12 @@
 import React from "react";
+import { View } from "react-native";
 import { Tabs } from "expo-router";
+import { BottomTabBar } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { Haptics } from "../../lib/haptics";
 import { colors, sizes } from "../../lib/theme";
+import PlayerBar from "../../components/PlayerBar";
 
 // ---------------------------------------------------------------------------
 // Exported for testability (TabLayout.test.tsx — AC-2 through AC-5)
@@ -39,6 +43,21 @@ export function getLibraryIcon(focused: boolean): React.ComponentProps<typeof Io
 }
 
 // ---------------------------------------------------------------------------
+// Custom tab bar — PlayerBar floats directly above the native tab bar.
+// Using tabBar prop lets React Navigation handle all safe-area math;
+// no manual inset calculations needed.
+// ---------------------------------------------------------------------------
+
+function TabBarWithPlayer(props: BottomTabBarProps) {
+  return (
+    <View style={{ backgroundColor: colors.surface }}>
+      <PlayerBar />
+      <BottomTabBar {...props} />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tab layout — 3 tabs: Home / Discover / Library
 // ---------------------------------------------------------------------------
 
@@ -46,6 +65,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={tabScreenOptions}
+      tabBar={(props) => <TabBarWithPlayer {...props} />}
       screenListeners={{
         tabPress: () => {
           void Haptics.light();

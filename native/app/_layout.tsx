@@ -1,7 +1,6 @@
 import "../global.css";
 import { useEffect, useMemo, useRef } from "react";
 import { AppState, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -14,7 +13,7 @@ import { PlaybackService } from "../lib/player";
 import { PlayerProvider, usePlayer } from "../lib/usePlayer";
 import { TelemetryProvider } from "../lib/useTelemetry";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import PlayerBar from "../components/PlayerBar";
+
 import ExpandedPlayer from "../components/ExpandedPlayer";
 import OfflineBanner from "../components/OfflineBanner";
 import TrackPlayer from "react-native-track-player";
@@ -23,7 +22,7 @@ import { syncLibrary, syncPlayback } from "../lib/sync";
 import FeedbackSheet from "../components/FeedbackSheet";
 import type { FeedbackSheetRef } from "../components/FeedbackSheet";
 import { FeedbackSheetContext } from "../lib/useFeedbackSheet";
-import { colors, sizes } from "../lib/theme";
+import { colors } from "../lib/theme";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -74,10 +73,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function AppShell({ children }: { children: React.ReactNode }) {
   const { expandedPlayerVisible, setExpandedPlayerVisible } = usePlayer();
   const feedbackRef = useRef<FeedbackSheetRef>(null);
-  const insets = useSafeAreaInsets();
-  // Hide PlayerBar on fullscreen modal screens (sign-in, processing, settings, FTUE)
-  const segments = useSegments();
-  const isExemptScreen = EXEMPT_SEGMENTS.some((s) => segments[0] === s);
   const feedbackCtx = useMemo(
     () => ({ openFeedbackSheet: () => feedbackRef.current?.open() }),
     [],
@@ -106,19 +101,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <View style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
         <OfflineBanner />
         {children}
-        {!isExemptScreen && (
-          <View
-            pointerEvents="box-none"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: insets.bottom + sizes.tabBarHeight + 8,
-            }}
-          >
-            <PlayerBar />
-          </View>
-        )}
+        {/* PlayerBar is now rendered inside TabBarWithPlayer in (tabs)/_layout.tsx */}
         <ExpandedPlayer
           visible={expandedPlayerVisible}
           onDismiss={() => setExpandedPlayerVisible(false)}
