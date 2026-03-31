@@ -89,8 +89,9 @@ export async function POST(request: Request) {
     let author: string | undefined;
 
     if (rawText !== null) {
-      const result = extractTxt(rawText, bodyTitle ?? 'Pasted text');
-      title = bodyTitle ?? result.title;
+      const derivedTitle = bodyTitle ?? (rawText.split('\n')[0].trim().slice(0, 80) || 'Pasted text');
+      const result = extractTxt(rawText, derivedTitle);
+      title = derivedTitle;
       text = result.text;
       wordCount = result.wordCount;
       sourceType = 'txt';

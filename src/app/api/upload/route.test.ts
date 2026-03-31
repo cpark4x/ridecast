@@ -354,9 +354,12 @@ describe('POST /api/upload', () => {
 
     expect(response.status).toBe(200);
     expect(data.sourceType).toBe('txt');
-    expect(data.title).toBe('Pasted text');
+    // Title is now auto-derived from first 80 chars of the first line
     expect(data.wordCount).toBe(42);
-    expect(mockExtractTxt).toHaveBeenCalledWith(pastedText, 'Pasted text');
+    expect(mockExtractTxt).toHaveBeenCalledWith(
+      pastedText,
+      expect.stringContaining('This is a long article'),
+    );
   });
 
   it('accepts rawText with custom title via JSON body', async () => {

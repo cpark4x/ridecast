@@ -10,7 +10,9 @@ import TrackPlayer, {
   usePlaybackState,
   useProgress,
   useActiveTrack,
+  useTrackPlayerEvents,
   State,
+  Event,
 } from "react-native-track-player";
 import { isPlaybackCompleted } from "./player";
 import { resolveAudioUrl } from "./downloads";
@@ -373,11 +375,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeTrack, queue, currentItem?.id]);
 
+  // When the queue ends, ensure playback position resets to 0 so the
+  // play button reflects a "stopped at beginning" state. The PlaybackService
+  // calls pause() on this event; seekTo(0) here syncs the progress hook.
+  useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
+    await TrackPlayer.seekTo(0);
+  });
+
   const value: PlayerContextType = {
     currentItem,
     isPlaying,
     position: progress.position,
-    duration: progress.duration,
+    duration: progress.duration > 0 ? progress.duration : (currentItem?.duration ?? 0),
     speed,
     queue,
     play,

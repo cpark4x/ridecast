@@ -4,6 +4,8 @@ import TrackPlayer, {
   Event,
   RepeatMode,
 } from "react-native-track-player";
+import { saveLocalPlayback } from "./db";
+import { savePlaybackState as saveServerPlayback } from "./api";
 
 export async function setupPlayer(): Promise<boolean> {
   let isSetup = false;
@@ -62,8 +64,26 @@ export async function PlaybackService() {
     await TrackPlayer.seekTo(Math.max(0, position - event.interval));
   });
   TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+    // Capture position + track BEFORE pausing — seekTo(0) would race against
+    // usePlayer's 500ms polling and prevent completion from ever being detected.
+    const [prog, track] = await Promise.all([
+      TrackPlayer.getProgress(),
+      TrackPlayer.getActiveTrack(),
+    ]);
     await TrackPlayer.pause();
-    await TrackPlayer.seekTo(0);
+
+    // Save completion directly here — don't rely solely on usePlayer's polling
+    // which can lose the race against position resets.
+    if (track?.id) {
+      const payload = {
+        audioId:   track.id as string,
+        position:  prog.position,
+        speed:     1.0,
+        completed: true,
+      };
+      void saveLocalPlayback(payload);
+      saveServerPlayback(payload).catch(() => { /* fire and forget */ });
+    }
   });
 }
 

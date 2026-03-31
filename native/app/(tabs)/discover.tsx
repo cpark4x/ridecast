@@ -305,13 +305,17 @@ function SourceRow({
   source,
   isFollowed,
   onToggleFollow,
+  onPress,
 }: {
   source: DiscoverySource;
   isFollowed: boolean;
   onToggleFollow: (id: string) => void;
+  onPress: (source: DiscoverySource) => void;
 }) {
   return (
-    <View
+    <TouchableOpacity
+      onPress={() => onPress(source)}
+      activeOpacity={0.7}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -360,7 +364,7 @@ function SourceRow({
       </View>
       {/* Follow button — consistent borderWidth=1 to avoid layout shift on toggle */}
       <TouchableOpacity
-        onPress={() => onToggleFollow(source.id)}
+        onPress={(e) => { e.stopPropagation(); onToggleFollow(source.id); }}
         activeOpacity={0.8}
         style={{
           backgroundColor: isFollowed ? colors.accentPrimary : "transparent",
@@ -381,7 +385,7 @@ function SourceRow({
           {isFollowed ? "Following" : "Follow"}
         </Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -453,6 +457,14 @@ export default function DiscoverScreen(): JSX.Element {
     router.push({
       pathname: "/(tabs)/discover-topic",
       params: { topicId: topic.id, topicName: topic.name, emoji: topic.emoji },
+    });
+  }
+
+  function handleSourcePress(source: DiscoverySource) {
+    void Haptics.light();
+    router.push({
+      pathname: "/(tabs)/source-detail",
+      params: { id: source.id, name: source.name },
     });
   }
 
@@ -632,6 +644,7 @@ export default function DiscoverScreen(): JSX.Element {
                 source={source}
                 isFollowed={followedSourceIds.has(source.id)}
                 onToggleFollow={handleToggleFollow}
+                onPress={handleSourcePress}
               />
             ))}
             {filteredSources.length === 0 && (

@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -86,6 +86,7 @@ function domainFromItem(item: LibraryItem): string {
 function LibraryScreen() {
   const router = useRouter();
   const player = usePlayer();
+  const insets = useSafeAreaInsets();
 
   const [episodes, setEpisodes]                     = useState<LibraryItem[]>([]);
   const [filter, setFilter]                         = useState<LibraryFilter>("active");
@@ -410,9 +411,9 @@ function LibraryScreen() {
   const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
+    <SafeAreaView edges={["bottom", "left", "right"]} style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+      <View className="flex-row items-center justify-between px-4 pb-3" style={{ paddingTop: insets.top + 8 }}>
         <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '700' }}>Library</Text>
         <View className="flex-row gap-1 items-center">
           {/* Add button — was FAB, moved to header */}

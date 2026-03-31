@@ -115,6 +115,10 @@ export default function SourceThumbnail({
   const logoSize = Math.round(size * 0.68);
   const showLogo = !!hostname && !logoError;
 
+  // For plain-text uploads (no URL to derive a favicon from), show a
+  // document icon on a neutral surface background instead of a letter "?".
+  const showTextIcon = type === "txt" && !showLogo;
+
   return (
     <LinearGradient
       colors={[gradStart, gradEnd]}
@@ -129,17 +133,26 @@ export default function SourceThumbnail({
         overflow:        "hidden",
       }}
     >
-      {/* Letter fallback — always rendered behind logo */}
-      <Text
-        style={{
-          position:   "absolute",
-          color:      "rgba(255,255,255,0.55)",
-          fontSize:   size * 0.39,
-          fontWeight: "700",
-        }}
-      >
-        {letter}
-      </Text>
+      {/* Document icon for plain-text (pasted) content — replaces letter fallback */}
+      {showTextIcon ? (
+        <Ionicons
+          name="document-text-outline"
+          size={Math.round(size * 0.46)}
+          color="rgba(255,255,255,0.80)"
+        />
+      ) : (
+        /* Letter fallback — always rendered behind logo */
+        <Text
+          style={{
+            position:   "absolute",
+            color:      "rgba(255,255,255,0.55)",
+            fontSize:   size * 0.39,
+            fontWeight: "700",
+          }}
+        >
+          {letter}
+        </Text>
+      )}
 
       {/* Clearbit logo tile */}
       {showLogo && (
