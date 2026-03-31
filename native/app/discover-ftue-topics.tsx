@@ -70,7 +70,6 @@ function TopicChip({
         gap: 4,
       }}
     >
-      <Text style={{ fontSize: 22, lineHeight: 28 }}>{item.emoji}</Text>
       <Text
         style={{
           fontSize: 13,

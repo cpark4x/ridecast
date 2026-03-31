@@ -137,16 +137,16 @@ function getCategoryColor(category: DiscoveryArticle["badgeCategory"]): string {
   }
 }
 
-function getCategoryEmoji(category: DiscoveryArticle["badgeCategory"]): string {
+function getCategoryLabel(category: DiscoveryArticle["badgeCategory"]): string {
   switch (category) {
-    case "science":    return "🧬";
-    case "tech":       return "🤖";
-    case "business":   return "📈";
-    case "psychology": return "🧠";
-    case "fiction":    return "🎭";
-    case "news":       return "📰";
-    case "biography":  return "👤";
-    default:           return "📖";
+    case "science":    return "SCI";
+    case "tech":       return "AI";
+    case "business":   return "BIZ";
+    case "psychology": return "PSY";
+    case "fiction":    return "LIT";
+    case "news":       return "NEWS";
+    case "biography":  return "BIO";
+    default:           return "ART";
   }
 }
 
@@ -192,7 +192,7 @@ function ArticleCard({ article }: { article: DiscoveryArticle }) {
           justifyContent: "center",
         }}
       >
-        <Text style={{ fontSize: 52 }}>{getCategoryEmoji(article.badgeCategory)}</Text>
+        <Text style={{ fontSize: 18, fontWeight: "700", color: badgeColor, letterSpacing: 1 }}>{getCategoryLabel(article.badgeCategory)}</Text>
       </View>
       {/* Context badge — absolute top-left, category color at 90% opacity */}
       <View
@@ -279,7 +279,6 @@ function TopicPill({
         gap: 8,
       }}
     >
-      <Text style={{ fontSize: 16 }}>{topic.emoji}</Text>
       <Text
         style={{
           fontSize: typography.sizes.body,
