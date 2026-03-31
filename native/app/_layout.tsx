@@ -1,6 +1,7 @@
 import "../global.css";
 import { useEffect, useMemo, useRef } from "react";
 import { AppState, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -22,7 +23,7 @@ import { syncLibrary, syncPlayback } from "../lib/sync";
 import FeedbackSheet from "../components/FeedbackSheet";
 import type { FeedbackSheetRef } from "../components/FeedbackSheet";
 import { FeedbackSheetContext } from "../lib/useFeedbackSheet";
-import { colors } from "../lib/theme";
+import { colors, sizes } from "../lib/theme";
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -73,6 +74,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 function AppShell({ children }: { children: React.ReactNode }) {
   const { expandedPlayerVisible, setExpandedPlayerVisible } = usePlayer();
   const feedbackRef = useRef<FeedbackSheetRef>(null);
+  const insets = useSafeAreaInsets();
   // Hide PlayerBar on fullscreen modal screens (sign-in, processing, settings, FTUE)
   const segments = useSegments();
   const isExemptScreen = EXEMPT_SEGMENTS.some((s) => segments[0] === s);
@@ -107,7 +109,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {!isExemptScreen && (
           <View
             pointerEvents="box-none"
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: insets.bottom + sizes.tabBarHeight + 8,
+            }}
           >
             <PlayerBar />
           </View>

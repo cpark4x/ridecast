@@ -71,9 +71,11 @@ export default function PlayerBar() {
     currentItem.sourceDomain,
   );
 
-  // Time remaining — show "Loading…" until duration is known
+  // Time remaining — show source name until duration is known
   const timeLabel =
-    duration > 0 ? timeRemaining(position, duration) : "Loading…";
+    duration > 0
+      ? timeRemaining(position, duration)
+      : (currentItem.sourceName ?? currentItem.sourceDomain ?? "");
 
   return (
     /*
@@ -84,7 +86,7 @@ export default function PlayerBar() {
     <View
       style={{
         ...PLAYER_BAR_CONTAINER_STYLES,
-        marginBottom: insets.bottom + sizes.tabBarHeight + 8,
+        marginBottom: 0,
       }}
     >
       {/* Tappable body — opens expanded player */}
