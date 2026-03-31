@@ -115,6 +115,23 @@ Time-sensitive. The acquisition window for displaced Pocket users narrows every 
 
 Ridecast becomes available everywhere you consume content, not just inside the app.
 
+### Theme: Smoke Test Bug Fixes
+
+Issues surfaced from first-run smoke test (2026-03-30). P1 items block basic usability. Ship before next external TestFlight build.
+
+| # | Issue | Size | Type | Status | Notes |
+|---|-------|------|------|--------|-------|
+| ST-1 | pasted-text-no-title | S | bug | 🆕 | Pasted text episodes show "Pasted text" as title. Auto-generate title from first sentence/line of pasted content. |
+| ST-2 | pasted-text-no-icon | S | bug | 🆕 | Pasted text episodes show "?" placeholder in SourceThumbnail. Add a document/text icon fallback for `sourceType='txt'` with no URL. |
+| ST-3 | episode-completion-state | M | bug | 🆕 | **P1.** Episode not marked as listened/completed after playing to the end. Playback completion event not persisting state. |
+| ST-4 | pause-play-toggle-on-end | S | bug | 🆕 | Pause button doesn't switch to Play icon when track finishes. Player state stays as "playing" after completion. |
+| ST-5 | playback-duration-not-loading | M | bug | 🆕 | **P1.** Duration from TrackPlayer never loads. Expanded player shows -0:00 entire time. Mini player shows source name instead of time remaining. Root cause: TrackPlayer not reporting duration. |
+| ST-6 | settings-safe-area | S | bug | 🆕 | Settings access button covered by notch/Dynamic Island. Safe area insets not respected for the settings entry point. |
+| ST-7 | recommended-sources-not-tappable | S | ux | 🆕 | Recommended section in Discover only shows Follow button. Users can't tap through to see articles or understand what they'd follow. Wire up Source Detail navigation from Recommended rows. |
+| ST-8 | discover-real-content | L | feature | 🆕 | Discover "For You" and topic feeds show static placeholder data with no real article images. Phase 6+ — needs backend. |
+
+### Theme: Platform Expansion
+
 | # | Feature | Size | Status | Notes |
 |---|---------|------|--------|-------|
 | 28 | Browser Extension | L | 🆕 | "Right-click any article > Send to Ridecast." Chrome first. |
