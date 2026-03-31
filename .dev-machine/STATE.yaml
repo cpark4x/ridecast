@@ -218,6 +218,24 @@ proposed_features:
     size: L
     description: "Discover \"For You\" and topic feeds show static placeholder data with no real article images. Requires backend recommendation API with article thumbnails. Intentional for current phase \u2014 Phase 6+."
     source: smoke-test-2026-03-30
+  discover-live-content:
+    status: new
+    priority: 2
+    type: feature
+    size: XL
+    description: >
+      Live Discover feed. Currently Discover shows static placeholder data.
+      Replace with real content:
+      - Backend ingestion: RSS feeds + newsletter scraping for followed sources
+      - Article recommendation engine: rank articles by user topic preferences from FTUE
+      - Source subscription persistence: save followed sources from FTUE + Discover to DB
+      - Article thumbnails: fetch og:image from article URLs
+      - Personalized For You feed: surface new articles from subscribed sources + topic matches
+      - "5 new articles" badge: real count from ingestion pipeline
+      - Source Detail from Discover: show discoverable articles (not just library episodes)
+    depends_on:
+      - episode-completion-state
+      - playback-duration-not-loading
 next_steps:
 - step: 1
   task: Pick next Phase 5 feature batch

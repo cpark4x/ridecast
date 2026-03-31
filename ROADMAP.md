@@ -162,6 +162,12 @@ The AI gets smarter about what it produces and how it produces it.
 | 43 | Word-Level Transcript Seek | M | 🆕 | Tap any word in the transcript to jump to that position. |
 | 44 | "What Did I Miss?" Recap | M | 🆕 | 30s AI summary when resuming after 24+ hours. "Previously on your episode..." |
 
+### Theme: Live Discovery
+
+| ID | Size | Type | Description |
+|----|------|------|-------------|
+| discover-live-content | XL | feature | Live Discover feed — real article recommendations, RSS/newsletter ingestion, source subscription, article thumbnails, personalized feed based on FTUE topic + source selections |
+
 ---
 
 ## Phase 7: Automation & Distribution
