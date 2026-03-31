@@ -464,7 +464,12 @@ export default function DiscoverScreen(): JSX.Element {
     void Haptics.light();
     router.push({
       pathname: "/(tabs)/source-detail",
-      params: { id: source.id, name: source.name },
+      params: {
+        sourceName: source.name,
+        sourceDomain: source.id,
+        sourceLogoColor: source.logoColor,
+        backLabel: "Discover",
+      },
     });
   }
 
@@ -494,18 +499,26 @@ export default function DiscoverScreen(): JSX.Element {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundScreen }}>
 
-      {/* Header — title + searchbar */}
+      {/* Header — title + settings gear + searchbar */}
       <View style={{ paddingHorizontal: spacing.screenMargin, paddingTop: 8 }}>
-        <Text
-          style={{
-            fontSize: typography.sizes.display,
-            fontWeight: typography.weights.bold,
-            color: colors.textPrimary,
-            marginBottom: spacing.sm,
-          }}
-        >
-          Discover
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+          <Text
+            style={{
+              fontSize: typography.sizes.display,
+              fontWeight: typography.weights.bold,
+              color: colors.textPrimary,
+            }}
+          >
+            Discover
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/settings')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ padding: 4 }}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
         {/* SearchBar — AC-6: surfaceElevated bg, 48px height, borderRadius.card = 10 */}
         <View

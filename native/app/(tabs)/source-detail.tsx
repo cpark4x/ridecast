@@ -263,8 +263,8 @@ function SourceDetailScreen(): JSX.Element {
           ) : episodes.length === 0 ? (
             <EmptyState
               icon="library-outline"
-              title="No episodes"
-              subtitle="No episodes found from this source"
+              title={`No ${sourceName ?? "source"} episodes yet`}
+              subtitle="Add articles from this source to your library to see them here."
             />
           ) : (
             episodes.map((episode, index) => (
