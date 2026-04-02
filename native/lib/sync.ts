@@ -73,32 +73,15 @@ export async function syncLibrary(): Promise<LibraryItem[]> {
 export async function syncPlayback(): Promise<void> {
   const localStates = await db.getAllLocalPlayback();
 
-  for (const local of localStates) {
-    try {
-      const server = await api.getPlaybackState(local.audioId);
+  // Nothing to sync — skip the network call entirely.
+  if (localStates.length === 0) return;
 
-      if (server.updatedAt && local.updatedAt) {
-        const serverTime = new Date(server.updatedAt).getTime();
-        const localTime  = new Date(local.updatedAt).getTime();
-        if (serverTime > localTime) {
-          await db.saveLocalPlayback({
-            audioId:   local.audioId,
-            position:  server.position,
-            speed:     server.speed,
-            completed: server.completed,
-          });
-          continue;
-        }
-      }
-
-      await api.savePlaybackState({
-        audioId:   local.audioId,
-        position:  local.position,
-        speed:     local.speed,
-        completed: local.completed,
-      });
-    } catch {
-      // Silently skip — will retry next sync cycle
-    }
+  try {
+    // Single batch call instead of one GET + one POST per episode (N+1 → 1).
+    // Server-wins-if-newer logic is applied on the backend: states where the
+    // server already has a more recent record are silently skipped.
+    await api.batchSyncPlayback(localStates);
+  } catch {
+    // Silently skip — will retry next sync cycle
   }
 }

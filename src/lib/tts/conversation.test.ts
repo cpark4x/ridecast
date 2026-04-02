@@ -9,6 +9,7 @@ describe('generateConversationAudio', () => {
     const chunkA2 = Buffer.from('chunk-a2');
 
     const mockProvider: TTSProvider = {
+      providerId: 'mock',
       generateSpeech: vi
         .fn()
         .mockResolvedValueOnce(chunkA1)
@@ -46,6 +47,7 @@ describe('generateConversationAudio', () => {
 
   it('returns empty buffer for empty script', async () => {
     const mockProvider: TTSProvider = {
+      providerId: 'mock',
       generateSpeech: vi.fn(),
     };
 

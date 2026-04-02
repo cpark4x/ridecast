@@ -1,3 +1,36 @@
+// --- Pipeline error codes (mirrors src/app/api/* route `code` fields) ---
+
+/**
+ * Machine-readable error codes returned by the three pipeline API routes.
+ * The client uses these to show specific, actionable messages rather than
+ * surfacing raw server strings.
+ */
+export type PipelineErrorCode =
+  | 'AI_UNAVAILABLE'    // Claude / Anthropic unreachable or misconfigured
+  | 'TTS_FAILED'        // OpenAI TTS unreachable or misconfigured
+  | 'CONTENT_TOO_SHORT' // rawText below minimum processable length
+  | 'CONTENT_TOO_LONG'  // prompt exceeded model context window
+  | 'EXTRACTION_FAILED' // couldn't pull usable text from URL/file
+  | 'RATE_LIMITED'      // upstream API returned 429
+  | 'INVALID_INPUT'     // bad request (missing fields, bad URL, etc.)
+  | 'NOT_FOUND'         // content or script record not found in DB
+  | 'PROCESSING_FAILED' // generic AI processing failure
+  | 'UNAUTHORIZED';     // auth / API key misconfigured
+
+/**
+ * Error thrown by the native API client for pipeline step failures.
+ * Extends Error so existing `err instanceof Error` guards still work,
+ * and adds a `code` field for UI-level differentiation.
+ */
+export class PipelineError extends Error {
+  readonly code: PipelineErrorCode | undefined;
+  constructor(message: string, code?: PipelineErrorCode) {
+    super(message);
+    this.name = 'PipelineError';
+    this.code = code;
+  }
+}
+
 // --- API response types (mirrors Next.js backend) ---
 
 export interface UploadResponse {

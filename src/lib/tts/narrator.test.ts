@@ -5,6 +5,7 @@ import { TTSProvider } from "./types";
 describe("generateNarratorAudio", () => {
   it("generates audio with narrator voice config", async () => {
     const mockProvider: TTSProvider = {
+      providerId: 'mock',
       generateSpeech: vi.fn().mockResolvedValue(Buffer.from("audio-data")),
     };
 

@@ -1,5 +1,7 @@
 import { API_URL } from "./constants";
+import { PipelineError } from "./types";
 import type {
+  PipelineErrorCode,
   UploadResponse,
   ProcessResponse,
   GenerateResponse,
@@ -46,7 +48,10 @@ async function fetchJSON<T>(
 
   const data = await res.json();
   if (!res.ok && res.status !== 409) {
-    throw new Error(data.error ?? `Request failed: ${res.status}`);
+    throw new PipelineError(
+      data.error ?? `Request failed: ${res.status}`,
+      (data.code as PipelineErrorCode | undefined),
+    );
   }
 
   return data as T;
@@ -82,9 +87,12 @@ async function postFormData<T>(
   });
   const data = await res.json();
   if (!res.ok && !(options?.treat409AsSuccess && res.status === 409)) {
-    const err = new Error(data.error ?? `Request failed: ${res.status}`);
+    const err = new PipelineError(
+      data.error ?? `Request failed: ${res.status}`,
+      (data.code as PipelineErrorCode | undefined),
+    );
     if (options?.attachStatusCode) {
-      (err as Error & { statusCode: number }).statusCode = res.status;
+      (err as PipelineError & { statusCode: number }).statusCode = res.status;
     }
     throw err;
   }
@@ -141,8 +149,11 @@ export async function uploadText(
   });
   const data = await res.json();
   if (!res.ok && res.status !== 409) {
-    const err = new Error(data.error ?? `Request failed: ${res.status}`);
-    (err as Error & { statusCode: number }).statusCode = res.status;
+    const err = new PipelineError(
+      data.error ?? `Request failed: ${res.status}`,
+      (data.code as PipelineErrorCode | undefined),
+    );
+    (err as PipelineError & { statusCode: number }).statusCode = res.status;
     throw err;
   }
   return data as UploadResponse;
@@ -201,6 +212,21 @@ export async function savePlaybackState(state: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(state),
+  });
+}
+
+/**
+ * Batch-push all local playback states to the server in a single request.
+ * Replaces the previous N+1 pattern (one GET + one POST per episode).
+ * Server applies server-wins-if-newer semantics on its end.
+ */
+export async function batchSyncPlayback(
+  states: PlaybackState[],
+): Promise<{ synced: number }> {
+  return fetchJSON<{ synced: number }>("/api/playback/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ states }),
   });
 }
 

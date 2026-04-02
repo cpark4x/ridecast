@@ -135,14 +135,14 @@ describe('POST /api/upload', () => {
   it('accepts URL via FormData, returns sourceType url', async () => {
     mockExtractUrl.mockResolvedValue({
       title: 'Test Article',
-      text: 'Article body content here',
-      wordCount: 4,
+      text: Array(200).fill('word').join(' '),
+      wordCount: 200,
     });
 
     const mockRecord = {
       id: 'url-id',
       title: 'Test Article',
-      wordCount: 4,
+      wordCount: 200,
       sourceType: 'url',
       contentHash: expect.any(String),
     };

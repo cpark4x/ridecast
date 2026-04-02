@@ -169,7 +169,8 @@ export default function SourceThumbnail({
       )}
 
       {/* Source type badge — bottom-right corner, shows content-type glyph */}
-      {showLogo && size >= 48 && (
+      {/* Only shown when no Clearbit logo is available — avoids double-logo when favicon loads */}
+      {!showLogo && size >= 48 && (
         <View
           style={{
             position:        "absolute",
@@ -178,7 +179,7 @@ export default function SourceThumbnail({
             width:           18,
             height:          18,
             borderRadius:    4,
-            backgroundColor: "#fff",
+            backgroundColor: "rgba(255,255,255,0.15)",
             alignItems:      "center",
             justifyContent:  "center",
           }}
@@ -186,7 +187,7 @@ export default function SourceThumbnail({
           <Ionicons
             name={sourceTypeIcon(sourceType)}
             size={11}
-            color="#6B7280"
+            color="rgba(255,255,255,0.75)"
           />
         </View>
       )}

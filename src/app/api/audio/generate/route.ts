@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     if (!scriptId) {
       return NextResponse.json(
-        { error: 'Missing required field: scriptId' },
+        { error: 'Missing required field: scriptId', code: 'INVALID_INPUT' },
         { status: 400 },
       );
     }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     if (!script) {
       return NextResponse.json(
-        { error: 'Script not found' },
+        { error: 'Script not found', code: 'NOT_FOUND' },
         { status: 404 },
       );
     }
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'TTS provider not configured' },
+        { error: 'TTS provider not configured', code: 'TTS_FAILED' },
         { status: 500 },
       );
     }
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         filePath,
         durationSecs,
         voices,
-        ttsProvider: 'openai',
+        ttsProvider: provider.providerId,
       },
     });
 
@@ -126,16 +126,19 @@ export async function POST(request: Request) {
     console.error('Audio generation error:', error);
 
     let message = 'Something went wrong generating audio.';
+    let code: string = 'TTS_FAILED';
     if (error instanceof Error) {
       if (error.message.includes('rate limit') || error.message.includes('429')) {
         message = 'Audio service is busy. Please wait a moment and try again.';
+        code = 'RATE_LIMITED';
       } else if (error.message.includes('authentication') || error.message.includes('401')) {
         message = 'Audio service is not configured properly. Check your API keys.';
+        code = 'TTS_FAILED';
       }
     }
 
     return NextResponse.json(
-      { error: message },
+      { error: message, code },
       { status: 500 },
     );
   }

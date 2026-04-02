@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     if (!contentId || !targetMinutes) {
       return NextResponse.json(
-        { error: 'Missing required fields: contentId and targetMinutes' },
+        { error: 'Missing required fields: contentId and targetMinutes', code: 'INVALID_INPUT' },
         { status: 400 },
       );
     }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     if (!content) {
       return NextResponse.json(
-        { error: 'Content not found' },
+        { error: 'Content not found', code: 'NOT_FOUND' },
         { status: 404 },
       );
     }
@@ -71,10 +71,19 @@ export async function POST(request: Request) {
       } catch (fetchError) {
         console.error('Failed to fetch Pocket article:', { contentId, url: content.sourceUrl, fetchError });
         return NextResponse.json(
-          { error: "Couldn't fetch the article from that URL. Check the link is still accessible." },
+          { error: "Couldn't fetch the article from that URL. Check the link is still accessible.", code: 'EXTRACTION_FAILED' },
           { status: 422 },
         );
       }
+    }
+
+    // Reject content that is too short to generate a meaningful script
+    const MIN_PROCESSABLE_CHARS = 50;
+    if (content.rawText.length < MIN_PROCESSABLE_CHARS) {
+      return NextResponse.json(
+        { error: 'Content is too short to generate an episode. Please add more text.', code: 'CONTENT_TOO_SHORT' },
+        { status: 422 },
+      );
     }
 
     // ── Verbatim mode: skip AI, use raw text as script ──────────────
@@ -99,7 +108,7 @@ export async function POST(request: Request) {
     // ── AI mode: analyze + generate script ────────────────────────────
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'AI provider not configured' },
+        { error: 'AI provider not configured', code: 'AI_UNAVAILABLE' },
         { status: 500 },
       );
     }
@@ -156,20 +165,27 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Process error:', { contentId, error });
 
-    // Surface actionable messages instead of generic 500.
+    // Surface actionable messages + typed codes instead of generic 500.
     let message = 'Something went wrong while processing your content.';
+    let code: string = 'PROCESSING_FAILED';
     if (error instanceof Error) {
       if (error.message.includes('prompt is too long')) {
         message = 'This document is too large to process. Try a shorter file or select a shorter duration.';
+        code = 'CONTENT_TOO_LONG';
       } else if (error.message.includes('rate limit') || error.message.includes('429')) {
         message = 'AI service is busy. Please wait a moment and try again.';
+        code = 'RATE_LIMITED';
       } else if (error.message.includes('authentication') || error.message.includes('401')) {
         message = 'AI service is not configured properly. Check your API keys.';
+        code = 'AI_UNAVAILABLE';
+      } else if (error.message.toLowerCase().includes('overloaded') || error.message.includes('529')) {
+        message = "Couldn't reach the AI service — try again in a moment.";
+        code = 'AI_UNAVAILABLE';
       }
     }
 
     return NextResponse.json(
-      { error: message },
+      { error: message, code },
       { status: 500 },
     );
   }

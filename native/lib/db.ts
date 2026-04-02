@@ -63,8 +63,13 @@ async function addColumnIfMissing(
 ) {
   try {
     await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-  } catch {
-    // Column already exists — safe to ignore
+  } catch (e: unknown) {
+    // Only ignore "duplicate column name" — all other errors (disk full,
+    // permissions, corrupt DB) should propagate so they aren't silently swallowed.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!msg.includes('duplicate column name')) {
+      throw e;
+    }
   }
 }
 
@@ -118,7 +123,11 @@ async function migrateV2(db: SQLite.SQLiteDatabase) {
   for (const sql of alterations) {
     try {
       await db.execAsync(sql);
-    } catch {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes('duplicate column name')) {
+        throw e;
+      }
       // Column already exists — safe to ignore
     }
   }

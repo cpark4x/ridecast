@@ -3,6 +3,7 @@ import type { TTSProvider, VoiceConfig } from "./types";
 import { retryWithBackoff } from "@/lib/utils/retry";
 
 export class GoogleCloudTTSProvider implements TTSProvider {
+  readonly providerId = 'google';
   private client: TextToSpeechClient;
 
   constructor() {

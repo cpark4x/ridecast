@@ -55,7 +55,7 @@ export async function POST(request: Request) {
           } catch (extractErr) {
             console.error('Upload: failed to hydrate Pocket stub', { url, extractErr });
             return NextResponse.json(
-              { error: "We couldn't extract content from this URL. Try pasting the article text directly." },
+              { error: "We couldn't extract content from this URL. Try pasting the article text directly.", code: 'EXTRACTION_FAILED' },
               { status: 422 },
             );
           }
@@ -124,6 +124,36 @@ export async function POST(request: Request) {
         wordCount = result.wordCount;
         sourceType = 'url';
         author = result.author;
+
+        // Detect Pocket stubs: a Pocket URL that returned essentially no content
+        // means the item was saved without caching — the original article is the
+        // only useful source.
+        const isPocketUrl = /getpocket\.com|pocket\.co/i.test(url);
+        if (isPocketUrl && wordCount < 50) {
+          return NextResponse.json(
+            {
+              error: 'POCKET_STUB',
+              message: 'This Pocket item has no cached content. Try the original URL directly.',
+            },
+            { status: 422 },
+          );
+        }
+
+        // Guard against paywalled / JS-rendered / bot-blocked pages that return
+        // near-empty HTML. Failing early avoids wasting Claude + TTS processing
+        // time on garbage content. 200 words is a conservative lower bound —
+        // a meaningful article is rarely shorter.
+        if (wordCount < 200) {
+          return NextResponse.json(
+            {
+              error: 'INSUFFICIENT_CONTENT',
+              wordCount,
+              message:
+                'Could not extract enough content from this URL. The page may be paywalled, require JavaScript, or block automated access.',
+            },
+            { status: 422 },
+          );
+        }
       }
     } else if (file) {
       const extension = file.name.split('.').pop()?.toLowerCase();
@@ -161,7 +191,7 @@ export async function POST(request: Request) {
       }
     } else {
       return NextResponse.json(
-        { error: 'No file, URL, or text provided' },
+        { error: 'No file, URL, or text provided', code: 'INVALID_INPUT' },
         { status: 400 },
       );
     }
@@ -211,22 +241,28 @@ export async function POST(request: Request) {
     }
 
     let message = 'Something went wrong processing your upload.';
+    let code: string = 'EXTRACTION_FAILED';
     if (error instanceof Error) {
       if (error.message.includes('Failed to fetch URL: 403')) {
         message = 'That site blocked our request. Try pasting the article text directly or using a different URL.';
+        code = 'EXTRACTION_FAILED';
       } else if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
         message = 'Could not reach that URL. Please check the address and try again.';
+        code = 'EXTRACTION_FAILED';
       } else if (error.message.includes('Invalid URL') || error.message.includes('ERR_INVALID_URL')) {
         message = 'That doesn\u2019t look like a valid URL.';
+        code = 'INVALID_INPUT';
       } else if (error.message.includes('Unsupported') || error.message.includes('extract')) {
         message = 'Could not extract text from this content. Try a different file or URL.';
+        code = 'EXTRACTION_FAILED';
       } else if (error.message.includes('zip') || error.message.includes('central directory') || error.message.includes('encrypted')) {
         message = 'This file appears to be corrupt or password-protected. Try re-saving as a new file.';
+        code = 'EXTRACTION_FAILED';
       }
     }
 
     return NextResponse.json(
-      { error: message },
+      { error: message, code },
       { status: 500 },
     );
   }

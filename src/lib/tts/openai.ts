@@ -3,6 +3,7 @@ import { TTSProvider, VoiceConfig } from "./types";
 import { retryWithBackoff } from "@/lib/utils/retry";
 
 export class OpenAITTSProvider implements TTSProvider {
+  readonly providerId = 'openai';
   private client: OpenAI;
 
   constructor() {

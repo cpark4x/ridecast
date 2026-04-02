@@ -77,7 +77,7 @@ describe('POST /api/audio/generate', () => {
     mockWriteFile.mockResolvedValue(undefined);
     mockMkdir.mockResolvedValue(undefined);
     // Restore default mock for createTTSProvider after vi.clearAllMocks()
-    vi.mocked(createTTSProvider).mockReturnValue({ generateSpeech: mockGenerateSpeech });
+    vi.mocked(createTTSProvider).mockReturnValue({ providerId: 'openai', generateSpeech: mockGenerateSpeech });
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
   });
 

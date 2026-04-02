@@ -18,7 +18,86 @@ import {
   getStageIndex,
   type ProcessingStage,
 } from "../lib/constants";
+import { PipelineError, type PipelineErrorCode } from "../lib/types";
 import { colors, borderRadius } from "../lib/theme";
+
+// ---------------------------------------------------------------------------
+// Error code → user-facing copy
+// ---------------------------------------------------------------------------
+
+interface ErrorUi {
+  /** Short headline shown in the error card */
+  headline: string;
+  /** Optional secondary hint below the headline */
+  hint?: string;
+  /** Whether a retry is likely to succeed (controls button wording) */
+  retryable: boolean;
+}
+
+const PIPELINE_ERROR_UI: Record<PipelineErrorCode, ErrorUi> = {
+  AI_UNAVAILABLE:    {
+    headline: "Couldn't reach the AI service",
+    hint: "This is usually temporary — try again in a moment.",
+    retryable: true,
+  },
+  TTS_FAILED:        {
+    headline: "Audio generation failed",
+    hint: "This is usually temporary — try again in a moment.",
+    retryable: true,
+  },
+  RATE_LIMITED:      {
+    headline: "Service is busy right now",
+    hint: "Please wait a moment and try again.",
+    retryable: true,
+  },
+  CONTENT_TOO_SHORT: {
+    headline: "Content is too short",
+    hint: "Please go back and add more text before generating an episode.",
+    retryable: false,
+  },
+  CONTENT_TOO_LONG:  {
+    headline: "Document is too large to process",
+    hint: "Try a shorter excerpt or choose a shorter episode length.",
+    retryable: false,
+  },
+  EXTRACTION_FAILED: {
+    headline: "Couldn't extract text from this source",
+    hint: "The URL may be paywalled or the file unreadable. Try pasting the text directly.",
+    retryable: false,
+  },
+  INVALID_INPUT:     {
+    headline: "Something went wrong with your content",
+    hint: "Go back and try uploading again.",
+    retryable: false,
+  },
+  NOT_FOUND:         {
+    headline: "Content no longer exists",
+    hint: "Go back to the library and start a new episode.",
+    retryable: false,
+  },
+  PROCESSING_FAILED: {
+    headline: "Script generation failed",
+    hint: "Something went wrong on our end — try again.",
+    retryable: true,
+  },
+  UNAUTHORIZED:      {
+    headline: "Authentication error",
+    hint: "Please sign out and sign back in.",
+    retryable: false,
+  },
+};
+
+/** Fall-through for unknown / missing codes */
+const FALLBACK_ERROR_UI: ErrorUi = {
+  headline: "Something went wrong",
+  hint: "An unexpected error occurred. Please try again.",
+  retryable: true,
+};
+
+function resolveErrorUi(code: PipelineErrorCode | null): ErrorUi {
+  if (!code) return FALLBACK_ERROR_UI;
+  return PIPELINE_ERROR_UI[code] ?? FALLBACK_ERROR_UI;
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -107,6 +186,7 @@ export default function ProcessingScreen() {
 
   const [stage, setStage] = useState<ProcessingStage>("analyzing");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<PipelineErrorCode | null>(null);
   const [audioError, setAudioError] = useState(false); // true = audio stage failed
 
   // Stored IDs for retry logic
@@ -131,6 +211,7 @@ export default function ProcessingScreen() {
     audioIdRef.current = null;
     audioUrlRef.current = null;
     setErrorMsg(null);
+    setErrorCode(null);
     setAudioError(false);
 
     if (!contentId || !targetMinutes) {
@@ -153,6 +234,8 @@ export default function ProcessingScreen() {
       scriptIdRef.current = scriptId;
     } catch (err: unknown) {
       if (!abortRef.current) {
+        const code = err instanceof PipelineError ? err.code ?? null : null;
+        setErrorCode(code);
         setErrorMsg(err instanceof Error ? err.message : "Processing failed");
       }
       return;
@@ -166,6 +249,7 @@ export default function ProcessingScreen() {
   async function runAudioGeneration(scriptId: string) {
     setAudioError(false);
     setErrorMsg(null);
+    setErrorCode(null);
     try {
       const genResult = await generateAudio(scriptId);
       if (abortRef.current) return;
@@ -201,6 +285,8 @@ export default function ProcessingScreen() {
     } catch (err: unknown) {
       if (!abortRef.current) {
         setAudioError(true);
+        const code = err instanceof PipelineError ? err.code ?? null : null;
+        setErrorCode(code);
         setErrorMsg(err instanceof Error ? err.message : "Audio generation failed");
       }
     }
@@ -279,68 +365,105 @@ export default function ProcessingScreen() {
         </View>
 
         {/* Error state */}
-        {errorMsg && (
-          <View style={{ width: "100%", alignItems: "center" }}>
-            <View style={{
-              backgroundColor: "rgba(239,68,68,0.12)",
-              borderColor: "rgba(239,68,68,0.3)",
-              borderWidth: 1,
-              borderRadius: borderRadius.card,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              width: "100%",
-              marginBottom: 16,
-            }}>
-              <Text style={{ fontSize: 14, color: colors.statusError, textAlign: "center" }}>
-                {errorMsg}
-              </Text>
-            </View>
-
-            {audioError ? (
-              <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
-                <TouchableOpacity
-                  onPress={handleRetryAudio}
-                  style={{
-                    flex: 1,
-                    backgroundColor: colors.accentPrimary,
-                    paddingVertical: 12,
-                    borderRadius: borderRadius.card,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Retry Audio</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleTryAgain}
-                  style={{
-                    flex: 1,
-                    borderColor: colors.borderInput,
-                    borderWidth: 1,
-                    paddingVertical: 12,
-                    borderRadius: borderRadius.card,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ color: colors.textSecondary, fontWeight: "600" }}>Start Over</Text>
-                </TouchableOpacity>
+        {errorMsg && (() => {
+          const ui = resolveErrorUi(errorCode);
+          return (
+            <View style={{ width: "100%", alignItems: "center" }}>
+              {/* Error card */}
+              <View style={{
+                backgroundColor: "rgba(239,68,68,0.12)",
+                borderColor: "rgba(239,68,68,0.3)",
+                borderWidth: 1,
+                borderRadius: borderRadius.card,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                width: "100%",
+                marginBottom: 16,
+                gap: 6,
+              }}>
+                {/* Icon + headline row */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="alert-circle" size={18} color={colors.statusError} />
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.statusError, flex: 1 }}>
+                    {ui.headline}
+                  </Text>
+                </View>
+                {/* Hint */}
+                {ui.hint ? (
+                  <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
+                    {ui.hint}
+                  </Text>
+                ) : null}
               </View>
-            ) : (
-              <TouchableOpacity
-                onPress={handleTryAgain}
-                style={{
-                  backgroundColor: colors.accentPrimary,
-                  paddingVertical: 12,
-                  paddingHorizontal: 32,
-                  borderRadius: borderRadius.card,
-                  alignItems: "center",
-                  width: "100%",
-                }}
-              >
-                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Try Again</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+
+              {/* Action buttons */}
+              {audioError ? (
+                <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
+                  {/* Only show Retry Audio if retryable */}
+                  {ui.retryable ? (
+                    <TouchableOpacity
+                      onPress={handleRetryAudio}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.accentPrimary,
+                        paddingVertical: 12,
+                        borderRadius: borderRadius.card,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Retry Audio</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    onPress={handleCancel}
+                    style={{
+                      flex: 1,
+                      borderColor: colors.borderInput,
+                      borderWidth: 1,
+                      paddingVertical: 12,
+                      borderRadius: borderRadius.card,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: colors.textSecondary, fontWeight: "600" }}>Go Back</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
+                  {ui.retryable ? (
+                    <TouchableOpacity
+                      onPress={handleTryAgain}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.accentPrimary,
+                        paddingVertical: 12,
+                        borderRadius: borderRadius.card,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>Try Again</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    onPress={handleCancel}
+                    style={{
+                      flex: ui.retryable ? 1 : undefined,
+                      paddingVertical: 12,
+                      paddingHorizontal: ui.retryable ? undefined : 32,
+                      borderColor: colors.borderInput,
+                      borderWidth: 1,
+                      borderRadius: borderRadius.card,
+                      alignItems: "center",
+                      width: ui.retryable ? undefined : "100%",
+                    }}
+                  >
+                    <Text style={{ color: colors.textSecondary, fontWeight: "600" }}>Go Back</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        })()}
       </View>
     </SafeAreaView>
   );

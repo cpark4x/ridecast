@@ -3,6 +3,7 @@ import type { TTSProvider, VoiceConfig } from "./types";
 import { retryWithBackoff } from "@/lib/utils/retry";
 
 export class ElevenLabsTTSProvider implements TTSProvider {
+  readonly providerId = 'elevenlabs';
   private client: ElevenLabsClient;
 
   constructor(apiKey?: string) {
