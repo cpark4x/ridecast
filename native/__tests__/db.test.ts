@@ -70,7 +70,7 @@ describe("db", () => {
       let execCount = 0;
       mockExecAsync.mockImplementation(async () => {
         execCount++;
-        if (execCount >= 7) throw new Error("duplicate column");
+        if (execCount >= 7) throw new Error("duplicate column name");
       });
 
       await expect(getDb()).resolves.toBeDefined();

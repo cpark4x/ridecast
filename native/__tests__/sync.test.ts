@@ -150,8 +150,8 @@ describe("syncLibrary", () => {
 });
 
 describe("syncPlayback", () => {
-  it("pushes local state to server when local is newer", async () => {
-    mockDb.getAllLocalPlayback.mockResolvedValueOnce([
+  it("calls batchSyncPlayback with all local states", async () => {
+    const localStates = [
       {
         audioId: "a1",
         position: 100,
@@ -159,51 +159,27 @@ describe("syncPlayback", () => {
         completed: false,
         updatedAt: "2026-03-11T12:00:00Z",
       },
-    ]);
-    mockApi.getPlaybackState.mockResolvedValueOnce({
-      audioId: "a1",
-      position: 50,
-      speed: 1.0,
-      completed: false,
-      updatedAt: "2026-03-11T10:00:00Z",
-    });
+      {
+        audioId: "a2",
+        position: 200,
+        speed: 1.0,
+        completed: true,
+        updatedAt: "2026-03-11T11:00:00Z",
+      },
+    ];
+    mockDb.getAllLocalPlayback.mockResolvedValueOnce(localStates);
+    mockApi.batchSyncPlayback.mockResolvedValueOnce(undefined);
 
     await syncPlayback();
 
-    expect(mockApi.savePlaybackState).toHaveBeenCalledWith({
-      audioId: "a1",
-      position: 100,
-      speed: 1.5,
-      completed: false,
-    });
+    expect(mockApi.batchSyncPlayback).toHaveBeenCalledWith(localStates);
   });
 
-  it("pulls server state when server is newer", async () => {
-    mockDb.getAllLocalPlayback.mockResolvedValueOnce([
-      {
-        audioId: "a1",
-        position: 50,
-        speed: 1.0,
-        completed: false,
-        updatedAt: "2026-03-11T10:00:00Z",
-      },
-    ]);
-    mockApi.getPlaybackState.mockResolvedValueOnce({
-      audioId: "a1",
-      position: 100,
-      speed: 1.5,
-      completed: false,
-      updatedAt: "2026-03-11T12:00:00Z",
-    });
+  it("does nothing when there are no local playback states", async () => {
+    mockDb.getAllLocalPlayback.mockResolvedValueOnce([]);
 
     await syncPlayback();
 
-    expect(mockDb.saveLocalPlayback).toHaveBeenCalledWith({
-      audioId: "a1",
-      position: 100,
-      speed: 1.5,
-      completed: false,
-    });
-    expect(mockApi.savePlaybackState).not.toHaveBeenCalled();
+    expect(mockApi.batchSyncPlayback).not.toHaveBeenCalled();
   });
 });

@@ -325,6 +325,11 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_props, ref) => {
           );
           return;
         }
+        // A new recording session has successfully started. Clear any stale
+        // in-flight stop reference from a prior session so the next call to
+        // stopCurrentRecording() issues a fresh stop instead of joining the
+        // already-abandoned promise from the previous session.
+        stopInFlightRef.current = null;
         setRecorderActive(true);
         setRecordingDuration(0);
         setState("recording");

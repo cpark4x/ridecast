@@ -29,7 +29,8 @@
       "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expo-import-meta-registry.js",
       "^\\./ImportMetaRegistry$": "<rootDir>/__mocks__/expo-import-meta-registry.js",
       "expo/src/winter/runtime(\\.native)?$": "<rootDir>/__mocks__/expo-winter-runtime.js",
-      "^@g4rb4g3/react-native-carplay$": "<rootDir>/__mocks__/@g4rb4g3/react-native-carplay.js"
+      "^@g4rb4g3/react-native-carplay$": "<rootDir>/__mocks__/@g4rb4g3/react-native-carplay.js",
+      "\\.css$": "<rootDir>/__mocks__/style-mock.js"
     }
   },
   "dependencies": {

@@ -18,6 +18,11 @@
 // let all other console.error calls through unchanged.
 'use strict';
 
+// Stub environment variables required by app modules loaded during tests.
+// app/_layout.tsx throws if EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing.
+process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY =
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_stub-for-jest';
+
 const _origError = console.error.bind(console);
 
 console.error = (...args) => {

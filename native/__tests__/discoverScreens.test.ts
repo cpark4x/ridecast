@@ -61,4 +61,12 @@ const SPEC_TOPIC_IDS = [
 ];
 void SPEC_TOPIC_IDS; // satisfy TS
 
+// Placeholder so Jest does not report "Your test suite must contain at least one test".
+// The real assertions above are compile-time TypeScript type checks — they catch contract
+// violations at build time, not at runtime.
+it("type contracts are satisfied (compile-time verification)", () => {
+  // All assertions are TypeScript-level; no runtime checks needed.
+  expect(true).toBe(true);
+});
+
 export {};

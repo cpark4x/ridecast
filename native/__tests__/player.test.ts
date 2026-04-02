@@ -12,6 +12,7 @@ jest.mock("react-native-track-player", () => ({
     skipToPrevious: jest.fn(),
     seekTo: jest.fn(),
     getPosition: jest.fn(),
+    getProgress: jest.fn().mockResolvedValue({ position: 0, duration: 0, buffered: 0 }),
   },
   AppKilledPlaybackBehavior: { StopPlaybackAndRemoveNotification: 0 },
   Capability: {
@@ -130,7 +131,7 @@ describe("PlaybackService", () => {
     expect(tp.seekTo).toHaveBeenCalledWith(115);
   });
 
-  it("PlaybackQueueEnded handler pauses and seeks to start", async () => {
+  it("PlaybackQueueEnded handler captures progress and pauses", async () => {
     await PlaybackService();
     const queueEndedCall = tp.addEventListener.mock.calls.find(
       (c: unknown[]) => c[0] === "playback-queue-ended",
@@ -138,8 +139,11 @@ describe("PlaybackService", () => {
     expect(queueEndedCall).toBeDefined();
     const handler = queueEndedCall![1] as () => Promise<void>;
     await handler();
+    // Handler captures position before pausing to avoid race with usePlayer polling
+    expect(tp.getProgress).toHaveBeenCalledTimes(1);
     expect(tp.pause).toHaveBeenCalledTimes(1);
-    expect(tp.seekTo).toHaveBeenCalledWith(0);
+    // seekTo(0) is now handled by usePlayer.ts useTrackPlayerEvents, not here
+    expect(tp.seekTo).not.toHaveBeenCalled();
   });
 });
 

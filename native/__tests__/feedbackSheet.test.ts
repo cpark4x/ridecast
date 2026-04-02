@@ -131,6 +131,40 @@ jest.mock("expo-av", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// 6b. expo-audio — maps new hook-based API to the same controllable mocks.
+//     FeedbackSheet was migrated from expo-av (class-based) to expo-audio
+//     (hook-based). We bridge the two APIs so the existing mock variables
+//     (mockStartAsync, mockStopAndUnloadAsync, etc.) keep driving all tests.
+//
+//     Mapping:
+//       expo-av Recording.startAsync()       → audioRecorder.record()
+//       expo-av Recording.stopAndUnloadAsync()→ audioRecorder.stop()
+//       expo-av Recording.getURI()           → audioRecorder.uri (getter)
+//       expo-av Recording.prepareToRecordAsync() → audioRecorder.prepareToRecordAsync()
+//       expo-av Audio.requestPermissionsAsync→ AudioModule.requestRecordingPermissionsAsync
+//       expo-av Audio.setAudioModeAsync      → setAudioModeAsync (top-level fn)
+// ---------------------------------------------------------------------------
+const mockAudioRecorder = {
+  prepareToRecordAsync: (...args: unknown[]) =>
+    mockPrepareToRecordAsync(...args),
+  record: (...args: unknown[]) => mockStartAsync(...args),
+  stop: (...args: unknown[]) => mockStopAndUnloadAsync(...args),
+  get uri() {
+    return mockGetURI();
+  },
+};
+
+jest.mock("expo-audio", () => ({
+  useAudioRecorder: jest.fn().mockReturnValue(mockAudioRecorder),
+  AudioModule: {
+    requestRecordingPermissionsAsync: (...args: unknown[]) =>
+      mockRequestPermissionsAsync(...args),
+  },
+  RecordingPresets: { HIGH_QUALITY: {} },
+  setAudioModeAsync: (...args: unknown[]) => mockSetAudioModeAsync(...args),
+}));
+
+// ---------------------------------------------------------------------------
 // 7. Transitive native deps
 // ---------------------------------------------------------------------------
 jest.mock("react-native-safe-area-context", () => ({
@@ -901,7 +935,7 @@ describe("FeedbackSheet: dismiss cleanup while recording", () => {
 
       await waitFor(() => {
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          "[FeedbackSheet] cleanup stopAndUnloadAsync failed:",
+          "[FeedbackSheet] cleanup stop failed:",
           expect.any(Error)
         );
       });
@@ -1079,7 +1113,11 @@ describe("FeedbackSheet: text submit failure shows Alert", () => {
 // ===========================================================================
 describe("FeedbackSheet: recording start failure shows Alert", () => {
   it("calls Alert.alert when Audio.Recording.startAsync throws", async () => {
-    mockStartAsync.mockRejectedValueOnce(new Error("mic unavailable"));
+    // expo-audio's record() is fire-and-forget (no await). Errors from the
+    // recording start path surface via prepareToRecordAsync(), which IS
+    // awaited by the component and whose rejection is caught by the try/catch
+    // block that calls Alert.alert.
+    mockPrepareToRecordAsync.mockRejectedValueOnce(new Error("mic unavailable"));
 
     const { ref, getByText, getByTestId } = renderSheet();
 

@@ -108,8 +108,17 @@ describe('EXEMPT_SEGMENTS export', () => {
     expect(EXEMPT_SEGMENTS).toContain('settings');
   });
 
-  it('has exactly 3 exempt segments', () => {
-    expect(EXEMPT_SEGMENTS).toHaveLength(3);
+  it('discover-ftue-topics is in EXEMPT_SEGMENTS', () => {
+    expect(EXEMPT_SEGMENTS).toContain('discover-ftue-topics');
+  });
+
+  it('discover-ftue-sources is in EXEMPT_SEGMENTS', () => {
+    expect(EXEMPT_SEGMENTS).toContain('discover-ftue-sources');
+  });
+
+  it('has exactly 5 exempt segments', () => {
+    // sign-in, processing, settings, discover-ftue-topics, discover-ftue-sources
+    expect(EXEMPT_SEGMENTS).toHaveLength(5);
   });
 
   it('AC-21: (tabs) is NOT in EXEMPT_SEGMENTS (PlayerBar visible on tab screens)', () => {
