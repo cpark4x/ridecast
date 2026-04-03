@@ -24,6 +24,8 @@ const mockDownloads = downloads as jest.Mocked<typeof downloads>;
 beforeEach(() => {
   jest.clearAllMocks();
   mockDb.getAllEpisodes.mockResolvedValue([]);
+  // seedLocalPlayback is a no-op by default
+  mockDb.seedLocalPlayback.mockResolvedValue(undefined);
 });
 
 describe("syncLibrary", () => {
@@ -105,6 +107,51 @@ describe("syncLibrary", () => {
       "a1",
       "https://cdn.example.com/a1.mp3",
     );
+  });
+
+  it("seeds local playback table with server completed/position state for each version", async () => {
+    const items = [
+      {
+        id: "c1",
+        title: "Episode 1",
+        author: null,
+        sourceType: "url",
+        sourceUrl: null,
+        createdAt: "2026-01-01",
+        wordCount: 1000,
+        versions: [
+          {
+            scriptId: "s1",
+            audioId: "a1",
+            audioUrl: "https://cdn.example.com/a1.mp3",
+            durationSecs: 300,
+            targetDuration: 5,
+            format: "narrator",
+            status: "ready" as const,
+            completed: true,
+            position: 295,
+            createdAt: "2026-01-01",
+            summary: null,
+            contentType: null,
+            themes: [],
+            compressionRatio: 0.5,
+            actualWordCount: 750,
+            voices: [],
+            ttsProvider: "openai",
+          },
+        ],
+      },
+    ];
+    mockApi.fetchLibrary.mockResolvedValueOnce(items);
+    mockDb.getDownloadPath.mockResolvedValueOnce("/local/a1.mp3");
+
+    await syncLibrary();
+
+    expect(mockDb.seedLocalPlayback).toHaveBeenCalledWith({
+      audioId: "a1",
+      position: 295,
+      completed: true,
+    });
   });
 
   it("skips download for already-downloaded episodes", async () => {

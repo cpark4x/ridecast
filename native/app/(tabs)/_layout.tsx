@@ -4,6 +4,7 @@ import { Tabs } from "expo-router";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Haptics } from "../../lib/haptics";
 import { colors, sizes } from "../../lib/theme";
 import PlayerBar from "../../components/PlayerBar";
@@ -44,15 +45,17 @@ export function getLibraryIcon(focused: boolean): React.ComponentProps<typeof Io
 
 // ---------------------------------------------------------------------------
 // Custom tab bar — PlayerBar floats directly above the native tab bar.
-// Using tabBar prop lets React Navigation handle all safe-area math;
-// no manual inset calculations needed.
+// We own safe-area handling at the wrapper level: paddingBottom pushes content
+// above the home indicator and the background colour fills the gap.
+// BottomTabBar's own bottom inset is zeroed out to prevent double-counting.
 // ---------------------------------------------------------------------------
 
 function TabBarWithPlayer(props: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={{ backgroundColor: colors.surface }}>
+    <View style={{ backgroundColor: colors.surface, paddingBottom: insets.bottom }}>
       <PlayerBar />
-      <BottomTabBar {...props} />
+      <BottomTabBar {...props} insets={{ ...props.insets, bottom: 0 }} />
     </View>
   );
 }

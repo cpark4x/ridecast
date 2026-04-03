@@ -22,13 +22,11 @@ import NewVersionSheet from "../../components/NewVersionSheet";
 import { getPrefs, setPrefs } from "../../lib/prefs";
 import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
-import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 import SkeletonList from "../../components/SkeletonList";
 import {
   filterEpisodes,
   getLibraryContext,
-  getTopSourceDomain,
   groupByTimePeriod,
   sortEpisodes,
 } from "../../lib/libraryHelpers";
@@ -98,7 +96,6 @@ function LibraryScreen() {
   const [isLoading, setIsLoading]                   = useState(true);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [newVersionEpisode, setNewVersionEpisode]   = useState<LibraryItem | null>(null);
-  const [staleDismissed, setStaleDismissed]         = useState(false);
   const [showOnboardingHint, setShowOnboardingHint] = useState(false);
 
   const debounceTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -399,15 +396,6 @@ function LibraryScreen() {
       }, 0) / 3600,
   };
 
-  const topSourceDomain = getTopSourceDomain(episodes);
-
-  const newestMs = episodes.length > 0
-    ? episodes.reduce((max, item) => Math.max(max, new Date(item.createdAt).getTime()), 0)
-    : 0;
-  const daysSinceNewest = newestMs > 0
-    ? Math.floor((Date.now() - newestMs) / (24 * 60 * 60 * 1000))
-    : 0;
-
   const isSearching = searchQuery.trim().length > 0;
 
   return (
@@ -581,15 +569,6 @@ function LibraryScreen() {
             <Ionicons name="close" size={12} color={colors.accentPrimary} />
           </TouchableOpacity>
         </View>
-      )}
-
-      {context === "stale" && !staleDismissed && !isLoading && (
-        <StaleLibraryNudge
-          daysSinceNewest={daysSinceNewest}
-          topSourceDomain={topSourceDomain}
-          onDismiss={() => setStaleDismissed(true)}
-          onAddNew={() => setUploadModalVisible(true)}
-        />
       )}
 
       {/* ── Episode list — skeleton during cold launch, SectionList after ── */}

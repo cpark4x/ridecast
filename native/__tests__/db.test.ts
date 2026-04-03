@@ -23,6 +23,7 @@ import {
   searchEpisodes,
   getLocalPlayback,
   saveLocalPlayback,
+  seedLocalPlayback,
   getDownloadPath,
   recordDownload,
   getStorageInfo,
@@ -287,6 +288,53 @@ describe("db", () => {
       const [sql] = mockRunAsync.mock.calls[0];
       expect(sql).toContain("INSERT INTO playback");
       expect(sql).toContain("ON CONFLICT(audio_id) DO UPDATE");
+    });
+
+    it("saveLocalPlayback passes null for omitted completed so COALESCE preserves the existing row value", async () => {
+      // Regression: previously `state.completed ? 1 : 0` evaluated to 0 when
+      // completed was undefined, so COALESCE(0, existing=1) = 0 and a finished
+      // episode was silently reset to "unheard" on every pause or seek.
+      await getDb();
+      await saveLocalPlayback({
+        audioId: "a1",
+        position: 42,
+        speed: 1.0,
+        // completed intentionally omitted
+      });
+
+      // Params order after SQL string: audioId, positionVal, speedVal, completedVal,
+      // now, positionVal, speedVal, completedVal  (8 params total)
+      const args = mockRunAsync.mock.calls[0].slice(1); // strip SQL
+      const completedVal = args[3]; // 4th param = completedVal
+      expect(completedVal).toBeNull(); // must be null, NOT 0
+    });
+
+    it("saveLocalPlayback passes explicit 1 when completed:true is provided", async () => {
+      await getDb();
+      await saveLocalPlayback({ audioId: "a1", position: 0, speed: 1.0, completed: true });
+
+      const args = mockRunAsync.mock.calls[0].slice(1);
+      const completedVal = args[3];
+      expect(completedVal).toBe(1);
+    });
+
+    it("seedLocalPlayback uses INSERT OR IGNORE semantics", async () => {
+      await getDb();
+      await seedLocalPlayback({ audioId: "a1", position: 0, completed: true });
+
+      const [sql, audioId, position, completedArg] = mockRunAsync.mock.calls[0];
+      expect(sql).toContain("INSERT OR IGNORE INTO playback");
+      expect(audioId).toBe("a1");
+      expect(position).toBe(0);
+      expect(completedArg).toBe(1);
+    });
+
+    it("seedLocalPlayback stores 0 for completed:false", async () => {
+      await getDb();
+      await seedLocalPlayback({ audioId: "a2", position: 30, completed: false });
+
+      const [, , , completedArg] = mockRunAsync.mock.calls[0];
+      expect(completedArg).toBe(0);
     });
   });
 

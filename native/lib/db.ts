@@ -290,17 +290,57 @@ export async function saveLocalPlayback(state: {
 }) {
   const db = await getDb();
   const now = new Date().toISOString();
+
+  // Pass null for any field not explicitly provided so that COALESCE in the
+  // ON CONFLICT UPDATE clause preserves the existing column value instead of
+  // overwriting it with 0.  Previously, `state.completed ? 1 : 0` evaluated
+  // to 0 when `completed` was undefined, causing COALESCE(0, 1) to return 0
+  // and silently resetting completed episodes back to "unheard".
+  // The INSERT path uses COALESCE(?, <default>) so null becomes 0 / 1.0 / 0
+  // for a brand-new row.
+  const positionVal  = state.position  !== undefined ? state.position : null;
+  const speedVal     = state.speed     !== undefined ? state.speed    : null;
+  const completedVal =
+    state.completed !== undefined ? (state.completed ? 1 : 0) : null;
+
   await db.runAsync(
     `INSERT INTO playback (audio_id, position, speed, completed, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+     VALUES (?, COALESCE(?, 0), COALESCE(?, 1.0), COALESCE(?, 0), ?)
      ON CONFLICT(audio_id) DO UPDATE SET
-       position = COALESCE(excluded.position, playback.position),
-       speed = COALESCE(excluded.speed, playback.speed),
-       completed = COALESCE(excluded.completed, playback.completed),
+       position   = COALESCE(?, playback.position),
+       speed      = COALESCE(?, playback.speed),
+       completed  = COALESCE(?, playback.completed),
        updated_at = excluded.updated_at`,
     state.audioId,
-    state.position ?? 0,
-    state.speed ?? 1.0,
+    positionVal,
+    speedVal,
+    completedVal,
+    now,
+    positionVal,
+    speedVal,
+    completedVal,
+  );
+}
+
+/**
+ * Seeds the local playback table with server-authoritative state using
+ * INSERT OR IGNORE semantics: only inserts a row when no local entry exists
+ * yet for the given audioId.  This is used by syncLibrary() to populate the
+ * playback table after a fresh install or database wipe, without overwriting
+ * any more-recent local progress the user has already made.
+ */
+export async function seedLocalPlayback(state: {
+  audioId: string;
+  position: number;
+  completed: boolean;
+}) {
+  const db = await getDb();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT OR IGNORE INTO playback (audio_id, position, speed, completed, updated_at)
+     VALUES (?, ?, 1.0, ?, ?)`,
+    state.audioId,
+    state.position,
     state.completed ? 1 : 0,
     now,
   );

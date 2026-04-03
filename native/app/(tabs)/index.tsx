@@ -22,7 +22,6 @@ import {
   getUnlistenedItems,
   libraryItemToPlayable,
   getLibraryContext,
-  getTopSourceDomain,
 } from "../../lib/libraryHelpers";
 
 import type { AudioVersion, LibraryItem, PlayableItem } from "../../lib/types";
@@ -35,7 +34,6 @@ import SkeletonList from "../../components/SkeletonList";
 import UploadModal from "../../components/UploadModal";
 import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
-import StaleLibraryNudge from "../../components/empty-states/StaleLibraryNudge";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,8 +48,6 @@ function HomeScreen() {
   const [refreshing,         setRefreshing]          = useState(false);
   const [uploadModalVisible, setUploadModalVisible]  = useState(false);
   const [isLoading,          setIsLoading]           = useState(true);
-  const [staleDismissed,     setStaleDismissed]      = useState(false);
-
   const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
 
@@ -128,15 +124,6 @@ function HomeScreen() {
         return acc + secsCompleted;
       }, 0) / 3600,
   };
-
-  const topSourceDomain = getTopSourceDomain(episodes);
-
-  const newestMs = episodes.length > 0
-    ? episodes.reduce((max, item) => Math.max(max, new Date(item.createdAt).getTime()), 0)
-    : 0;
-  const daysSinceNewest = newestMs > 0
-    ? Math.floor((Date.now() - newestMs) / (24 * 60 * 60 * 1000))
-    : 0;
 
   // —— Event handlers ──────────────────────────────────────────────────────
 
@@ -222,16 +209,6 @@ function HomeScreen() {
 
         {!isLoading && (
           <>
-            {/* Stale nudge — appears above content when library is stale */}
-            {context === "stale" && !staleDismissed && (
-              <StaleLibraryNudge
-                daysSinceNewest={daysSinceNewest}
-                topSourceDomain={topSourceDomain}
-                onDismiss={() => setStaleDismissed(true)}
-                onAddNew={() => setUploadModalVisible(true)}
-              />
-            )}
-
             {/* —— Dark header row: greeting + "+" button —— */}
             <View
               style={{

@@ -54,6 +54,24 @@ export async function syncLibrary(): Promise<LibraryItem[]> {
 
   await db.upsertEpisodes(enriched);
 
+  // Seed the local playback table with the completed/position values returned
+  // by the server.  Uses INSERT OR IGNORE so we never overwrite more-recent
+  // local progress — rows are only inserted when none exist yet (e.g. fresh
+  // install or cleared database).  This ensures getLocalPlayback() and
+  // playQueue() see the correct completed state even before syncPlayback() has
+  // had a chance to push local states up.
+  for (const item of enriched) {
+    for (const version of item.versions) {
+      if (version.audioId) {
+        await db.seedLocalPlayback({
+          audioId:   version.audioId,
+          position:  version.position,
+          completed: version.completed,
+        });
+      }
+    }
+  }
+
   for (const item of enriched) {
     for (const version of item.versions) {
       if (version.status === "ready" && version.audioId && version.audioUrl) {
