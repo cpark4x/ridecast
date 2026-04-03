@@ -22,7 +22,7 @@ import { usePlayer } from "../../lib/usePlayer";
 import { showGeneratingToast } from "../../lib/toast";
 import SourceThumbnail from "../../components/SourceThumbnail";
 import EmptyState from "../../components/EmptyState";
-import { SkeletonList } from "../../components/SkeletonLoader";
+import SkeletonList from "../../components/SkeletonList";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 // ---------------------------------------------------------------------------

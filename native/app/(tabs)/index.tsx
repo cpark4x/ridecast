@@ -31,7 +31,7 @@ import { colors, borderRadius, spacing } from "../../lib/theme";
 
 import GreetingHeader from "../../components/GreetingHeader";
 import EpisodeCard from "../../components/EpisodeCard";
-import { SkeletonList } from "../../components/SkeletonLoader";
+import SkeletonList from "../../components/SkeletonList";
 import UploadModal from "../../components/UploadModal";
 import NewUserEmptyState from "../../components/empty-states/NewUserEmptyState";
 import AllCaughtUpEmptyState from "../../components/empty-states/AllCaughtUpEmptyState";
