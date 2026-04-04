@@ -67,7 +67,7 @@ describe('POST /api/process', () => {
     id: 'content-1',
     rawText: 'Some content that is long enough to pass the minimum character guard check here.',
     wordCount: 5000,
-    scripts: [] as unknown[],
+    scripts: [],
   };
 
   const BASE_AI_ANALYSIS = {
@@ -84,9 +84,8 @@ describe('POST /api/process', () => {
     format: 'narrator',
   };
 
-  function mockStandardAiRun(overrides?: { content?: Partial<typeof BASE_CONTENT> }) {
-    const content = { ...BASE_CONTENT, ...overrides?.content };
-    mockFindUnique.mockResolvedValue(content);
+  function mockStandardAiRun() {
+    mockFindUnique.mockResolvedValue(BASE_CONTENT);
     mockContentUpdate.mockResolvedValue({});
     mockAnalyze.mockResolvedValue(BASE_AI_ANALYSIS);
     mockGenerateScript.mockResolvedValue(BASE_SCRIPT_RESULT);
@@ -508,7 +507,7 @@ describe('POST /api/process', () => {
     expect(mockScriptCreate).not.toHaveBeenCalled();
   });
 
-  it('returns existing script idempotently when pipelineStatus is scripting (concurrent request deduplication)', async () => {
+  it('returns existing script idempotently even if pipelineStatus is scripting', async () => {
     const existingScript = {
       id: 'script-in-progress',
       targetDuration: 10,
