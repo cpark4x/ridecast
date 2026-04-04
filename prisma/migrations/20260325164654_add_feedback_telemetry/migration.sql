@@ -17,8 +17,8 @@ CREATE TABLE "Feedback" (
     CONSTRAINT "Feedback_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "TelemetryEvent" (
+-- CreateTable (IF NOT EXISTS: table is created idempotently in 20260325130926 migration)
+CREATE TABLE IF NOT EXISTS "TelemetryEvent" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "eventType" TEXT NOT NULL,
