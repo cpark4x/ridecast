@@ -442,6 +442,7 @@ describe('POST /api/process', () => {
     const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
     await POST(request);
 
+    expect(mockContentUpdate).toHaveBeenCalled();
     expect(mockContentUpdate.mock.calls[0][0]).toMatchObject({
       data: { pipelineStatus: 'scripting', pipelineError: null },
     });
@@ -506,7 +507,6 @@ describe('POST /api/process', () => {
         }),
       })
     );
-    void data;
   });
 
   it('returns existing script idempotently when called again for same duration (AI mode)', async () => {

@@ -41,15 +41,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Reject duplicate duration — no point generating the same length twice
+    // Idempotent: return existing script for this duration instead of re-generating
     const existingDuration = content.scripts.find(
       (s) => s.targetDuration === targetMinutes,
     );
     if (existingDuration) {
-      return NextResponse.json(
-        { error: `You already have a ${targetMinutes}-minute version of this episode.` },
-        { status: 409 },
-      );
+      return NextResponse.json(existingDuration);
     }
 
     // Pocket stubs: rawText is empty — fetch the URL now on demand
@@ -112,6 +109,11 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { pipelineStatus: 'scripting', pipelineError: null },
+    });
+
     const ai = new ClaudeProvider();
     const analysis = await ai.analyze(content.rawText);
 
@@ -153,6 +155,11 @@ export async function POST(request: Request) {
       },
     });
 
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { pipelineStatus: 'generating' },
+    });
+
     // Surface advisory when generated word count misses ±15% tolerance.
     // Never blocks playback — advisory only.
     const targetWords = targetMinutes * WORDS_PER_MINUTE;
@@ -182,6 +189,15 @@ export async function POST(request: Request) {
         message = "Couldn't reach the AI service — try again in a moment.";
         code = 'AI_UNAVAILABLE';
       }
+    }
+
+    if (contentId) {
+      await prisma.content.update({
+        where: { id: contentId },
+        data: { pipelineStatus: 'error', pipelineError: message },
+      }).catch(() => {
+        // Ignore errors when updating pipeline status — don't mask original error
+      });
     }
 
     return NextResponse.json(
