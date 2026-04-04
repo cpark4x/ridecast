@@ -1,7 +1,7 @@
 "use client";
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ProcessingScreen } from "./ProcessingScreen";
 
 // Mock fetch so the pipeline starts but never completes during these tests.
@@ -52,5 +52,232 @@ describe("ProcessingScreen — 4-stage UI", () => {
     renderProcessingScreen();
     // Old 3-stage ProcessingScreen had "Analyzing content..." — new 4-stage uses "Analyzing"
     expect(screen.queryByText(/Analyzing content/)).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fire-and-poll behavior tests (Task 10)
+// These verify the new pipeline pattern:
+//   1. Fire /api/process (don't await)
+//   2. Poll /api/library every 3 s to track pipelineStatus
+//   3. React to status changes (generating → fire audio, ready → onComplete, error → show message)
+// ---------------------------------------------------------------------------
+describe("ProcessingScreen — fire-and-poll behavior", () => {
+  // Build a mock Response-like object from JSON data
+  function okJson(data: unknown): Promise<Response> {
+    return Promise.resolve({
+      ok: true,
+      json: async () => data,
+    } as Response);
+  }
+
+  // Route fetch calls by URL substring; unmapped URLs return a pending promise
+  function mockFetch(
+    routes: Record<string, (init?: RequestInit) => Promise<Response>>,
+  ) {
+    return vi.spyOn(global, "fetch").mockImplementation(
+      (url: RequestInfo | URL, init?: RequestInit) => {
+        const u = url.toString();
+        for (const [pattern, handler] of Object.entries(routes)) {
+          if (u.includes(pattern)) return handler(init);
+        }
+        return new Promise(() => {}); // pending by default
+      },
+    );
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    // Outer afterEach also runs vi.restoreAllMocks()
+  });
+
+  // 1 — fires /api/process on mount
+  it("fires /api/process on mount with correct params", () => {
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockImplementation(() => new Promise(() => {}));
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
+    );
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/process",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ contentId: "c1", targetMinutes: 10 }),
+      }),
+    );
+  });
+
+  // 2 — starts polling /api/library after 3 s
+  it("starts polling /api/library after firing /api/process", async () => {
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockImplementation(() => new Promise(() => {}));
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/library",
+      expect.any(Object),
+    );
+  });
+
+  // 3 — advances to "Generating Audio" stage when poll returns generating
+  it("advances to generating stage when poll returns pipelineStatus=generating", async () => {
+    mockFetch({
+      "/api/library": () =>
+        okJson([
+          {
+            id: "c1",
+            pipelineStatus: "generating",
+            pipelineError: null,
+            versions: [
+              { scriptId: "s1", audioId: null, createdAt: "2026-01-01T00:00:00Z" },
+            ],
+          },
+        ]),
+    });
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    // When stage is actively 'generating', "Generating Audio" appears in BOTH the
+    // active-stage display header AND the step bar (2+ occurrences).
+    // While stage is 'analyzing'/'scripting', it only appears once (step bar only).
+    expect(screen.getAllByText("Generating Audio").length).toBeGreaterThanOrEqual(2);
+  });
+
+  // 4 — fires /api/audio/generate with correct scriptId when poll returns generating
+  it("fires /api/audio/generate when poll returns pipelineStatus=generating", async () => {
+    const fetchSpy = mockFetch({
+      "/api/library": () =>
+        okJson([
+          {
+            id: "c1",
+            pipelineStatus: "generating",
+            pipelineError: null,
+            versions: [
+              { scriptId: "s1", audioId: null, createdAt: "2026-01-01T00:00:00Z" },
+            ],
+          },
+        ]),
+      "/api/audio/generate": () => new Promise(() => {}),
+    });
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/audio/generate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ scriptId: "s1" }),
+      }),
+    );
+  });
+
+  // 5 — calls onComplete(audioId) when poll returns ready (after autoCompleteDelay)
+  it("calls onComplete when poll returns pipelineStatus=ready", async () => {
+    const onComplete = vi.fn();
+    mockFetch({
+      "/api/library": () =>
+        okJson([
+          {
+            id: "c1",
+            pipelineStatus: "ready",
+            pipelineError: null,
+            versions: [
+              {
+                scriptId: "s1",
+                audioId: "a1",
+                durationSecs: 120,
+                createdAt: "2026-01-01T00:00:00Z",
+              },
+            ],
+          },
+        ]),
+    });
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={onComplete} />,
+    );
+    // Advance past poll interval + autoCompleteDelay (1 500 ms in non-E2E mode)
+    await act(async () => {
+      vi.advanceTimersByTime(3000 + 1500);
+    });
+    expect(onComplete).toHaveBeenCalledWith("a1");
+  });
+
+  // 6 — shows pipelineError text when poll returns error status
+  it("shows pipelineError message when poll returns error status", async () => {
+    mockFetch({
+      "/api/library": () =>
+        okJson([
+          {
+            id: "c1",
+            pipelineStatus: "error",
+            pipelineError: "Claude service unavailable",
+            versions: [],
+          },
+        ]),
+    });
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(screen.getByText("Claude service unavailable")).toBeInTheDocument();
+  });
+
+  // 7 — Try Again button calls /api/content/[id]/reset then increments attempt
+  it("Try Again button calls /api/content/[id]/reset", async () => {
+    // Trigger error state via a failed /api/process so button renders
+    // (poll-based error path requires fire-and-poll which isn't implemented yet;
+    //  we use the existing error-catch path to get the button into the DOM)
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockImplementation((url: RequestInfo | URL) => {
+        const u = url.toString();
+        if (u.includes("/api/process")) {
+          return Promise.resolve({
+            ok: false,
+            json: async () => ({ error: "Claude service unavailable" }),
+          } as Response);
+        }
+        if (u.includes("/api/content/c1/reset")) {
+          return okJson({ ok: true });
+        }
+        return new Promise(() => {});
+      });
+
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
+    );
+
+    // Flush micro-tasks so the failed /api/process sets error state
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByText("Try Again"));
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/content/c1/reset",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 });
