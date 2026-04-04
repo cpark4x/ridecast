@@ -82,6 +82,21 @@ describe('POST /api/audio/generate', () => {
     process.env.OPENAI_API_KEY = 'test-key';
     mockWriteFile.mockResolvedValue(undefined);
     mockMkdir.mockResolvedValue(undefined);
+    // Re-establish safe defaults for shared hoisted mocks.
+    // vi.clearAllMocks() only clears call history — it does NOT reset implementations.
+    // Without explicit resets, a test that sets mockGenerateSpeech.mockRejectedValue(...)
+    // would leak that rejection into subsequent tests (causing order-dependent failures).
+    mockFindUnique.mockResolvedValue(null);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+    mockAudioCreate.mockResolvedValue({
+      id: 'audio-default',
+      scriptId: 'script-default',
+      filePath: 'audio/default.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    });
     // Restore default mock for createTTSProvider after vi.clearAllMocks()
     vi.mocked(createTTSProvider).mockReturnValue({ providerId: 'openai', generateSpeech: mockGenerateSpeech });
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
@@ -317,7 +332,7 @@ describe('POST /api/audio/generate', () => {
         where: { id: 'content-1' },
         data: expect.objectContaining({
           pipelineStatus: 'error',
-          pipelineError: expect.stringMatching(/.+/),
+          pipelineError: expect.stringMatching(/.+/), // non-empty string
         }),
       }),
     );
