@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Text,
@@ -6,6 +6,7 @@ import {
   View,
 } from "react-native";
 import { colors, borderRadius } from "../../lib/theme";
+import EmptyStateCTAButton from "./EmptyStateCTAButton";
 
 // ---------------------------------------------------------------------------
 // Waveform bar configuration
@@ -38,8 +39,8 @@ const BARS: Array<{ height: number; delay: number; opacity: number }> = [
 // AnimatedWaveform
 // ---------------------------------------------------------------------------
 
-function AnimatedWaveform() {
-  const anims = useRef(BARS.map(() => new Animated.Value(1))).current;
+const AnimatedWaveform = React.memo(function AnimatedWaveform() {
+  const [anims] = useState(() => BARS.map(() => new Animated.Value(1)));
 
   useEffect(() => {
     const loops = anims.map((anim, i) =>
@@ -91,7 +92,7 @@ function AnimatedWaveform() {
       ))}
     </View>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // 3-step flow data
@@ -221,23 +222,11 @@ export default function NewUserEmptyState({ onCreateEpisode }: NewUserEmptyState
       </View>
 
       {/* — Primary CTA — */}
-      <TouchableOpacity
+      <EmptyStateCTAButton
+        label="Create Your First Episode"
         onPress={onCreateEpisode}
-        activeOpacity={0.85}
-        style={{
-          width: "100%",
-          backgroundColor: colors.accentPrimary,
-          paddingVertical: 16,
-          borderRadius: borderRadius.card,
-          alignItems: "center",
-          marginBottom: 24,
-        }}
-        accessibilityLabel="Create Your First Episode"
-      >
-        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textPrimary }}>
-          Create Your First Episode
-        </Text>
-      </TouchableOpacity>
+        style={{ marginBottom: 24 }}
+      />
 
       {/* — Suggestion pills — */}
       <Text

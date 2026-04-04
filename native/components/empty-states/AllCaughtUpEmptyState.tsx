@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Text,
@@ -6,7 +6,8 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, borderRadius } from "../../lib/theme";
+import { colors } from "../../lib/theme";
+import EmptyStateCTAButton from "./EmptyStateCTAButton";
 
 // ---------------------------------------------------------------------------
 // Confetti particle animation
@@ -21,8 +22,8 @@ interface ConfettiParticleProps {
 }
 
 function ConfettiParticle({ color, offsetX, offsetY, delay, size = 6 }: ConfettiParticleProps) {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const opacity    = useRef(new Animated.Value(0)).current;
+  const [translateY] = useState(() => new Animated.Value(0));
+  const [opacity]    = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -95,11 +96,11 @@ const CONFETTI_DOTS = [
 // ---------------------------------------------------------------------------
 
 function CheckCircleScene() {
-  const scale   = useRef(new Animated.Value(0.4)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [scale]   = useState(() => new Animated.Value(0.4));
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    Animated.parallel([
+    const anim = Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
         friction: 5,
@@ -111,7 +112,9 @@ function CheckCircleScene() {
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+    anim.start();
+    return () => anim.stop();
   }, [scale, opacity]);
 
   return (
@@ -226,7 +229,7 @@ export default function AllCaughtUpEmptyState({
             marginBottom: 8,
           }}
         >
-          You're all caught up!
+          {"You're all caught up!"}
         </Text>
         <Text
           style={{
@@ -237,7 +240,7 @@ export default function AllCaughtUpEmptyState({
             maxWidth: 280,
           }}
         >
-          You've listened to everything in your queue.{"\n"}Nice work — here's what to add next.
+          {"You've listened to everything in your queue.\nNice work — here's what to add next."}
         </Text>
       </View>
 
@@ -346,22 +349,7 @@ export default function AllCaughtUpEmptyState({
       </View>
 
       {/* — Primary CTA — */}
-      <TouchableOpacity
-        onPress={onAddNew}
-        activeOpacity={0.85}
-        style={{
-          width: "100%",
-          backgroundColor: colors.accentPrimary,
-          paddingVertical: 16,
-          borderRadius: borderRadius.card,
-          alignItems: "center",
-        }}
-        accessibilityLabel="Add Something New"
-      >
-        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.textPrimary }}>
-          Add Something New
-        </Text>
-      </TouchableOpacity>
+      <EmptyStateCTAButton label="Add Something New" onPress={onAddNew} />
 
     </View>
   );

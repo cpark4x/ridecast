@@ -38,6 +38,9 @@ model Content {
 
   user    User     @relation(fields: [userId], references: [id])
   scripts Script[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, sourceUrl], map: "Content_userId_sourceUrl_idx")
 }
 
 model Script {
@@ -56,6 +59,8 @@ model Script {
 
   content Content @relation(fields: [contentId], references: [id])
   audio   Audio[]
+
+  @@index([contentId])
 }
 
 model Audio {
@@ -64,12 +69,14 @@ model Audio {
   filePath     String
   durationSecs Int
   voices       String[]
-  ttsProvider  String   // "openai" | "azure"
+  ttsProvider  String   // "openai" | "google" | "elevenlabs"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   script        Script          @relation(fields: [scriptId], references: [id])
   playbackState PlaybackState[]
+
+  @@index([scriptId, createdAt(sort: Desc)], map: "Audio_scriptId_createdAt_idx")
 }
 
 model PlaybackState {

@@ -33,17 +33,10 @@ vi.mock('@/lib/db', () => ({
 import { prisma } from '@/lib/db';
 import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
+import { createJsonRequest } from '../__tests__/test-utils';
 
 const mockCreate = prisma.telemetryEvent.create as ReturnType<typeof vi.fn>;
 const mockCreateMany = prisma.telemetryEvent.createMany as ReturnType<typeof vi.fn>;
-
-function createJsonRequest(body: Record<string, unknown>): Request {
-  return new Request('http://localhost/api/telemetry', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
 
 describe('POST /api/telemetry', () => {
   beforeEach(() => {
@@ -131,7 +124,7 @@ describe('POST /api/telemetry', () => {
     const request = createJsonRequest([
       { eventType: 'api_error', metadata: { status: 500 } },
       { eventType: 'playback_failure', metadata: { error: 'buffer underrun' } },
-    ] as unknown as Record<string, unknown>);
+    ]);
 
     const response = await POST(request);
     const data = await response.json();

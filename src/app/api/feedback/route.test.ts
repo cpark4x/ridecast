@@ -60,17 +60,10 @@ import { prisma } from '@/lib/db';
 import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { categorizeFeedback } from '@/lib/ai/feedback';
 import { POST } from './route';
+import { createJsonRequest } from '../__tests__/test-utils';
 
 const mockFeedbackCreate = prisma.feedback.create as ReturnType<typeof vi.fn>;
 const mockTelemetryFindMany = prisma.telemetryEvent.findMany as ReturnType<typeof vi.fn>;
-
-function createJsonRequest(body: Record<string, unknown>): Request {
-  return new Request('http://localhost/api/feedback', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
 
 function createVoiceRequest(opts?: { screenContext?: string; episodeId?: string | null }): Request {
   const audioFile = new File([new ArrayBuffer(16)], 'recording.webm', { type: 'audio/webm' });

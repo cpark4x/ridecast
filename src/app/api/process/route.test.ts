@@ -149,6 +149,15 @@ describe('POST /api/process', () => {
         compressionRatio: 1500 / 10000,
       }),
     });
+
+    // Verify pipelineStatus is set to 'scripting' before AI work begins (ordering fix:
+    // this update must happen AFTER the idempotency check, not before, so a retry that
+    // finds an existing script never overwrites pipelineStatus with 'scripting').
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'scripting' }),
+      }),
+    );
   });
 
   it('returns 404 for unknown content', async () => {
@@ -587,9 +596,10 @@ describe('POST /api/process', () => {
     // Pipeline must advance to 'generating' so the client proceeds to audio generation
     expect(mockContentUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ pipelineStatus: 'generating' }),
+        data: expect.objectContaining({ pipelineStatus: 'generating', pipelineError: null }),
       }),
     );
+    expect(mockContentUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('recovery — pipelineStatus scripting + no Script exists → runs Claude, creates new Script', async () => {

@@ -229,14 +229,13 @@ describe('POST /api/audio/generate', () => {
     mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
     mockAudioCreate.mockResolvedValue({ id: 'a1', filePath: 'audio/x.mp3', durationSecs: 60, voices: ['alloy'], ttsProvider: 'openai' });
 
-    const req = new Request('http://localhost/api/audio/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-elevenlabs-key': 'sk_from_header',
+    const req = createJsonRequest(
+      { scriptId: 's1' },
+      {
+        url: 'http://localhost/api/audio/generate',
+        headers: { 'x-elevenlabs-key': 'sk_from_header' },
       },
-      body: JSON.stringify({ scriptId: 's1' }),
-    });
+    );
 
     await POST(req);
     expect(vi.mocked(createTTSProvider)).toHaveBeenCalledWith('sk_from_header');
@@ -268,14 +267,13 @@ describe('POST /api/audio/generate', () => {
       ttsProvider: 'openai',
     });
 
-    const req = new Request('http://localhost/api/audio/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-elevenlabs-key': 'sk_from_header',
+    const req = createJsonRequest(
+      { scriptId: 's1' },
+      {
+        url: 'http://localhost/api/audio/generate',
+        headers: { 'x-elevenlabs-key': 'sk_from_header' },
       },
-      body: JSON.stringify({ scriptId: 's1' }),
-    });
+    );
 
     const response = await POST(req);
 
