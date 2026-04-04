@@ -43,9 +43,11 @@ export async function POST(request: Request) {
 
     await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'scripting', pipelineError: null } });
 
-    // Idempotent: return existing script for this duration instead of re-generating
+    // Idempotent: return existing script for this duration instead of re-generating.
+    // Also advance pipelineStatus to 'generating' so a retry resumes at the audio step.
     const existingScript = content.scripts.find(s => s.targetDuration === targetMinutes);
     if (existingScript) {
+      await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating' } });
       return NextResponse.json({ ...existingScript, durationAdvisory: null });
     }
 
