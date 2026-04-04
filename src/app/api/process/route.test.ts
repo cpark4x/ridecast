@@ -37,18 +37,11 @@ vi.mock('@/lib/ai/claude', () => ({
 import { prisma } from '@/lib/db';
 import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
+import { createJsonRequest } from '../__tests__/test-utils';
 
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
 const mockScriptCreate = prisma.script.create as ReturnType<typeof vi.fn>;
 const mockContentUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
-
-function createJsonRequest(body: Record<string, unknown>): Request {
-  return new Request('http://localhost/api/process', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
 
 describe('POST /api/process', () => {
   const originalApiKey = process.env.ANTHROPIC_API_KEY;
@@ -554,5 +547,73 @@ describe('POST /api/process', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('AI provider not configured');
+  });
+
+  it('recovery — pipelineStatus scripting + Script exists → returns Script, sets pipelineStatus to generating', async () => {
+    // Simulates a dropped-connection recovery: the connection dropped while the script was
+    // being generated, so pipelineStatus is stuck at 'scripting'. On retry the client
+    // finds the completed script and the route must advance the status to 'generating'
+    // so the client knows to proceed to audio generation.
+    const existingScript = {
+      id: 'script-recovering',
+      targetDuration: 10,
+      format: 'narrator',
+      scriptText: 'word '.repeat(1200),
+      actualWordCount: 1200,
+      compressionRatio: 0.12,
+      contentType: 'essay',
+      themes: ['tech'],
+      summary: 'A tech summary.',
+      durationAdvisory: null,
+    };
+    const contentRecord = {
+      ...BASE_CONTENT,
+      wordCount: 10000,
+      pipelineStatus: 'scripting',
+      scripts: [existingScript],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockContentUpdate.mockResolvedValue({});
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 10 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('script-recovering');
+    // Claude must NOT be called — we already have a script
+    expect(mockAnalyze).not.toHaveBeenCalled();
+    // Pipeline must advance to 'generating' so the client proceeds to audio generation
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'generating' }),
+      }),
+    );
+  });
+
+  it('recovery — pipelineStatus scripting + no Script exists → runs Claude, creates new Script', async () => {
+    // Simulates the case where the connection dropped before scripting completed.
+    // No script was persisted, so the route must run Claude and create a new one.
+    const contentRecord = {
+      ...BASE_CONTENT,
+      wordCount: 10000,
+      pipelineStatus: 'scripting',
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockContentUpdate.mockResolvedValue({});
+    mockAnalyze.mockResolvedValue(BASE_AI_ANALYSIS);
+    mockGenerateScript.mockResolvedValue(BASE_SCRIPT_RESULT);
+    mockScriptCreate.mockResolvedValue({ id: 'script-new' });
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    // Script didn't exist — Claude must be invoked to generate a new one
+    expect(mockAnalyze).toHaveBeenCalled();
+    expect(mockScriptCreate).toHaveBeenCalled();
   });
 });

@@ -67,19 +67,12 @@ import { prisma } from '@/lib/db';
 import { createTTSProvider, TTS_PROVIDER_NOT_CONFIGURED_MESSAGE } from '@/lib/tts/provider';
 import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
+import { createJsonRequest } from '../../__tests__/test-utils';
 
 const mockFindUnique = prisma.script.findUnique as ReturnType<typeof vi.fn>;
 const mockAudioCreate = prisma.audio.create as ReturnType<typeof vi.fn>;
 const mockAudioFindFirst = prisma.audio.findFirst as ReturnType<typeof vi.fn>;
 const mockContentUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
-
-function createJsonRequest(body: Record<string, unknown>): Request {
-  return new Request('http://localhost/api/audio/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
 
 describe('POST /api/audio/generate', () => {
   const originalApiKey = process.env.OPENAI_API_KEY;
@@ -127,6 +120,15 @@ describe('POST /api/audio/generate', () => {
     process.env.GOOGLE_APPLICATION_CREDENTIALS = originalGoogleCredentials;
     process.env.GOOGLE_CLOUD_PROJECT = originalGoogleProject;
   });
+
+  const BASE_SCRIPT_RECORD = {
+    id: 'script-1',
+    contentId: 'content-1',
+    format: 'narrator',
+    scriptText: 'Hello world.',
+    targetDuration: 5,
+    actualWordCount: 2,
+  };
 
   it('generates narrator audio and saves to filesystem', async () => {
     const scriptRecord = {
@@ -318,14 +320,7 @@ describe('POST /api/audio/generate', () => {
   });
 
   it('returns existing audio idempotently when audio already exists for scriptId', async () => {
-    const scriptRecord = {
-      id: 'script-1',
-      contentId: 'content-1',
-      format: 'narrator',
-      scriptText: 'Hello world.',
-      targetDuration: 5,
-      actualWordCount: 2,
-    };
+    const scriptRecord = BASE_SCRIPT_RECORD;
     const existingAudio = {
       id: 'audio-existing',
       scriptId: 'script-1',
@@ -354,16 +349,8 @@ describe('POST /api/audio/generate', () => {
 
   it('sets Content.pipelineStatus to ready after successful audio creation', async () => {
     const scriptRecord = {
-      id: 'script-1',
-      contentId: 'content-1',
-      format: 'narrator',
-      scriptText: 'Hello world.',
-      targetDuration: 5,
-      actualWordCount: 2,
-      content: {
-        pipelineStatus: 'generating',
-        pipelineError: 'previous failure',
-      },
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: 'previous failure' },
     };
     const audioRecord = {
       id: 'audio-1',
@@ -391,16 +378,8 @@ describe('POST /api/audio/generate', () => {
 
   it('sets Content.pipelineStatus to error when TTS fails', async () => {
     const scriptRecord = {
-      id: 'script-1',
-      contentId: 'content-1',
-      format: 'narrator',
-      scriptText: 'Hello world.',
-      targetDuration: 5,
-      actualWordCount: 2,
-      content: {
-        pipelineStatus: 'generating',
-        pipelineError: null,
-      },
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: null },
     };
 
     mockFindUnique.mockResolvedValue(scriptRecord);
@@ -423,16 +402,8 @@ describe('POST /api/audio/generate', () => {
 
   it('heals Content.pipelineStatus when returning existing audio for stale content', async () => {
     const scriptRecord = {
-      id: 'script-1',
-      contentId: 'content-1',
-      format: 'narrator',
-      scriptText: 'Hello world.',
-      targetDuration: 5,
-      actualWordCount: 2,
-      content: {
-        pipelineStatus: 'generating',
-        pipelineError: 'previous failure',
-      },
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: 'previous failure' },
     };
     const existingAudio = {
       id: 'audio-existing',
@@ -458,16 +429,8 @@ describe('POST /api/audio/generate', () => {
 
   it('sets Content.pipelineStatus to error when the TTS provider is not configured', async () => {
     const scriptRecord = {
-      id: 'script-1',
-      contentId: 'content-1',
-      format: 'narrator',
-      scriptText: 'Hello world.',
-      targetDuration: 5,
-      actualWordCount: 2,
-      content: {
-        pipelineStatus: 'generating',
-        pipelineError: null,
-      },
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: null },
     };
 
     process.env.OPENAI_API_KEY = '';
@@ -485,5 +448,48 @@ describe('POST /api/audio/generate', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe(TTS_PROVIDER_NOT_CONFIGURED_MESSAGE);
+  });
+
+  it('recovery — Audio already exists for scriptId → returns existing Audio, sets pipelineStatus to ready', async () => {
+    // Simulates a dropped-connection recovery: audio was already generated and persisted
+    // but pipelineStatus is stuck at 'generating'. On retry, we return the existing audio
+    // and heal the pipeline status to 'ready'.
+    const scriptRecord = {
+      id: 'script-recovery',
+      contentId: 'content-recovery',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+      content: {
+        pipelineStatus: 'generating',
+        pipelineError: null,
+      },
+    };
+    const existingAudio = {
+      id: 'audio-recovery',
+      scriptId: 'script-recovery',
+      filePath: 'audio/recovery.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockAudioFindFirst.mockResolvedValue(existingAudio);
+
+    const request = createJsonRequest({ scriptId: 'script-recovery' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('audio-recovery');
+    // TTS must NOT be called — audio already exists
+    expect(mockGenerateSpeech).not.toHaveBeenCalled();
+    // Pipeline must be healed to 'ready'
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-recovery' },
+      data: { pipelineStatus: 'ready', pipelineError: null },
+    });
   });
 });
