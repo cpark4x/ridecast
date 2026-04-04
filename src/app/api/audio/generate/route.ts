@@ -3,7 +3,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { parseBuffer } from 'music-metadata';
 import { prisma } from '@/lib/db';
-import { createTTSProvider } from '@/lib/tts/provider';
+import { createTTSProvider, TTS_PROVIDER_NOT_CONFIGURED_MESSAGE } from '@/lib/tts/provider';
 import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
@@ -13,6 +13,13 @@ import { requireSubscription } from '@/lib/subscription';
 
 // 3 minutes — conversation TTS stitches many segments
 export const maxDuration = 180;
+
+async function markContentReady(contentId: string) {
+  await prisma.content.update({
+    where: { id: contentId },
+    data: { pipelineStatus: 'ready', pipelineError: null },
+  });
+}
 
 export async function POST(request: Request) {
   let script: Awaited<ReturnType<typeof prisma.script.findUnique>> | null = null;
@@ -44,22 +51,12 @@ export async function POST(request: Request) {
 
     const existingAudio = await prisma.audio.findFirst({
       where: { scriptId },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (existingAudio) {
-      await prisma.content.update({
-        where: { id: script.contentId },
-        data: { pipelineStatus: 'ready' },
-      });
+      await markContentReady(script.contentId);
       return NextResponse.json(existingAudio);
-    }
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'TTS provider not configured', code: 'TTS_FAILED' },
-        { status: 500 },
-      );
     }
 
     const userElevenLabsKey = request.headers.get('x-elevenlabs-key') ?? undefined;
@@ -113,15 +110,17 @@ export async function POST(request: Request) {
       console.warn('[duration] music-metadata parse failed; falling back to word-count estimate');
     }
 
-    // Log duration accuracy for calibration
+    // Log duration accuracy for calibration (opt-in via DEBUG_DURATION_METRICS=1)
     const targetSecs = script.targetDuration * 60;
     const deltaSecs = durationSecs - targetSecs;
     const deltaPct = Math.round((deltaSecs / targetSecs) * 100);
-    console.log(
-      `[duration] Measured: ${durationSecs}s actual vs ${targetSecs}s target ` +
-      `(${deltaSecs > 0 ? '+' : ''}${deltaSecs}s / ${deltaPct > 0 ? '+' : ''}${deltaPct}%). ` +
-      `Source: music-metadata. Script: ${script.actualWordCount ?? '?'} words.`
-    );
+    if (process.env.DEBUG_DURATION_METRICS === '1') {
+      console.log(
+        `[duration] Measured: ${durationSecs}s actual vs ${targetSecs}s target ` +
+        `(${deltaSecs > 0 ? '+' : ''}${deltaSecs}s / ${deltaPct > 0 ? '+' : ''}${deltaPct}%). ` +
+        `Source: music-metadata. Script: ${script.actualWordCount ?? '?'} words.`
+      );
+    }
 
     // Create Audio record in DB
     const audio = await prisma.audio.create({
@@ -134,10 +133,7 @@ export async function POST(request: Request) {
       },
     });
 
-    await prisma.content.update({
-      where: { id: script.contentId },
-      data: { pipelineStatus: 'ready' },
-    });
+    await markContentReady(script.contentId);
 
     return NextResponse.json(audio);
   } catch (error) {
@@ -146,7 +142,9 @@ export async function POST(request: Request) {
     let message = 'Something went wrong generating audio.';
     let code: string = 'TTS_FAILED';
     if (error instanceof Error) {
-      if (error.message.includes('rate limit') || error.message.includes('429')) {
+      if (error.message === TTS_PROVIDER_NOT_CONFIGURED_MESSAGE) {
+        message = TTS_PROVIDER_NOT_CONFIGURED_MESSAGE;
+      } else if (error.message.includes('rate limit') || error.message.includes('429')) {
         message = 'Audio service is busy. Please wait a moment and try again.';
         code = 'RATE_LIMITED';
       } else if (error.message.includes('authentication') || error.message.includes('401')) {
