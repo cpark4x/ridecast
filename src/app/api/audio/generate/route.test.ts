@@ -317,7 +317,7 @@ describe('POST /api/audio/generate', () => {
         where: { id: 'content-1' },
         data: expect.objectContaining({
           pipelineStatus: 'error',
-          pipelineError: expect.any(String),
+          pipelineError: expect.stringMatching(/.+/),
         }),
       }),
     );
