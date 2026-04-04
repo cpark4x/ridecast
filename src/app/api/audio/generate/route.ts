@@ -15,6 +15,7 @@ import { requireSubscription } from '@/lib/subscription';
 export const maxDuration = 180;
 
 export async function POST(request: Request) {
+  let script: Awaited<ReturnType<typeof prisma.script.findUnique>> | null = null;
   try {
     const userId = await getCurrentUserId();
     const gate = await requireSubscription(userId);
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const script = await prisma.script.findUnique({
+    script = await prisma.script.findUnique({
       where: { id: scriptId },
     });
 
@@ -41,8 +42,39 @@ export async function POST(request: Request) {
       );
     }
 
+    const existingAudio = await prisma.audio.findFirst({
+      where: { scriptId },
+    });
+
+    if (existingAudio) {
+      // Skip update if content is already at ready with no error (idempotent — avoid unnecessary writes)
+      const scriptWithContent = script as typeof script & {
+        content?: { pipelineStatus?: string | null; pipelineError?: string | null } | null;
+      };
+      const alreadyReady =
+        scriptWithContent.content?.pipelineStatus === 'ready' &&
+        scriptWithContent.content?.pipelineError === null;
+
+      if (script.contentId && !alreadyReady) {
+        await prisma.content.update({
+          where: { id: script.contentId },
+          data: { pipelineStatus: 'ready', pipelineError: null },
+        });
+      }
+
+      return NextResponse.json(existingAudio);
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
+      if (script.contentId) {
+        await prisma.content
+          .update({
+            where: { id: script.contentId },
+            data: { pipelineStatus: 'error', pipelineError: 'TTS provider not configured' },
+          })
+          .catch(() => {});
+      }
       return NextResponse.json(
         { error: 'TTS provider not configured', code: 'TTS_FAILED' },
         { status: 500 },
@@ -121,6 +153,13 @@ export async function POST(request: Request) {
       },
     });
 
+    if (script.contentId) {
+      await prisma.content.update({
+        where: { id: script.contentId },
+        data: { pipelineStatus: 'ready', pipelineError: null },
+      });
+    }
+
     return NextResponse.json(audio);
   } catch (error) {
     console.error('Audio generation error:', error);
@@ -135,6 +174,17 @@ export async function POST(request: Request) {
         message = 'Audio service is not configured properly. Check your API keys.';
         code = 'TTS_FAILED';
       }
+    }
+
+    if (script?.contentId) {
+      await prisma.content
+        .update({
+          where: { id: script.contentId },
+          data: { pipelineStatus: 'error', pipelineError: message },
+        })
+        .catch(() => {
+          // Ignore errors when updating pipeline status — don't mask original error.
+        });
     }
 
     return NextResponse.json(
