@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Hoist mock functions so they're available when vi.mock factories run
-const { mockWriteFile, mockMkdir, mockGenerateSpeech, mockParseBuffer } = vi.hoisted(() => ({
-  mockWriteFile: vi.fn(),
-  mockMkdir: vi.fn(),
-  mockGenerateSpeech: vi.fn(),
-  mockParseBuffer: vi.fn(),
-}));
+const { mockWriteFile, mockMkdir, mockGenerateSpeech, mockParseBuffer, DEFAULT_TTS_PROVIDER } = vi.hoisted(() => {
+  const mockGenerateSpeech = vi.fn();
+  return {
+    mockWriteFile: vi.fn(),
+    mockMkdir: vi.fn(),
+    mockGenerateSpeech,
+    mockParseBuffer: vi.fn(),
+    DEFAULT_TTS_PROVIDER: { providerId: 'openai', generateSpeech: mockGenerateSpeech },
+  };
+});
 
 // Mock auth
 vi.mock('@/lib/auth', () => ({
@@ -42,8 +46,10 @@ vi.mock('@/lib/db', () => ({
 }));
 
 // Mock the TTS provider factory so we can inspect what key it's called with
+// NOTE: default return value is set in beforeEach via mockReturnValue(DEFAULT_TTS_PROVIDER)
+// to avoid a TDZ error from referencing the destructured const inside a hoisted factory.
 vi.mock('@/lib/tts/provider', () => ({
-  createTTSProvider: vi.fn().mockReturnValue({ generateSpeech: mockGenerateSpeech }),
+  createTTSProvider: vi.fn(),
 }));
 
 // Mock uuid
@@ -80,6 +86,9 @@ describe('POST /api/audio/generate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.OPENAI_API_KEY = 'test-key';
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     mockWriteFile.mockResolvedValue(undefined);
     mockMkdir.mockResolvedValue(undefined);
     // Re-establish safe defaults for shared hoisted mocks.
@@ -97,14 +106,15 @@ describe('POST /api/audio/generate', () => {
       voices: ['alloy'],
       ttsProvider: 'openai',
     });
-    // Restore default mock for createTTSProvider after vi.clearAllMocks()
-    vi.mocked(createTTSProvider).mockReturnValue({ providerId: 'openai', generateSpeech: mockGenerateSpeech });
+    // Re-establish the default provider in case a prior test overrides the mock implementation.
+    vi.mocked(createTTSProvider).mockReturnValue(DEFAULT_TTS_PROVIDER);
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
     mockAudioFindFirst.mockResolvedValue(null);
     mockContentUpdate.mockResolvedValue({});
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     process.env.OPENAI_API_KEY = originalApiKey;
   });
 
@@ -275,6 +285,10 @@ describe('POST /api/audio/generate', () => {
     expect(data.id).toBe('audio-existing');
     expect(mockGenerateSpeech).not.toHaveBeenCalled();
     expect(mockAudioCreate).not.toHaveBeenCalled();
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready' },
+    });
   });
 
   it('sets Content.pipelineStatus to ready after successful audio creation', async () => {
@@ -285,6 +299,10 @@ describe('POST /api/audio/generate', () => {
       scriptText: 'Hello world.',
       targetDuration: 5,
       actualWordCount: 2,
+      content: {
+        pipelineStatus: 'generating',
+        pipelineError: 'previous failure',
+      },
     };
     const audioRecord = {
       id: 'audio-1',
@@ -318,6 +336,10 @@ describe('POST /api/audio/generate', () => {
       scriptText: 'Hello world.',
       targetDuration: 5,
       actualWordCount: 2,
+      content: {
+        pipelineStatus: 'generating',
+        pipelineError: null,
+      },
     };
 
     mockFindUnique.mockResolvedValue(scriptRecord);
@@ -332,13 +354,13 @@ describe('POST /api/audio/generate', () => {
         where: { id: 'content-1' },
         data: expect.objectContaining({
           pipelineStatus: 'error',
-          pipelineError: expect.stringMatching(/.+/), // non-empty string
+          pipelineError: expect.stringContaining('busy'),
         }),
       }),
     );
   });
 
-  it('sets pipelineStatus ready when returning existing audio (idempotency path)', async () => {
+  it('sets Content.pipelineStatus to error when the TTS provider is not configured', async () => {
     const scriptRecord = {
       id: 'script-1',
       contentId: 'content-1',
@@ -346,25 +368,21 @@ describe('POST /api/audio/generate', () => {
       scriptText: 'Hello world.',
       targetDuration: 5,
       actualWordCount: 2,
-    };
-    const existingAudio = {
-      id: 'audio-existing',
-      scriptId: 'script-1',
-      filePath: 'audio/existing.mp3',
-      durationSecs: 60,
-      voices: ['alloy'],
-      ttsProvider: 'openai',
+      content: {
+        pipelineStatus: 'generating',
+        pipelineError: null,
+      },
     };
 
+    process.env.OPENAI_API_KEY = '';
     mockFindUnique.mockResolvedValue(scriptRecord);
-    mockAudioFindFirst.mockResolvedValue(existingAudio);
 
     const request = createJsonRequest({ scriptId: 'script-1' });
-    await POST(request);
+    const response = await POST(request);
+    const data = await response.json();
 
-    expect(mockContentUpdate).toHaveBeenCalledWith({
-      where: { id: 'content-1' },
-      data: { pipelineStatus: 'ready' },
-    });
+    expect(response.status).toBe(500);
+    expect(data.error).toBe('TTS provider not configured');
+    expect(mockContentUpdate).not.toHaveBeenCalled();
   });
 });
