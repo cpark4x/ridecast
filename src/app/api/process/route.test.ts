@@ -63,6 +63,36 @@ describe('POST /api/process', () => {
     process.env.ANTHROPIC_API_KEY = originalApiKey;
   });
 
+  const BASE_CONTENT = {
+    id: 'content-1',
+    rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+    wordCount: 5000,
+    scripts: [] as unknown[],
+  };
+
+  const BASE_AI_ANALYSIS = {
+    contentType: 'essay',
+    format: 'narrator',
+    themes: ['tech'],
+    summary: 'A tech essay.',
+    suggestedTitle: 'Tech Insights',
+  };
+
+  const BASE_SCRIPT_RESULT = {
+    text: 'word '.repeat(720),
+    wordCount: 720,
+    format: 'narrator',
+  };
+
+  function mockStandardAiRun(overrides?: { content?: Partial<typeof BASE_CONTENT> }) {
+    const content = { ...BASE_CONTENT, ...overrides?.content };
+    mockFindUnique.mockResolvedValue(content);
+    mockContentUpdate.mockResolvedValue({});
+    mockAnalyze.mockResolvedValue(BASE_AI_ANALYSIS);
+    mockGenerateScript.mockResolvedValue(BASE_SCRIPT_RESULT);
+    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+  }
+
   it('analyzes content and generates a script', async () => {
     const contentRecord = {
       id: 'content-1',
@@ -152,14 +182,7 @@ describe('POST /api/process', () => {
   it('includes durationAdvisory when generated word count is outside ±15% tolerance', async () => {
     // targetMinutes=5 → targetWords=750, ±15% → min=638
     // wordCount=600 is ~80% of target → advisory should say "shorter"
-    const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
-      wordCount: 5000,
-      scripts: [],
-    };
-
-    mockFindUnique.mockResolvedValue(contentRecord);
+    mockFindUnique.mockResolvedValue(BASE_CONTENT);
     mockAnalyze.mockResolvedValue({
       contentType: 'essay',
       format: 'narrator',
@@ -198,9 +221,7 @@ describe('POST /api/process', () => {
   });
 
   it('does not include durationAdvisory when word count is within ±15%', async () => {
-    const contentRecord = { id: 'content-1', rawText: 'Some content that is long enough to pass the minimum character guard check here.', wordCount: 5000, scripts: [] };
-
-    mockFindUnique.mockResolvedValue(contentRecord);
+    mockFindUnique.mockResolvedValue(BASE_CONTENT);
     mockAnalyze.mockResolvedValue({
       contentType: 'essay',
       format: 'narrator',
@@ -239,8 +260,7 @@ describe('POST /api/process', () => {
   });
 
   it('saves summary from AI analysis to the script record', async () => {
-    const contentRecord = { id: 'content-1', rawText: 'Some content that is long enough to pass the minimum character guard check here.', wordCount: 5000, scripts: [] };
-    mockFindUnique.mockResolvedValue(contentRecord);
+    mockFindUnique.mockResolvedValue(BASE_CONTENT);
     mockAnalyze.mockResolvedValue({
       contentType: 'essay',
       format: 'narrator',
@@ -266,8 +286,7 @@ describe('POST /api/process', () => {
   });
 
   it('saves null when analysis returns empty summary', async () => {
-    const contentRecord = { id: 'content-1', rawText: 'Some content that is long enough to pass the minimum character guard check here.', wordCount: 5000, scripts: [] };
-    mockFindUnique.mockResolvedValue(contentRecord);
+    mockFindUnique.mockResolvedValue(BASE_CONTENT);
     mockAnalyze.mockResolvedValue({
       contentType: 'essay',
       format: 'narrator',
@@ -394,8 +413,7 @@ describe('POST /api/process', () => {
       durationAdvisory: null,
     };
     const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      ...BASE_CONTENT,
       wordCount: 3,
       scripts: [existingScript],
     };
@@ -416,61 +434,20 @@ describe('POST /api/process', () => {
   });
 
   it('sets pipelineStatus to scripting at start of processing', async () => {
-    const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
-      wordCount: 5000,
-      scripts: [],
-    };
-
-    mockFindUnique.mockResolvedValue(contentRecord);
-    mockContentUpdate.mockResolvedValue({});
-    mockAnalyze.mockResolvedValue({
-      contentType: 'essay',
-      format: 'narrator',
-      themes: ['tech'],
-      summary: 'A tech essay.',
-      suggestedTitle: 'Tech Insights',
-    });
-    mockGenerateScript.mockResolvedValue({
-      text: 'word '.repeat(720),
-      wordCount: 720,
-      format: 'narrator',
-    });
-    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+    mockStandardAiRun();
 
     const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
     await POST(request);
 
-    expect(mockContentUpdate).toHaveBeenCalled();
-    expect(mockContentUpdate.mock.calls[0][0]).toMatchObject({
-      data: { pipelineStatus: 'scripting', pipelineError: null },
-    });
+    expect(mockContentUpdate).toHaveBeenNthCalledWith(1,
+      expect.objectContaining({
+        data: { pipelineStatus: 'scripting', pipelineError: null },
+      })
+    );
   });
 
   it('sets pipelineStatus to generating after successful script creation', async () => {
-    const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
-      wordCount: 5000,
-      scripts: [],
-    };
-
-    mockFindUnique.mockResolvedValue(contentRecord);
-    mockContentUpdate.mockResolvedValue({});
-    mockAnalyze.mockResolvedValue({
-      contentType: 'essay',
-      format: 'narrator',
-      themes: ['tech'],
-      summary: 'A tech essay.',
-      suggestedTitle: 'Tech Insights',
-    });
-    mockGenerateScript.mockResolvedValue({
-      text: 'word '.repeat(720),
-      wordCount: 720,
-      format: 'narrator',
-    });
-    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+    mockStandardAiRun();
 
     const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
     await POST(request);
@@ -483,20 +460,11 @@ describe('POST /api/process', () => {
   });
 
   it('sets pipelineStatus to error when Claude throws', async () => {
-    const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
-      wordCount: 5000,
-      scripts: [],
-    };
-
-    mockFindUnique.mockResolvedValue(contentRecord);
-    mockContentUpdate.mockResolvedValue({});
+    mockStandardAiRun();
     mockAnalyze.mockRejectedValue(new Error('rate limit exceeded 429'));
 
     const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
     const response = await POST(request);
-    const data = await response.json();
 
     expect(response.status).toBe(500);
     expect(mockContentUpdate).toHaveBeenCalledWith(
@@ -523,8 +491,7 @@ describe('POST /api/process', () => {
       durationAdvisory: null,
     };
     const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      ...BASE_CONTENT,
       wordCount: 10000,
       scripts: [existingScript],
     };
@@ -541,7 +508,7 @@ describe('POST /api/process', () => {
     expect(mockScriptCreate).not.toHaveBeenCalled();
   });
 
-  it('returns existing script when pipelineStatus is scripting (mid-flight recovery)', async () => {
+  it('returns existing script idempotently when pipelineStatus is scripting (concurrent request deduplication)', async () => {
     const existingScript = {
       id: 'script-in-progress',
       targetDuration: 10,
@@ -555,8 +522,7 @@ describe('POST /api/process', () => {
       durationAdvisory: null,
     };
     const contentRecord = {
-      id: 'content-1',
-      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      ...BASE_CONTENT,
       wordCount: 10000,
       pipelineStatus: 'scripting',
       scripts: [existingScript],
