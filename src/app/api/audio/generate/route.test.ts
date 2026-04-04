@@ -50,6 +50,7 @@ vi.mock('@/lib/db', () => ({
 // to avoid a TDZ error from referencing the destructured const inside a hoisted factory.
 vi.mock('@/lib/tts/provider', () => ({
   createTTSProvider: vi.fn(),
+  TTS_PROVIDER_NOT_CONFIGURED_MESSAGE: 'TTS provider not configured',
 }));
 
 // Mock uuid
@@ -63,7 +64,7 @@ vi.mock('music-metadata', () => ({
 }));
 
 import { prisma } from '@/lib/db';
-import { createTTSProvider } from '@/lib/tts/provider';
+import { createTTSProvider, TTS_PROVIDER_NOT_CONFIGURED_MESSAGE } from '@/lib/tts/provider';
 import { getCurrentUserId } from '@/lib/auth';
 import { POST } from './route';
 
@@ -159,6 +160,16 @@ describe('POST /api/audio/generate', () => {
     expect(mockWriteFile).toHaveBeenCalled();
   });
 
+  it('returns 400 when scriptId is missing', async () => {
+    const request = createJsonRequest({});
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain('scriptId');
+    expect(mockFindUnique).not.toHaveBeenCalled();
+  });
+
   it('returns 404 for unknown script', async () => {
     mockFindUnique.mockResolvedValue(null);
 
@@ -229,6 +240,47 @@ describe('POST /api/audio/generate', () => {
     expect(vi.mocked(createTTSProvider)).toHaveBeenCalledWith('sk_from_header');
   });
 
+  it('allows a request-scoped ElevenLabs key when OPENAI_API_KEY is not configured', async () => {
+    const scriptRecord = {
+      id: 's1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+    };
+
+    process.env.OPENAI_API_KEY = '';
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+    mockAudioCreate.mockResolvedValue({
+      id: 'a1',
+      scriptId: 's1',
+      filePath: 'audio/x.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    });
+
+    const req = new Request('http://localhost/api/audio/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-elevenlabs-key': 'sk_from_header',
+      },
+      body: JSON.stringify({ scriptId: 's1' }),
+    });
+
+    const response = await POST(req);
+
+    expect(response.status).toBe(200);
+    expect(vi.mocked(createTTSProvider)).toHaveBeenCalledWith('sk_from_header');
+  });
+
   it('falls back to word-count estimate when parseBuffer fails', async () => {
     const scriptRecord = {
       id: 'script-1',
@@ -292,6 +344,10 @@ describe('POST /api/audio/generate', () => {
 
     expect(response.status).toBe(200);
     expect(data.id).toBe('audio-existing');
+    expect(mockAudioFindFirst).toHaveBeenCalledWith({
+      where: { scriptId: 'script-1' },
+      orderBy: { createdAt: 'desc' },
+    });
     expect(mockGenerateSpeech).not.toHaveBeenCalled();
     expect(mockAudioCreate).not.toHaveBeenCalled();
   });
@@ -329,7 +385,7 @@ describe('POST /api/audio/generate', () => {
     expect(response.status).toBe(200);
     expect(mockContentUpdate).toHaveBeenCalledWith({
       where: { id: 'content-1' },
-      data: { pipelineStatus: 'ready' },
+      data: { pipelineStatus: 'ready', pipelineError: null },
     });
   });
 
@@ -396,7 +452,7 @@ describe('POST /api/audio/generate', () => {
     expect(response.status).toBe(200);
     expect(mockContentUpdate).toHaveBeenCalledWith({
       where: { id: 'content-1' },
-      data: { pipelineStatus: 'ready' },
+      data: { pipelineStatus: 'ready', pipelineError: null },
     });
   });
 
@@ -420,7 +476,7 @@ describe('POST /api/audio/generate', () => {
     delete process.env.GOOGLE_CLOUD_PROJECT;
     mockFindUnique.mockResolvedValue(scriptRecord);
     vi.mocked(createTTSProvider).mockImplementation(() => {
-      throw new Error('TTS provider not configured');
+      throw new Error(TTS_PROVIDER_NOT_CONFIGURED_MESSAGE);
     });
 
     const request = createJsonRequest({ scriptId: 'script-1' });
@@ -428,6 +484,6 @@ describe('POST /api/audio/generate', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('TTS provider not configured');
+    expect(data.error).toBe(TTS_PROVIDER_NOT_CONFIGURED_MESSAGE);
   });
 });

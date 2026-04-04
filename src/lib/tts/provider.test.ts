@@ -6,18 +6,31 @@ vi.mock("./google", () => ({ GoogleCloudTTSProvider: vi.fn() }));
 
 describe("createTTSProvider", () => {
   afterEach(() => {
+    delete process.env.OPENAI_API_KEY;
     delete process.env.ELEVENLABS_API_KEY;
     delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
     delete process.env.GOOGLE_CLOUD_PROJECT;
     vi.resetModules();
   });
 
-  it("returns OpenAITTSProvider when no keys are set", async () => {
+  it("returns OpenAITTSProvider when OPENAI_API_KEY is set", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
     delete process.env.ELEVENLABS_API_KEY;
     const { createTTSProvider } = await import("./provider");
     const { OpenAITTSProvider } = await import("./openai");
     const provider = createTTSProvider();
     expect(provider).toBeInstanceOf(OpenAITTSProvider);
+  });
+
+  it("throws when no TTS credentials are configured", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+
+    const { createTTSProvider, TTS_PROVIDER_NOT_CONFIGURED_MESSAGE } = await import("./provider");
+
+    expect(() => createTTSProvider()).toThrow(TTS_PROVIDER_NOT_CONFIGURED_MESSAGE);
   });
 
   it("returns ElevenLabsTTSProvider when ELEVENLABS_API_KEY is set", async () => {
@@ -26,6 +39,18 @@ describe("createTTSProvider", () => {
     const { createTTSProvider } = await import("./provider");
     const { ElevenLabsTTSProvider } = await import("./elevenlabs");
     const provider = createTTSProvider();
+    expect(provider).toBeInstanceOf(ElevenLabsTTSProvider);
+  });
+
+  it("returns ElevenLabsTTSProvider when a user key is provided", async () => {
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.OPENAI_API_KEY;
+    vi.resetModules();
+    const { createTTSProvider } = await import("./provider");
+    const { ElevenLabsTTSProvider } = await import("./elevenlabs");
+    const provider = createTTSProvider("user-key");
     expect(provider).toBeInstanceOf(ElevenLabsTTSProvider);
   });
 
