@@ -53,6 +53,8 @@ export async function GET() {
       sourceUrl: item.sourceUrl ?? null,
       createdAt: item.createdAt.toISOString(),
       wordCount: item.wordCount,
+      pipelineStatus: item.pipelineStatus,
+      pipelineError: item.pipelineError ?? null,
       versions: item.scripts
         .flatMap((script): AudioVersion[] => {
           if (script.audio.length === 0) {
