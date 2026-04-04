@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 
 export async function POST(
   _request: Request,
@@ -27,6 +27,9 @@ export async function POST(
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Failed to reset pipeline status:', error);
     return NextResponse.json(
       { error: 'Failed to reset pipeline status' },

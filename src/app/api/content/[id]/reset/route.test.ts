@@ -22,7 +22,7 @@ vi.mock('@/lib/db', () => ({
 // --- Imports ---
 
 import { prisma } from '@/lib/db';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, AuthenticationError } from '@/lib/auth';
 import { POST } from './route';
 
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
@@ -120,14 +120,14 @@ describe('POST /api/content/[id]/reset', () => {
     expect(data.error).toBe('Failed to reset pipeline status');
   });
 
-  it('returns 500 when getCurrentUserId rejects', async () => {
-    mockGetCurrentUserId.mockRejectedValue(new Error('Auth service unavailable'));
+  it('returns 401 when getCurrentUserId throws AuthenticationError', async () => {
+    mockGetCurrentUserId.mockRejectedValue(new AuthenticationError());
 
     const response = await POST(makeRequest('content-1'), makeParams('content-1'));
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe('Failed to reset pipeline status');
+    expect(response.status).toBe(401);
+    expect(data.error).toBe('Unauthorized');
     expect(mockFindUnique).not.toHaveBeenCalled();
   });
 });
