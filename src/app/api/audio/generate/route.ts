@@ -54,6 +54,14 @@ export async function POST(request: Request) {
       return NextResponse.json(existingAudio);
     }
 
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'TTS provider not configured', code: 'TTS_FAILED' },
+        { status: 500 },
+      );
+    }
+
     const userElevenLabsKey = request.headers.get('x-elevenlabs-key') ?? undefined;
     const provider = createTTSProvider(userElevenLabsKey);
 

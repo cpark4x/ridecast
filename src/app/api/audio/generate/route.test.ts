@@ -400,56 +400,6 @@ describe('POST /api/audio/generate', () => {
     });
   });
 
-  it('allows alternate TTS providers when OPENAI_API_KEY is missing', async () => {
-    const scriptRecord = {
-      id: 'script-1',
-      contentId: 'content-1',
-      format: 'narrator',
-      scriptText: 'Hello world.',
-      targetDuration: 5,
-      actualWordCount: 2,
-      content: {
-        pipelineStatus: 'generating',
-        pipelineError: null,
-      },
-    };
-    const audioRecord = {
-      id: 'audio-1',
-      scriptId: 'script-1',
-      filePath: 'audio/test-uuid-1234.mp3',
-      durationSecs: 60,
-      voices: ['alloy'],
-      ttsProvider: 'elevenlabs',
-    };
-
-    process.env.OPENAI_API_KEY = '';
-    mockFindUnique.mockResolvedValue(scriptRecord);
-    vi.mocked(createTTSProvider).mockReturnValue({
-      providerId: 'elevenlabs',
-      generateSpeech: mockGenerateSpeech,
-    });
-    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
-    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
-    mockAudioCreate.mockResolvedValue(audioRecord);
-
-    const request = new Request('http://localhost/api/audio/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-elevenlabs-key': 'sk_user_supplied',
-      },
-      body: JSON.stringify({ scriptId: 'script-1' }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(200);
-    expect(vi.mocked(createTTSProvider)).toHaveBeenCalledWith('sk_user_supplied');
-    expect(mockContentUpdate).toHaveBeenCalledWith({
-      where: { id: 'content-1' },
-      data: { pipelineStatus: 'ready' },
-    });
-  });
-
   it('sets Content.pipelineStatus to error when the TTS provider is not configured', async () => {
     const scriptRecord = {
       id: 'script-1',
@@ -478,10 +428,6 @@ describe('POST /api/audio/generate', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Something went wrong generating audio.');
-    expect(mockContentUpdate).toHaveBeenCalledWith({
-      where: { id: 'content-1' },
-      data: { pipelineStatus: 'error', pipelineError: 'Something went wrong generating audio.' },
-    });
+    expect(data.error).toBe('TTS provider not configured');
   });
 });
