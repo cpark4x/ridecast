@@ -41,12 +41,12 @@ export async function POST(request: Request) {
       );
     }
 
+    await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'scripting', pipelineError: null } });
+
     // Idempotent: return existing script for this duration instead of re-generating
-    const existingDuration = content.scripts.find(
-      (s) => s.targetDuration === targetMinutes,
-    );
-    if (existingDuration) {
-      return NextResponse.json(existingDuration);
+    const existingScript = content.scripts.find(s => s.targetDuration === targetMinutes);
+    if (existingScript) {
+      return NextResponse.json({ ...existingScript, durationAdvisory: null });
     }
 
     // Pocket stubs: rawText is empty — fetch the URL now on demand
@@ -99,6 +99,7 @@ export async function POST(request: Request) {
         },
       });
 
+      await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating' } });
       return NextResponse.json({ ...script, durationAdvisory: null });
     }
 
@@ -109,11 +110,6 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-    await prisma.content.update({
-      where: { id: contentId },
-      data: { pipelineStatus: 'scripting', pipelineError: null },
-    });
-
     const ai = new ClaudeProvider();
     const analysis = await ai.analyze(content.rawText);
 
