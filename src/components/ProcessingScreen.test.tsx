@@ -211,9 +211,16 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
     render(
       <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={onComplete} />,
     );
-    // Advance past poll interval + autoCompleteDelay (1 500 ms in non-E2E mode)
+    // Step 1: advance to the first poll tick (3 s) so the library fetch fires and
+    // setState('ready') + setAudioRecord() run as microtasks inside act()
     await act(async () => {
-      vi.advanceTimersByTime(3000 + 1500);
+      vi.advanceTimersByTime(3000);
+    });
+    // Step 2: advance past autoCompleteDelay (1 500 ms in non-E2E mode).
+    // The setTimeout registered by the ready useEffect was enqueued during step 1,
+    // so it needs a separate advance to fire.
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
     });
     expect(onComplete).toHaveBeenCalledWith("a1");
   });
@@ -242,35 +249,28 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
 
   // 7 — Try Again button calls /api/content/[id]/reset then increments attempt
   it("Try Again button calls /api/content/[id]/reset", async () => {
-    // Trigger error state via a failed /api/process so button renders
-    // (poll-based error path requires fire-and-poll which isn't implemented yet;
-    //  we use the existing error-catch path to get the button into the DOM)
-    const fetchSpy = vi
-      .spyOn(global, "fetch")
-      .mockImplementation((url: RequestInfo | URL) => {
-        const u = url.toString();
-        if (u.includes("/api/process")) {
-          return Promise.resolve({
-            ok: false,
-            json: async () => ({ error: "Claude service unavailable" }),
-          } as Response);
-        }
-        if (u.includes("/api/content/c1/reset")) {
-          return okJson({ ok: true });
-        }
-        return new Promise(() => {});
-      });
+    // The new fire-and-poll implementation surfaces errors exclusively via
+    // pipelineStatus='error' from /api/library — not from /api/process failures.
+    const fetchSpy = mockFetch({
+      "/api/library": () =>
+        okJson([
+          {
+            id: "c1",
+            pipelineStatus: "error",
+            pipelineError: "Claude service unavailable",
+            versions: [],
+          },
+        ]),
+      "/api/content/c1/reset": () => okJson({ ok: true }),
+    });
 
     render(
       <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />,
     );
 
-    // Flush micro-tasks so the failed /api/process sets error state
+    // Advance past the first poll tick so the error state renders
     await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      vi.advanceTimersByTime(3000);
     });
 
     fireEvent.click(screen.getByText("Try Again"));

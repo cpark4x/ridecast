@@ -53,91 +53,119 @@ export function ProcessingScreen({ contentId, targetMinutes, format, onComplete 
   const [stage, setStage] = useState<Stage>("analyzing");
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [errorStage, setErrorStage] = useState<"processing" | "audio" | null>(null);
   const [scriptRecord, setScriptRecord] = useState<ScriptRecord | null>(null);
   const [audioRecord, setAudioRecord] = useState<AudioRecord | null>(null);
   const [durationAdvisory, setDurationAdvisory] = useState<string | null>(null);
-  const [retryingAudio, setRetryingAudio] = useState(false);
   const elevenLabsKey = useElevenLabsKey();
 
   // Ref-guard prevents React Strict Mode from double-firing the pipeline.
   // Without this, two /api/process calls are made (creating duplicate scripts).
   const runningRef = useRef(false);
 
-  // Advance from analyzing → scripting after 3s (while /api/process is running)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setStage((prev) => (prev === "analyzing" ? "scripting" : prev));
-    }, 3000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt]);
-
   useEffect(() => {
     // Skip if already running (Strict Mode re-mount)
     if (runningRef.current) return;
     runningRef.current = true;
 
-    const abort = new AbortController();
-    setError(null);
-    setErrorStage(null);
-    setStage("analyzing");
+    let cleanup: (() => void) | undefined;
 
     async function run() {
-      try {
-        // Step 1: Analyze + generate script
-        const processRes = await fetch("/api/process", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contentId, targetMinutes, ...(format ? { format } : {}) }),
-          signal: abort.signal,
-        });
-        const processData = await processRes.json();
+      setError(null);
+      setStage("analyzing");
 
-        if (abort.signal.aborted) return;
-        if (!processRes.ok) {
-          setErrorStage("processing");
-          throw new Error(processData.error || "Script generation failed. Please try again.");
+      // Optimistic: immediately show scripting state (avoids race where first poll sees 'idle')
+      setTimeout(() => setStage((prev) => (prev === "analyzing" ? "scripting" : prev)), 300);
+
+      const abort = new AbortController();
+
+      // Fire /api/process without awaiting (server starts work, poll tracks progress)
+      fetch("/api/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentId, targetMinutes, ...(format ? { format } : {}) }),
+        signal: abort.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok || abort.signal.aborted) return;
+          const data = await res.json();
+          if (data.durationAdvisory) setDurationAdvisory(data.durationAdvisory);
+          if (data.id) setScriptRecord(data); // capture for format display + durationAdvisory
+        })
+        .catch(() => {}); // failure OK — poll detects status regardless
+
+      // Poll /api/library every 3s to track pipeline state
+      let audioStarted = false;
+      const pollInterval = setInterval(async () => {
+        if (abort.signal.aborted) {
+          clearInterval(pollInterval);
+          return;
         }
+        try {
+          const res = await fetch("/api/library", { signal: abort.signal });
+          if (!res.ok) return;
+          const library = await res.json();
+          const item = library.find((i: { id: string }) => i.id === contentId);
+          if (!item) return;
 
-        setScriptRecord(processData);
-        if (processData.durationAdvisory) setDurationAdvisory(processData.durationAdvisory);
+          const status: string = item.pipelineStatus;
 
-        // Advance to generating (before starting audio call)
-        setStage("generating");
-
-        // Step 2: Generate audio
-        const generateHeaders: HeadersInit = { "Content-Type": "application/json" };
-        if (elevenLabsKey) generateHeaders["x-elevenlabs-key"] = elevenLabsKey;
-        const audioRes = await fetch("/api/audio/generate", {
-          method: "POST",
-          headers: generateHeaders,
-          body: JSON.stringify({ scriptId: processData.id }),
-          signal: abort.signal,
-        });
-        const audioData = await audioRes.json();
-
-        if (abort.signal.aborted) return;
-        if (!audioRes.ok) {
-          setErrorStage("audio");
-          throw new Error(audioData.error || "Audio generation failed. Please try again.");
+          if (status === "scripting") {
+            setStage("scripting");
+          } else if (status === "generating" && !audioStarted) {
+            audioStarted = true;
+            setStage("generating");
+            // Pick latest scriptId from versions
+            const versions: Array<{ scriptId: string; audioId: string | null; createdAt: string }> =
+              item.versions ?? [];
+            const latestScript = versions
+              .filter((v) => v.scriptId)
+              .sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+              )[0];
+            if (latestScript?.scriptId) {
+              const headers: HeadersInit = { "Content-Type": "application/json" };
+              if (elevenLabsKey) headers["x-elevenlabs-key"] = elevenLabsKey;
+              fetch("/api/audio/generate", {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ scriptId: latestScript.scriptId }),
+                signal: abort.signal,
+              }).catch(() => {});
+            }
+          } else if (status === "ready") {
+            clearInterval(pollInterval);
+            const readyVersion = (item.versions ?? []).find(
+              (v: { audioId: string | null; durationSecs: number | null }) => v.audioId,
+            );
+            if (readyVersion?.audioId) {
+              setAudioRecord({ id: readyVersion.audioId, durationSecs: readyVersion.durationSecs ?? 0 });
+              setStage("ready");
+            }
+          } else if (status === "error") {
+            clearInterval(pollInterval);
+            setError(item.pipelineError ?? "Processing failed. Please try again.");
+          }
+        } catch {
+          // Poll network error — ignore, retry next interval
         }
+      }, 3000);
 
-        setAudioRecord(audioData);
-        setStage("ready");
-      } catch (err) {
-        // Ignore abort errors (normal cleanup)
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (!abort.signal.aborted) {
-          console.error("Processing failed:", err);
-          setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-        }
-      }
+      return () => {
+        clearInterval(pollInterval);
+        abort.abort();
+      };
     }
 
-    run();
-    return () => { abort.abort(); runningRef.current = false; };
-  }, [contentId, targetMinutes, onComplete, attempt]);
+    run().then((c) => {
+      cleanup = c;
+    });
+
+    return () => {
+      if (cleanup) cleanup();
+      runningRef.current = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentId, targetMinutes, format, attempt]);
 
   // Auto-navigate to library once audio is ready — tests and normal flow
   // both expect the transition to happen without requiring a button click.
@@ -156,34 +184,13 @@ export function ProcessingScreen({ contentId, targetMinutes, format, onComplete 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, audioRecord, onComplete]);
 
-  async function handleRetryAudio() {
-    if (!scriptRecord?.id || retryingAudio) return;
-    setRetryingAudio(true);
+  async function handleRetry() {
+    await fetch(`/api/content/${contentId}/reset`, { method: "POST" }).catch(() => {});
     setError(null);
-    setErrorStage(null);
-    setStage("generating");
-    try {
-      const retryHeaders: HeadersInit = { "Content-Type": "application/json" };
-      if (elevenLabsKey) retryHeaders["x-elevenlabs-key"] = elevenLabsKey;
-      const audioRes = await fetch("/api/audio/generate", {
-        method: "POST",
-        headers: retryHeaders,
-        body: JSON.stringify({ scriptId: scriptRecord.id }),
-      });
-      const audioData = await audioRes.json();
-      if (!audioRes.ok) {
-        setErrorStage("audio");
-        setError(audioData.error || "Audio generation failed. Please try again.");
-        return;
-      }
-      setAudioRecord(audioData);
-      setStage("ready");
-    } catch (err) {
-      setErrorStage("audio");
-      setError(err instanceof Error ? err.message : "Audio generation failed. Please try again.");
-    } finally {
-      setRetryingAudio(false);
-    }
+    setScriptRecord(null);
+    setAudioRecord(null);
+    setDurationAdvisory(null);
+    setAttempt((a) => a + 1); // re-triggers useEffect run()
   }
 
   function addToQueue(audioId: string) {
@@ -294,35 +301,13 @@ export function ProcessingScreen({ contentId, targetMinutes, format, onComplete 
       {/* Error State */}
       {error && (
         <div className="w-full max-w-[280px] mb-6 text-center">
-          <p className="text-red-600 text-sm mb-4">
-            Something went wrong during {errorStage === "audio" ? "audio generation" : "script generation"}.
-          </p>
           <p className="text-[var(--text-dim)] text-xs mb-4">{error}</p>
-          <div className="flex flex-col gap-2">
-            {errorStage === "audio" && scriptRecord?.id ? (
-              <button
-                onClick={handleRetryAudio}
-                disabled={retryingAudio}
-                className="px-5 py-2 rounded-full text-sm font-semibold bg-[#EA580C]/20 text-[#EA580C] hover:bg-[#EA580C]/30 transition-colors disabled:opacity-50"
-              >
-                {retryingAudio ? "Retrying..." : "Retry Audio Generation"}
-              </button>
-            ) : null}
-            <button
-              onClick={() => {
-                setError(null);
-                setErrorStage(null);
-                setStage("analyzing");
-                setDurationAdvisory(null);
-                setScriptRecord(null);
-                setAudioRecord(null);
-                setAttempt((a) => a + 1);
-              }}
-              className="px-5 py-2 rounded-full text-sm font-semibold bg-black/10 text-[var(--text-mid)] hover:bg-black/15 transition-colors"
-            >
-              {errorStage === "audio" ? "Start Over" : "Try Again"}
-            </button>
-          </div>
+          <button
+            onClick={handleRetry}
+            className="px-5 py-2 rounded-full text-sm font-semibold bg-[#EA580C]/20 text-[#EA580C] hover:bg-[#EA580C]/30 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       )}
     </div>
