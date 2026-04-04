@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ProcessingScreen } from "./ProcessingScreen";
@@ -273,11 +274,103 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
       vi.advanceTimersByTime(3000);
     });
 
-    fireEvent.click(screen.getByText("Try Again"));
+    await act(async () => {
+      fireEvent.click(screen.getByText("Try Again"));
+    });
 
     expect(fetchSpy).toHaveBeenCalledWith(
       "/api/content/c1/reset",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  // 8 — Fix 1 regression: selects the version matching the current run's scriptId
+  // (not the first version with an audioId, which may be an old run)
+  it("selects the audio version matching the current run's scriptId, not the first version with audioId", async () => {
+    const onComplete = vi.fn();
+    let pollCount = 0;
+    mockFetch({
+      "/api/library": () => {
+        pollCount++;
+        if (pollCount === 1) {
+          // First poll: generating — captures scriptId 's1' as current run
+          return okJson([
+            {
+              id: "c1",
+              pipelineStatus: "generating",
+              pipelineError: null,
+              versions: [
+                { scriptId: "s1", audioId: null, createdAt: "2026-01-01T00:00:00Z" },
+              ],
+            },
+          ]);
+        }
+        // Second poll: ready — two versions, OLD one listed first
+        return okJson([
+          {
+            id: "c1",
+            pipelineStatus: "ready",
+            pipelineError: null,
+            versions: [
+              {
+                scriptId: "old-script",
+                audioId: "old-audio",
+                durationSecs: 60,
+                createdAt: "2025-01-01T00:00:00Z",
+              },
+              {
+                scriptId: "s1",
+                audioId: "new-audio",
+                durationSecs: 120,
+                createdAt: "2026-01-01T00:00:00Z",
+              },
+            ],
+          },
+        ]);
+      },
+      "/api/audio/generate": () => new Promise(() => {}),
+    });
+    render(
+      <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={onComplete} />,
+    );
+    // First poll tick — captures scriptId, fires audio
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    // Second poll tick — ready with two versions
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    // Auto-complete delay
+    await act(async () => { vi.advanceTimersByTime(1500); });
+    // Must pick the version matching the current run's scriptId, not the older one
+    expect(onComplete).toHaveBeenCalledWith("new-audio");
+    expect(onComplete).not.toHaveBeenCalledWith("old-audio");
+  });
+
+  // 9 — Fix 2 regression: Strict Mode cleanup must be synchronous
+  // Before Fix 2, the leaked interval fires /api/audio/generate twice in Strict Mode.
+  // After Fix 2, synchronous cleanup ensures only one interval is active → called once.
+  it("fires /api/audio/generate exactly once in React.StrictMode (no leaked interval)", async () => {
+    const fetchSpy = mockFetch({
+      "/api/library": () =>
+        okJson([
+          {
+            id: "c1",
+            pipelineStatus: "generating",
+            pipelineError: null,
+            versions: [
+              { scriptId: "s1", audioId: null, createdAt: "2026-01-01T00:00:00Z" },
+            ],
+          },
+        ]),
+      "/api/audio/generate": () => new Promise(() => {}),
+    });
+    render(
+      <React.StrictMode>
+        <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={vi.fn()} />
+      </React.StrictMode>,
+    );
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    const audioGenerateCalls = fetchSpy.mock.calls.filter(
+      ([url]) => url.toString().includes("/api/audio/generate"),
+    );
+    expect(audioGenerateCalls).toHaveLength(1);
   });
 });

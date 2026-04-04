@@ -67,101 +67,109 @@ export function ProcessingScreen({ contentId, targetMinutes, format, onComplete 
     if (runningRef.current) return;
     runningRef.current = true;
 
-    let cleanup: (() => void) | undefined;
+    // Create abort controller and timers synchronously so cleanup is immediate —
+    // prevents leaked intervals when React Strict Mode fires cleanup before run() resolves.
+    const abort = new AbortController();
 
-    async function run() {
-      setError(null);
-      setStage("analyzing");
+    // Optimistic: immediately show scripting state (avoids race where first poll sees 'idle')
+    const optimisticTimer = setTimeout(
+      () => setStage((prev) => (prev === "analyzing" ? "scripting" : prev)),
+      300,
+    );
 
-      // Optimistic: immediately show scripting state (avoids race where first poll sees 'idle')
-      setTimeout(() => setStage((prev) => (prev === "analyzing" ? "scripting" : prev)), 300);
+    setError(null);
+    setStage("analyzing");
 
-      const abort = new AbortController();
-
-      // Fire /api/process without awaiting (server starts work, poll tracks progress)
-      fetch("/api/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, targetMinutes, ...(format ? { format } : {}) }),
-        signal: abort.signal,
+    // Fire /api/process without awaiting (server starts work, poll tracks progress)
+    fetch("/api/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentId, targetMinutes, ...(format ? { format } : {}) }),
+      signal: abort.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok || abort.signal.aborted) return;
+        const data = await res.json();
+        if (data.durationAdvisory) setDurationAdvisory(data.durationAdvisory);
+        if (data.id) setScriptRecord(data); // capture for format display + durationAdvisory
       })
-        .then(async (res) => {
-          if (!res.ok || abort.signal.aborted) return;
-          const data = await res.json();
-          if (data.durationAdvisory) setDurationAdvisory(data.durationAdvisory);
-          if (data.id) setScriptRecord(data); // capture for format display + durationAdvisory
-        })
-        .catch(() => {}); // failure OK — poll detects status regardless
+      .catch(() => {}); // failure OK — poll detects status regardless
 
-      // Poll /api/library every 3s to track pipeline state
-      let audioStarted = false;
-      const pollInterval = setInterval(async () => {
-        if (abort.signal.aborted) {
-          clearInterval(pollInterval);
-          return;
-        }
-        try {
-          const res = await fetch("/api/library", { signal: abort.signal });
-          if (!res.ok) return;
-          const library = await res.json();
-          const item = library.find((i: { id: string }) => i.id === contentId);
-          if (!item) return;
+    // Track the scriptId from the current run so the ready branch picks the correct
+    // audio version even if older versions exist on the content record.
+    let audioStarted = false;
+    const currentScriptId = { value: "" };
 
-          const status: string = item.pipelineStatus;
+    // Poll /api/library every 3s to track pipeline state
+    const pollInterval = setInterval(async () => {
+      if (abort.signal.aborted) return;
+      try {
+        const res = await fetch("/api/library", { signal: abort.signal });
+        if (!res.ok) return;
+        const library = await res.json();
+        const item = library.find((i: { id: string }) => i.id === contentId);
+        if (!item) return;
 
-          if (status === "scripting") {
-            setStage("scripting");
-          } else if (status === "generating" && !audioStarted) {
-            audioStarted = true;
-            setStage("generating");
-            // Pick latest scriptId from versions
-            const versions: Array<{ scriptId: string; audioId: string | null; createdAt: string }> =
-              item.versions ?? [];
-            const latestScript = versions
-              .filter((v) => v.scriptId)
-              .sort(
-                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-              )[0];
-            if (latestScript?.scriptId) {
-              const headers: HeadersInit = { "Content-Type": "application/json" };
-              if (elevenLabsKey) headers["x-elevenlabs-key"] = elevenLabsKey;
-              fetch("/api/audio/generate", {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ scriptId: latestScript.scriptId }),
-                signal: abort.signal,
-              }).catch(() => {});
-            }
-          } else if (status === "ready") {
-            clearInterval(pollInterval);
-            const readyVersion = (item.versions ?? []).find(
-              (v: { audioId: string | null; durationSecs: number | null }) => v.audioId,
-            );
-            if (readyVersion?.audioId) {
-              setAudioRecord({ id: readyVersion.audioId, durationSecs: readyVersion.durationSecs ?? 0 });
-              setStage("ready");
-            }
-          } else if (status === "error") {
-            clearInterval(pollInterval);
-            setError(item.pipelineError ?? "Processing failed. Please try again.");
+        const status: string = item.pipelineStatus;
+
+        if (status === "scripting") {
+          setStage("scripting");
+        } else if (status === "generating" && !audioStarted) {
+          audioStarted = true;
+          setStage("generating");
+          // Pick latest scriptId from versions
+          const versions: Array<{ scriptId: string; audioId: string | null; createdAt: string }> =
+            item.versions ?? [];
+          const latestScript = versions
+            .filter((v) => v.scriptId)
+            .sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            )[0];
+          if (latestScript?.scriptId) {
+            currentScriptId.value = latestScript.scriptId; // Track for ready branch
+            const headers: HeadersInit = { "Content-Type": "application/json" };
+            if (elevenLabsKey) headers["x-elevenlabs-key"] = elevenLabsKey;
+            fetch("/api/audio/generate", {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ scriptId: latestScript.scriptId }),
+              signal: abort.signal,
+            }).catch(() => {});
           }
-        } catch {
-          // Poll network error — ignore, retry next interval
+        } else if (status === "ready") {
+          clearInterval(pollInterval);
+          const versions: Array<{
+            scriptId: string;
+            audioId: string | null;
+            durationSecs: number | null;
+            createdAt: string;
+          }> = item.versions ?? [];
+          // Prefer the version matching the current run's script
+          const matchingVersion = versions.find(
+            (v) => v.scriptId === currentScriptId.value && v.audioId,
+          );
+          // Fallback: newest version with audioId (reconnect / recovery scenario)
+          const fallbackVersion = versions
+            .filter((v) => v.audioId)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          const readyVersion = matchingVersion ?? fallbackVersion;
+          if (readyVersion?.audioId) {
+            setAudioRecord({ id: readyVersion.audioId, durationSecs: readyVersion.durationSecs ?? 0 });
+            setStage("ready");
+          }
+        } else if (status === "error") {
+          clearInterval(pollInterval);
+          setError(item.pipelineError ?? "Processing failed. Please try again.");
         }
-      }, 3000);
-
-      return () => {
-        clearInterval(pollInterval);
-        abort.abort();
-      };
-    }
-
-    run().then((c) => {
-      cleanup = c;
-    });
+      } catch {
+        // Poll network error — ignore, retry next interval
+      }
+    }, 3000);
 
     return () => {
-      if (cleanup) cleanup();
+      clearTimeout(optimisticTimer);
+      clearInterval(pollInterval);
+      abort.abort();
       runningRef.current = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
