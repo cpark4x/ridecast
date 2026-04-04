@@ -507,7 +507,7 @@ describe('POST /api/process', () => {
     expect(mockScriptCreate).not.toHaveBeenCalled();
   });
 
-  it('returns existing script idempotently even if pipelineStatus is scripting', async () => {
+  it('returns existing script when matching targetDuration exists (regardless of pipelineStatus)', async () => {
     const existingScript = {
       id: 'script-in-progress',
       targetDuration: 10,
