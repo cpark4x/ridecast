@@ -33,6 +33,10 @@ vi.mock('@/lib/db', () => ({
     },
     audio: {
       create: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    content: {
+      update: vi.fn(),
     },
   },
 }));
@@ -59,6 +63,8 @@ import { POST } from './route';
 
 const mockFindUnique = prisma.script.findUnique as ReturnType<typeof vi.fn>;
 const mockAudioCreate = prisma.audio.create as ReturnType<typeof vi.fn>;
+const mockAudioFindFirst = prisma.audio.findFirst as ReturnType<typeof vi.fn>;
+const mockContentUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
 
 function createJsonRequest(body: Record<string, unknown>): Request {
   return new Request('http://localhost/api/audio/generate', {
@@ -79,6 +85,8 @@ describe('POST /api/audio/generate', () => {
     // Restore default mock for createTTSProvider after vi.clearAllMocks()
     vi.mocked(createTTSProvider).mockReturnValue({ providerId: 'openai', generateSpeech: mockGenerateSpeech });
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
+    mockAudioFindFirst.mockResolvedValue(null);
+    mockContentUpdate.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -221,5 +229,127 @@ describe('POST /api/audio/generate', () => {
     // Word-count estimate: 300 words / 150 WPM * 60 = 120 seconds
     const createCall = mockAudioCreate.mock.calls[0][0];
     expect(createCall.data.durationSecs).toBe(120);
+  });
+
+  it('returns existing audio idempotently when audio already exists for scriptId', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+    };
+    const existingAudio = {
+      id: 'audio-existing',
+      scriptId: 'script-1',
+      filePath: 'audio/existing.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockAudioFindFirst.mockResolvedValue(existingAudio);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('audio-existing');
+    expect(mockGenerateSpeech).not.toHaveBeenCalled();
+    expect(mockAudioCreate).not.toHaveBeenCalled();
+  });
+
+  it('sets Content.pipelineStatus to ready after successful audio creation', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+    };
+    const audioRecord = {
+      id: 'audio-1',
+      scriptId: 'script-1',
+      filePath: 'audio/test-uuid-1234.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+    mockAudioCreate.mockResolvedValue(audioRecord);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready' },
+    });
+  });
+
+  it('sets Content.pipelineStatus to error when TTS fails', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockRejectedValue(new Error('rate limit exceeded 429'));
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'content-1' },
+        data: expect.objectContaining({
+          pipelineStatus: 'error',
+          pipelineError: expect.any(String),
+        }),
+      }),
+    );
+  });
+
+  it('sets pipelineStatus ready when returning existing audio (idempotency path)', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+    };
+    const existingAudio = {
+      id: 'audio-existing',
+      scriptId: 'script-1',
+      filePath: 'audio/existing.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockAudioFindFirst.mockResolvedValue(existingAudio);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    await POST(request);
+
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready' },
+    });
   });
 });
