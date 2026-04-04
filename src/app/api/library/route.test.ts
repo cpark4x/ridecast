@@ -28,6 +28,8 @@ const twoScriptItem = [
     sourceUrl: "https://example.com/article",
     createdAt: new Date("2026-03-01"),
     wordCount: 3000,
+    pipelineStatus: "idle",
+    pipelineError: null,
     scripts: [
       {
         id: "s1",
@@ -110,6 +112,8 @@ describe("GET /api/library", () => {
         sourceUrl: null,
         createdAt: new Date(),
         wordCount: 1000,
+        pipelineStatus: "idle",
+        pipelineError: null,
         scripts: [
           {
             id: "s3",
@@ -138,6 +142,8 @@ describe("GET /api/library", () => {
         sourceUrl: null,
         createdAt: new Date(),
         wordCount: 500,
+        pipelineStatus: "idle",
+        pipelineError: null,
         scripts: [],
       },
     ]);
@@ -182,6 +188,8 @@ describe("GET /api/library", () => {
         sourceUrl: null,
         createdAt: new Date(),
         wordCount: 800,
+        pipelineStatus: "idle",
+        pipelineError: null,
         scripts: [],
       },
     ]);
@@ -241,5 +249,87 @@ describe("GET /api/library", () => {
     expect(data[0].versions[0].voices).toEqual(["alloy"]);
     expect(data[0].versions[0].ttsProvider).toBe("openai");
     expect(data[0].versions[1].voices).toEqual(["alloy", "echo"]);
+  });
+
+  it("includes pipelineStatus in each library item", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      {
+        id: "c5",
+        title: "In Progress Article",
+        author: null,
+        sourceType: "url",
+        sourceUrl: null,
+        createdAt: new Date(),
+        wordCount: 2000,
+        pipelineStatus: "scripting",
+        pipelineError: null,
+        scripts: [],
+      },
+    ]);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].pipelineStatus).toBe("scripting");
+  });
+
+  it("includes pipelineError in each library item (null when no error)", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      {
+        id: "c6",
+        title: "Clean Article",
+        author: null,
+        sourceType: "url",
+        sourceUrl: null,
+        createdAt: new Date(),
+        wordCount: 1500,
+        pipelineStatus: "idle",
+        pipelineError: null,
+        scripts: [],
+      },
+    ]);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].pipelineError).toBeNull();
+  });
+
+  it("includes pipelineError message when set", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      {
+        id: "c7",
+        title: "Failed Article",
+        author: null,
+        sourceType: "url",
+        sourceUrl: null,
+        createdAt: new Date(),
+        wordCount: 1000,
+        pipelineStatus: "error",
+        pipelineError: "Claude failed",
+        scripts: [],
+      },
+    ]);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].pipelineStatus).toBe("error");
+    expect(data[0].pipelineError).toBe("Claude failed");
+  });
+
+  it("includes pipelineStatus for items with no scripts yet", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      {
+        id: "c8",
+        title: "Just Uploaded",
+        author: null,
+        sourceType: "txt",
+        sourceUrl: null,
+        createdAt: new Date(),
+        wordCount: 800,
+        pipelineStatus: "idle",
+        pipelineError: null,
+        scripts: [],
+      },
+    ]);
+    const res = await GET();
+    const data = await res.json();
+    expect(data[0].versions).toHaveLength(0);
+    expect(data[0].pipelineStatus).toBe("idle");
   });
 });
