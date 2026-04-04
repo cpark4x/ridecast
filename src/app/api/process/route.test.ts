@@ -40,6 +40,7 @@ import { POST } from './route';
 
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
 const mockScriptCreate = prisma.script.create as ReturnType<typeof vi.fn>;
+const mockContentUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
 
 function createJsonRequest(body: Record<string, unknown>): Request {
   return new Request('http://localhost/api/process', {
@@ -379,12 +380,24 @@ describe('POST /api/process', () => {
     expect(mockAnalyze).not.toHaveBeenCalled();
   });
 
-  it('verbatim mode still rejects duplicate duration', async () => {
+  it('verbatim mode returns existing script when duplicate duration requested (idempotent)', async () => {
+    const existingScript = {
+      id: 'script-existing',
+      targetDuration: 5,
+      format: 'verbatim',
+      scriptText: 'Some content that is long enough to pass the minimum character guard check here.',
+      actualWordCount: 3,
+      compressionRatio: 1,
+      contentType: null,
+      themes: [],
+      summary: null,
+      durationAdvisory: null,
+    };
     const contentRecord = {
       id: 'content-1',
       rawText: 'Some content that is long enough to pass the minimum character guard check here.',
       wordCount: 3,
-      scripts: [{ targetDuration: 5 }],
+      scripts: [existingScript],
     };
 
     mockFindUnique.mockResolvedValue(contentRecord);
@@ -397,8 +410,167 @@ describe('POST /api/process', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(409);
-    expect(data.error).toContain('already have a 5-minute version');
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('script-existing');
+    expect(mockScriptCreate).not.toHaveBeenCalled();
+  });
+
+  it('sets pipelineStatus to scripting at start of processing', async () => {
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      wordCount: 5000,
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockContentUpdate.mockResolvedValue({});
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: 'A tech essay.',
+      suggestedTitle: 'Tech Insights',
+    });
+    mockGenerateScript.mockResolvedValue({
+      text: 'word '.repeat(720),
+      wordCount: 720,
+      format: 'narrator',
+    });
+    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    await POST(request);
+
+    expect(mockContentUpdate.mock.calls[0][0]).toMatchObject({
+      data: { pipelineStatus: 'scripting', pipelineError: null },
+    });
+  });
+
+  it('sets pipelineStatus to generating after successful script creation', async () => {
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      wordCount: 5000,
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockContentUpdate.mockResolvedValue({});
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: 'A tech essay.',
+      suggestedTitle: 'Tech Insights',
+    });
+    mockGenerateScript.mockResolvedValue({
+      text: 'word '.repeat(720),
+      wordCount: 720,
+      format: 'narrator',
+    });
+    mockScriptCreate.mockResolvedValue({ id: 'script-1' });
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    await POST(request);
+
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'generating' }),
+      })
+    );
+  });
+
+  it('sets pipelineStatus to error when Claude throws', async () => {
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      wordCount: 5000,
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockContentUpdate.mockResolvedValue({});
+    mockAnalyze.mockRejectedValue(new Error('rate limit exceeded 429'));
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          pipelineStatus: 'error',
+          pipelineError: expect.stringContaining('busy'),
+        }),
+      })
+    );
+    void data;
+  });
+
+  it('returns existing script idempotently when called again for same duration (AI mode)', async () => {
+    const existingScript = {
+      id: 'script-existing',
+      targetDuration: 15,
+      format: 'narrator',
+      scriptText: 'word '.repeat(1500),
+      actualWordCount: 1500,
+      compressionRatio: 0.15,
+      contentType: 'essay',
+      themes: ['tech'],
+      summary: 'A tech summary.',
+      durationAdvisory: null,
+    };
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      wordCount: 10000,
+      scripts: [existingScript],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 15 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('script-existing');
+    expect(mockAnalyze).not.toHaveBeenCalled();
+    expect(mockScriptCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns existing script when pipelineStatus is scripting (mid-flight recovery)', async () => {
+    const existingScript = {
+      id: 'script-in-progress',
+      targetDuration: 10,
+      format: 'narrator',
+      scriptText: 'word '.repeat(1200),
+      actualWordCount: 1200,
+      compressionRatio: 0.12,
+      contentType: 'essay',
+      themes: ['tech'],
+      summary: 'A tech summary.',
+      durationAdvisory: null,
+    };
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some content that is long enough to pass the minimum character guard check here.',
+      wordCount: 10000,
+      pipelineStatus: 'scripting',
+      scripts: [existingScript],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 10 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('script-in-progress');
+    expect(mockAnalyze).not.toHaveBeenCalled();
   });
 
   it('returns 500 when API key is not configured', async () => {
