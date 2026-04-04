@@ -82,10 +82,16 @@ function createJsonRequest(body: Record<string, unknown>): Request {
 
 describe('POST /api/audio/generate', () => {
   const originalApiKey = process.env.OPENAI_API_KEY;
+  const originalElevenLabsKey = process.env.ELEVENLABS_API_KEY;
+  const originalGoogleCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalGoogleProject = process.env.GOOGLE_CLOUD_PROJECT;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.OPENAI_API_KEY = 'test-key';
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -116,6 +122,9 @@ describe('POST /api/audio/generate', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     process.env.OPENAI_API_KEY = originalApiKey;
+    process.env.ELEVENLABS_API_KEY = originalElevenLabsKey;
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = originalGoogleCredentials;
+    process.env.GOOGLE_CLOUD_PROJECT = originalGoogleProject;
   });
 
   it('generates narrator audio and saves to filesystem', async () => {
@@ -285,10 +294,6 @@ describe('POST /api/audio/generate', () => {
     expect(data.id).toBe('audio-existing');
     expect(mockGenerateSpeech).not.toHaveBeenCalled();
     expect(mockAudioCreate).not.toHaveBeenCalled();
-    expect(mockContentUpdate).toHaveBeenCalledWith({
-      where: { id: 'content-1' },
-      data: { pipelineStatus: 'ready' },
-    });
   });
 
   it('sets Content.pipelineStatus to ready after successful audio creation', async () => {
@@ -360,6 +365,91 @@ describe('POST /api/audio/generate', () => {
     );
   });
 
+  it('heals Content.pipelineStatus when returning existing audio for stale content', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+      content: {
+        pipelineStatus: 'generating',
+        pipelineError: 'previous failure',
+      },
+    };
+    const existingAudio = {
+      id: 'audio-existing',
+      scriptId: 'script-1',
+      filePath: 'audio/existing.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockAudioFindFirst.mockResolvedValue(existingAudio);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready' },
+    });
+  });
+
+  it('allows alternate TTS providers when OPENAI_API_KEY is missing', async () => {
+    const scriptRecord = {
+      id: 'script-1',
+      contentId: 'content-1',
+      format: 'narrator',
+      scriptText: 'Hello world.',
+      targetDuration: 5,
+      actualWordCount: 2,
+      content: {
+        pipelineStatus: 'generating',
+        pipelineError: null,
+      },
+    };
+    const audioRecord = {
+      id: 'audio-1',
+      scriptId: 'script-1',
+      filePath: 'audio/test-uuid-1234.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'elevenlabs',
+    };
+
+    process.env.OPENAI_API_KEY = '';
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    vi.mocked(createTTSProvider).mockReturnValue({
+      providerId: 'elevenlabs',
+      generateSpeech: mockGenerateSpeech,
+    });
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+    mockAudioCreate.mockResolvedValue(audioRecord);
+
+    const request = new Request('http://localhost/api/audio/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-elevenlabs-key': 'sk_user_supplied',
+      },
+      body: JSON.stringify({ scriptId: 'script-1' }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(vi.mocked(createTTSProvider)).toHaveBeenCalledWith('sk_user_supplied');
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready' },
+    });
+  });
+
   it('sets Content.pipelineStatus to error when the TTS provider is not configured', async () => {
     const scriptRecord = {
       id: 'script-1',
@@ -375,14 +465,23 @@ describe('POST /api/audio/generate', () => {
     };
 
     process.env.OPENAI_API_KEY = '';
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
     mockFindUnique.mockResolvedValue(scriptRecord);
+    vi.mocked(createTTSProvider).mockImplementation(() => {
+      throw new Error('TTS provider not configured');
+    });
 
     const request = createJsonRequest({ scriptId: 'script-1' });
     const response = await POST(request);
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('TTS provider not configured');
-    expect(mockContentUpdate).not.toHaveBeenCalled();
+    expect(data.error).toBe('Something went wrong generating audio.');
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'error', pipelineError: 'Something went wrong generating audio.' },
+    });
   });
 });

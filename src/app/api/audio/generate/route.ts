@@ -54,15 +54,7 @@ export async function POST(request: Request) {
       return NextResponse.json(existingAudio);
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'TTS provider not configured', code: 'TTS_FAILED' },
-        { status: 500 },
-      );
-    }
-
-    const userElevenLabsKey = request.headers.get("x-elevenlabs-key") ?? undefined;
+    const userElevenLabsKey = request.headers.get('x-elevenlabs-key') ?? undefined;
     const provider = createTTSProvider(userElevenLabsKey);
 
     let audioBuffer: Buffer;
@@ -156,14 +148,10 @@ export async function POST(request: Request) {
     }
 
     if (script?.contentId) {
-      await prisma.content
-        .update({
-          where: { id: script.contentId },
-          data: { pipelineStatus: 'error', pipelineError: message },
-        })
-        .catch(() => {
-          // Ignore errors when updating pipeline status — don't mask original error.
-        });
+      await prisma.content.update({
+        where: { id: script.contentId },
+        data: { pipelineStatus: 'error', pipelineError: message },
+      }).catch(() => {});
     }
 
     return NextResponse.json(
