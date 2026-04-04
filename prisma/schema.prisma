@@ -33,7 +33,7 @@ model Content {
   contentHash String   @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  pipelineStatus String   @default("idle")    // "idle" | "scripting" | "generating" | "error"
+  pipelineStatus String   @default("idle")
   pipelineError  String?
 
   user    User     @relation(fields: [userId], references: [id])
