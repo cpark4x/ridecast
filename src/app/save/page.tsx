@@ -9,7 +9,7 @@ function SavePageInner() {
   const url = params.get('url') ?? '';
   const title = params.get('title') ?? '';
 
-  const [status, setStatus] = useState<'loading' | 'saved' | 'duplicate' | 'error'>(
+  const [status, setStatus] = useState<'loading' | 'saved' | 'duplicate' | 'auth' | 'error'>(
     () => url ? 'loading' : 'error',
   );
   const [errorMsg, setErrorMsg] = useState(
@@ -24,8 +24,12 @@ function SavePageInner() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, title }),
     })
-      .then((r) => r.json())
-      .then((data) => {
+      .then(async (r) => {
+        if (r.status === 401 || r.status === 403) {
+          setStatus('auth');
+          return;
+        }
+        const data = await r.json();
         if (data.error) { setStatus('error'); setErrorMsg(data.error); return; }
         setStatus(data.alreadySaved ? 'duplicate' : 'saved');
         if (!data.alreadySaved) {
@@ -67,14 +71,25 @@ function SavePageInner() {
         </>
       )}
 
-      {status === 'error' && (
+      {status === 'auth' && (
         <>
-          <p className="text-red-600 font-semibold">Couldn&apos;t save</p>
-          <p className="text-[var(--text-mid)] text-xs">{errorMsg}</p>
+          <p className="font-semibold">Sign in to save</p>
+          <p className="text-[var(--text-mid)] text-xs truncate max-w-xs">{title || url}</p>
           <a href={`/sign-in?redirect_url=${encodeURIComponent('/save?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title))}`}
             className="mt-2 px-5 py-2 rounded-[10px] bg-[#EA580C] text-white text-sm font-semibold">
             Sign in to Ridecast
           </a>
+        </>
+      )}
+
+      {status === 'error' && (
+        <>
+          <p className="text-red-600 font-semibold">Couldn&apos;t save</p>
+          <p className="text-[var(--text-mid)] text-xs">{errorMsg}</p>
+          <button onClick={() => window.close()}
+            className="mt-2 px-5 py-2 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07] text-sm font-semibold">
+            Close
+          </button>
         </>
       )}
     </div>
