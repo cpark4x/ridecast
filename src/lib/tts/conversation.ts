@@ -3,6 +3,7 @@ import { ElevenLabsTTSProvider } from './elevenlabs';
 import { GoogleCloudTTSProvider } from './google';
 import { parseConversationScript } from '@/lib/utils/script-parser';
 import { chunkText } from './chunk';
+import { mapWithConcurrency } from '@/lib/utils/concurrency';
 
 const OPENAI_VOICE_MAP: Record<string, VoiceConfig> = {
   'Host A': {
@@ -80,16 +81,19 @@ export async function generateConversationAudio(
       : OPENAI_DEFAULT_VOICE;
 
   const usedVoices = new Set<string>();
-  const chunks: Buffer[] = [];
 
+  // Flatten all segments × chunks into an ordered task list for parallel dispatch.
+  // Promise ordering in mapWithConcurrency preserves segment/chunk sequence.
+  const tasks: Array<() => Promise<Buffer>> = [];
   for (const segment of segments) {
     const voiceConfig = voiceMap[segment.speaker] ?? defaultVoice;
     usedVoices.add(voiceConfig.voice);
-    // Split long speaker segments to stay within TTS input limits.
     for (const part of chunkText(segment.text)) {
-      chunks.push(await provider.generateSpeech(part, voiceConfig));
+      tasks.push(() => provider.generateSpeech(part, voiceConfig));
     }
   }
 
-  return { audio: Buffer.concat(chunks), voices: [...usedVoices] };
+  const buffers = await mapWithConcurrency(tasks);
+
+  return { audio: Buffer.concat(buffers), voices: [...usedVoices] };
 }

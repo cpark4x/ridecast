@@ -2,6 +2,7 @@ import { TTSProvider } from "./types";
 import { ElevenLabsTTSProvider } from "./elevenlabs";
 import { GoogleCloudTTSProvider } from "./google";
 import { chunkText } from "./chunk";
+import { mapWithConcurrency } from "@/lib/utils/concurrency";
 
 const OPENAI_NARRATOR_VOICE = {
   voice: "alloy",
@@ -32,11 +33,9 @@ export async function generateNarratorAudio(
         : OPENAI_NARRATOR_VOICE;
 
   const chunks = chunkText(scriptText);
-  const buffers: Buffer[] = [];
-
-  for (const chunk of chunks) {
-    buffers.push(await provider.generateSpeech(chunk, voice));
-  }
+  const buffers = await mapWithConcurrency(
+    chunks.map((chunk) => () => provider.generateSpeech(chunk, voice)),
+  );
 
   return Buffer.concat(buffers);
 }
