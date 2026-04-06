@@ -12,13 +12,26 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhook", // Stripe webhooks — verified by signature, not Clerk session
   "/pocket", // marketing landing page — no auth required
   "/save(.*)", // bookmarklet popup landing — no auth required
+  "/privacy", // legal page — no auth required
+  "/support", // support page — no auth required
+  "/upgrade", // pricing page — no auth required
+]);
+
+// Routes that should bypass Clerk entirely — Clerk's localization middleware
+// redirects these to /en/... which 404s because we don't use locale routing.
+// By skipping Clerk, these pages render directly without the redirect loop.
+const skipClerkEntirely = createRouteMatcher([
+  "/pocket",
+  "/save(.*)",
+  "/privacy",
+  "/support",
+  "/upgrade",
 ]);
 
 // Clerk v7 redirects to /:locale/ prefixed paths (e.g. /en/pocket) when
 // localization is enabled in the Clerk dashboard. Our Next.js app doesn't use
 // locale-based file routing (no src/app/[locale]/), so /en/pocket 404s.
-// Fix: rewrite /xx/path → /path so Next.js finds the actual page, then run
-// Clerk auth normally on the rewritten path.
+// Fix: rewrite /xx/path → /path so Next.js finds the actual page.
 const LOCALE_PREFIX = /^\/([a-z]{2})(\/.*)/;
 
 // Build the Clerk handler once (lazy — keys are only validated when the handler
@@ -44,9 +57,8 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
     return NextResponse.next();
   }
 
-  // Strip Clerk's locale prefix so Next.js can resolve pages.
-  // /en/pocket → rewrite to /pocket (URL bar still shows /en/pocket)
-  // /en/ → rewrite to / (main app)
+  // 1. Strip Clerk's locale prefix so Next.js can resolve pages.
+  //    /en/pocket → rewrite to /pocket (URL bar still shows /en/pocket)
   const { pathname } = request.nextUrl;
   const match = pathname.match(LOCALE_PREFIX);
   if (match) {
@@ -56,6 +68,13 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
     return NextResponse.rewrite(url);
   }
 
+  // 2. Skip Clerk entirely for public marketing/utility pages.
+  //    This prevents Clerk's localization from redirecting /pocket → /en/pocket.
+  if (skipClerkEntirely(request)) {
+    return NextResponse.next();
+  }
+
+  // 3. Everything else goes through Clerk for auth.
   return clerkHandler(request, event);
 }
 
