@@ -367,6 +367,39 @@ describe('POST /api/process', () => {
     });
   });
 
+  it('verbatim mode clears pipelineError on success', async () => {
+    const contentRecord = {
+      id: 'content-1',
+      rawText: 'Some text to read verbatim in full without any AI modification whatsoever.',
+      wordCount: 6,
+      pipelineError: 'previous failure',
+      scripts: [],
+    };
+
+    mockFindUnique.mockResolvedValue(contentRecord);
+    mockScriptCreate.mockResolvedValue({
+      id: 'script-v1',
+      contentId: 'content-1',
+      format: 'verbatim',
+      targetDuration: 5,
+      actualWordCount: 6,
+      compressionRatio: 1,
+      scriptText: contentRecord.rawText,
+    });
+
+    const request = createJsonRequest({
+      contentId: 'content-1',
+      targetMinutes: 5,
+      format: 'verbatim',
+    });
+    await POST(request);
+
+    // The final content.update in verbatim mode must explicitly clear pipelineError
+    const updateCalls = mockContentUpdate.mock.calls;
+    const finalUpdate = updateCalls[updateCalls.length - 1][0];
+    expect(finalUpdate.data).toEqual({ pipelineStatus: 'generating', pipelineError: null });
+  });
+
   it('verbatim mode does not require ANTHROPIC_API_KEY', async () => {
     delete process.env.ANTHROPIC_API_KEY;
 
@@ -447,17 +480,17 @@ describe('POST /api/process', () => {
     );
   });
 
-  it('sets pipelineStatus to generating after successful script creation', async () => {
+  it('sets pipelineStatus to generating and clears pipelineError after successful script creation', async () => {
     mockStandardAiRun();
 
     const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
     await POST(request);
 
-    expect(mockContentUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ pipelineStatus: 'generating' }),
-      })
-    );
+    // The final content.update (after script.create) must explicitly clear pipelineError
+    // to prevent a stale error from a prior failed attempt surviving through success.
+    const updateCalls = mockContentUpdate.mock.calls;
+    const finalUpdate = updateCalls[updateCalls.length - 1][0];
+    expect(finalUpdate.data).toEqual({ pipelineStatus: 'generating', pipelineError: null });
   });
 
   it('sets pipelineStatus to error when Claude throws', async () => {

@@ -425,6 +425,73 @@ describe('POST /api/audio/generate', () => {
     });
   });
 
+  it('heals to ready when audio.create succeeded but markContentReady fails', async () => {
+    // Bug 2: If audio.create commits but markContentReady throws (e.g. DB blip),
+    // the catch block must attempt to heal to 'ready' instead of clobbering with 'error'.
+    const scriptRecord = {
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: null },
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+
+    // audio.create succeeds
+    mockAudioCreate.mockResolvedValue({
+      id: 'audio-1',
+      scriptId: 'script-1',
+      filePath: 'audio/test-uuid-1234.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    });
+
+    // markContentReady (first call) fails — simulates DB blip after audio committed
+    // markContentReady (second call in catch block) succeeds — heals the state
+    mockContentUpdate
+      .mockRejectedValueOnce(new Error('DB connection lost'))
+      .mockResolvedValueOnce({});
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    // Catch block must attempt to heal via markContentReady (pipelineStatus: 'ready'),
+    // NOT set pipelineStatus to 'error'
+    expect(mockContentUpdate).toHaveBeenCalledTimes(2);
+    expect(mockContentUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready', pipelineError: null },
+    });
+  });
+
+  it('sets Content.pipelineStatus to error when audio.create has NOT succeeded', async () => {
+    // Counterpart: when audio.create itself throws, the catch block should still
+    // set pipelineStatus to 'error' (not attempt heal).
+    const scriptRecord = {
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: null },
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+
+    // audio.create fails
+    mockAudioCreate.mockRejectedValue(new Error('DB write failed'));
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'error' }),
+      }),
+    );
+  });
+
   it('sets Content.pipelineStatus to error when the TTS provider is not configured', async () => {
     const scriptRecord = {
       ...BASE_SCRIPT_RECORD,

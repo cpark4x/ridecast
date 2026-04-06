@@ -101,7 +101,7 @@ export async function POST(request: Request) {
         },
       });
 
-      await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating' } });
+      await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating', pipelineError: null } });
       return NextResponse.json({ ...script, durationAdvisory: null });
     }
 
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 
     await prisma.content.update({
       where: { id: contentId },
-      data: { pipelineStatus: 'generating' },
+      data: { pipelineStatus: 'generating', pipelineError: null },
     });
 
     // Surface advisory when generated word count misses ±15% tolerance.

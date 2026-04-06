@@ -23,6 +23,7 @@ async function markContentReady(contentId: string) {
 
 export async function POST(request: Request) {
   let script: Awaited<ReturnType<typeof prisma.script.findUnique>> | null = null;
+  let audioCreated = false;
   try {
     const userId = await getCurrentUserId();
     const gate = await requireSubscription(userId);
@@ -132,6 +133,7 @@ export async function POST(request: Request) {
         ttsProvider: provider.providerId,
       },
     });
+    audioCreated = true;
 
     await markContentReady(script.contentId);
 
@@ -154,10 +156,15 @@ export async function POST(request: Request) {
     }
 
     if (script?.contentId) {
-      await prisma.content.update({
-        where: { id: script.contentId },
-        data: { pipelineStatus: 'error', pipelineError: message },
-      }).catch(() => {});
+      if (audioCreated) {
+        // Audio row committed — heal to 'ready' instead of clobbering with 'error'
+        await markContentReady(script.contentId).catch(() => {});
+      } else {
+        await prisma.content.update({
+          where: { id: script.contentId },
+          data: { pipelineStatus: 'error', pipelineError: message },
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json(
