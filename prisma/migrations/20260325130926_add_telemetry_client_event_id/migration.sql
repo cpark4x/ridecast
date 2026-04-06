@@ -1,5 +1,3 @@
--- AlterTable
-ALTER TABLE "TelemetryEvent" ADD COLUMN "clientEventId" TEXT;
-
--- CreateIndex
-CREATE UNIQUE INDEX "TelemetryEvent_clientEventId_key" ON "TelemetryEvent"("clientEventId");
+-- This migration was folded into 20260325164654_add_feedback_telemetry
+-- because it ran BEFORE the table was created, causing CI failures.
+-- Kept as empty migration to preserve migration history integrity.
