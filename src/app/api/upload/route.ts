@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { extractContent, extractTxt, extractUrl } from '@/lib/extractors';
 import { extractMarkdown } from '@/lib/extractors/markdown';
 import { extractGoogleDoc } from '@/lib/extractors/google-docs';
@@ -214,18 +214,35 @@ export async function POST(request: Request) {
       );
     }
 
-    const record = await prisma.content.create({
-      data: {
-        userId,
-        title,
-        rawText: text,
-        wordCount,
-        sourceType,
-        sourceUrl,
-        contentHash: hash,
-        ...(author ? { author } : {}),
-      },
-    });
+    let record;
+    try {
+      record = await prisma.content.create({
+        data: {
+          userId,
+          title,
+          rawText: text,
+          wordCount,
+          sourceType,
+          sourceUrl,
+          contentHash: hash,
+          ...(author ? { author } : {}),
+        },
+      });
+    } catch (err) {
+      if (isUniqueConstraintViolation(err)) {
+        // Concurrent request already created this content — find and return 409
+        const duplicate = await prisma.content.findFirst({
+          where: { OR: [{ contentHash: hash }, ...(sourceUrl ? [{ userId, sourceUrl }] : [])] },
+        });
+        if (duplicate) {
+          return NextResponse.json(
+            { ...duplicate, error: 'This content has already been uploaded.' },
+            { status: 409 },
+          );
+        }
+      }
+      throw err;
+    }
 
     const truncationWarning = text.length > TRUNCATION_WARNING_CHARS
       ? `This document is very long (${Math.round(text.length / 6)} words). Only the first ~100,000 words will be used for audio generation.`

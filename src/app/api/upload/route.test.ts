@@ -10,6 +10,8 @@ vi.mock('@/lib/db', () => ({
       update: vi.fn(),
     },
   },
+  isUniqueConstraintViolation: (error: unknown) =>
+    typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002',
 }));
 
 // Mock extractors
@@ -173,6 +175,39 @@ describe('POST /api/upload', () => {
     const request = createMockRequest({ file });
     const response = await POST(request);
     expect(response.status).toBe(409);
+  });
+
+  it('handles P2002 unique constraint violation on content.create (concurrent request race)', async () => {
+    // Simulates TOCTOU: two concurrent uploads of the same content both pass the
+    // findUnique(contentHash) check, but the DB unique constraint catches the second create.
+    mockFindUnique.mockResolvedValue(null); // hash check passes — no existing content
+    mockExtractTxt.mockReturnValue({
+      title: 'Test',
+      text: 'Some long text that exceeds the minimum character guard for content. '.repeat(20),
+      wordCount: 200,
+    });
+
+    const p2002Error = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+    mockCreate.mockRejectedValue(p2002Error);
+
+    // Fallback findFirst returns the content created by the winning request
+    const winnerContent = {
+      id: 'content-winner',
+      title: 'Test',
+      contentHash: 'abc123',
+      wordCount: 200,
+    };
+    mockFindFirst.mockResolvedValue(winnerContent);
+
+    const request = createMockJsonRequest({
+      rawText: 'Some long text that exceeds the minimum character guard for content. '.repeat(20),
+    });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(data.id).toBe('content-winner');
+    expect(data.error).toBe('This content has already been uploaded.');
   });
 
   it('returns 401 for unauthenticated requests', async () => {

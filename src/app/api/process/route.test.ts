@@ -19,8 +19,11 @@ vi.mock('@/lib/db', () => ({
     },
     script: {
       create: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
+  isUniqueConstraintViolation: (error: unknown) =>
+    typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002',
 }));
 
 const mockAnalyze = vi.fn();
@@ -41,6 +44,7 @@ import { createJsonRequest } from '../__tests__/test-utils';
 
 const mockFindUnique = prisma.content.findUnique as ReturnType<typeof vi.fn>;
 const mockScriptCreate = prisma.script.create as ReturnType<typeof vi.fn>;
+const mockScriptFindFirst = (prisma.script as unknown as { findFirst: ReturnType<typeof vi.fn> }).findFirst;
 const mockContentUpdate = prisma.content.update as ReturnType<typeof vi.fn>;
 
 describe('POST /api/process', () => {
@@ -571,6 +575,53 @@ describe('POST /api/process', () => {
     expect(response.status).toBe(200);
     expect(data.id).toBe('script-in-progress');
     expect(mockAnalyze).not.toHaveBeenCalled();
+  });
+
+  it('handles P2002 unique constraint violation on script.create (concurrent request race)', async () => {
+    // Simulates TOCTOU: two concurrent requests both pass the in-memory script check,
+    // but the DB unique constraint on (contentId, targetDuration) catches the second create.
+    mockFindUnique.mockResolvedValue({
+      ...BASE_CONTENT,
+      scripts: [],  // in-memory check passes — no existing script
+    });
+    mockAnalyze.mockResolvedValue({
+      contentType: 'essay',
+      format: 'narrator',
+      themes: ['tech'],
+      summary: 'A summary.',
+    });
+    mockGenerateScript.mockResolvedValue({
+      text: 'word '.repeat(720),
+      wordCount: 720,
+      format: 'narrator',
+    });
+
+    // script.create throws P2002 — concurrent request won the race
+    const p2002Error = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+    mockScriptCreate.mockRejectedValue(p2002Error);
+
+    // Fallback findFirst returns the script created by the winning request
+    const winnerScript = {
+      id: 'script-winner',
+      contentId: 'content-1',
+      format: 'narrator',
+      targetDuration: 5,
+      actualWordCount: 720,
+      compressionRatio: 0.144,
+      scriptText: 'word '.repeat(720),
+    };
+    mockScriptFindFirst.mockResolvedValue(winnerScript);
+
+    const request = createJsonRequest({ contentId: 'content-1', targetMinutes: 5 });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('script-winner');
+    // Must clear pipelineError and advance status even on P2002 fallback
+    const updateCalls = mockContentUpdate.mock.calls;
+    const finalUpdate = updateCalls[updateCalls.length - 1][0];
+    expect(finalUpdate.data).toEqual({ pipelineStatus: 'generating', pipelineError: null });
   });
 
   it('returns 500 when API key is not configured', async () => {

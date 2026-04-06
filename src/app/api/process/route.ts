@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { ClaudeProvider } from '@/lib/ai/claude';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { getCurrentUserId } from '@/lib/auth';
@@ -87,19 +87,32 @@ export async function POST(request: Request) {
 
     // ── Verbatim mode: skip AI, use raw text as script ──────────────
     if (format === 'verbatim') {
-      const script = await prisma.script.create({
-        data: {
-          contentId,
-          format: 'verbatim',
-          targetDuration: targetMinutes,
-          actualWordCount: content.wordCount,
-          compressionRatio: 1,
-          scriptText: content.rawText,
-          contentType: null,
-          themes: [],
-          summary: null,
-        },
-      });
+      let script;
+      try {
+        script = await prisma.script.create({
+          data: {
+            contentId,
+            format: 'verbatim',
+            targetDuration: targetMinutes,
+            actualWordCount: content.wordCount,
+            compressionRatio: 1,
+            scriptText: content.rawText,
+            contentType: null,
+            themes: [],
+            summary: null,
+          },
+        });
+      } catch (err) {
+        if (isUniqueConstraintViolation(err)) {
+          // Concurrent request already created this script — fetch and return it
+          const existing = await prisma.script.findFirst({ where: { contentId, targetDuration: targetMinutes } });
+          if (existing) {
+            await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating', pipelineError: null } });
+            return NextResponse.json({ ...existing, durationAdvisory: null });
+          }
+        }
+        throw err;
+      }
 
       await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating', pipelineError: null } });
       return NextResponse.json({ ...script, durationAdvisory: null });
@@ -137,21 +150,34 @@ export async function POST(request: Request) {
     });
 
     // Save script to DB
-    const script = await prisma.script.create({
-      data: {
-        contentId,
-        format: generated.format,
-        targetDuration: targetMinutes,
-        actualWordCount: generated.wordCount,
-        compressionRatio: content.wordCount > 0
-          ? generated.wordCount / content.wordCount
-          : 0,
-        scriptText: generated.text,
-        contentType: analysis.contentType,
-        themes: analysis.themes,
-        summary: analysis.summary?.trim() || null,
-      },
-    });
+    let script;
+    try {
+      script = await prisma.script.create({
+        data: {
+          contentId,
+          format: generated.format,
+          targetDuration: targetMinutes,
+          actualWordCount: generated.wordCount,
+          compressionRatio: content.wordCount > 0
+            ? generated.wordCount / content.wordCount
+            : 0,
+          scriptText: generated.text,
+          contentType: analysis.contentType,
+          themes: analysis.themes,
+          summary: analysis.summary?.trim() || null,
+        },
+      });
+    } catch (err) {
+      if (isUniqueConstraintViolation(err)) {
+        // Concurrent request already created this script — fetch and return it
+        const existing = await prisma.script.findFirst({ where: { contentId, targetDuration: targetMinutes } });
+        if (existing) {
+          await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating', pipelineError: null } });
+          return NextResponse.json({ ...existing, durationAdvisory: null });
+        }
+      }
+      throw err;
+    }
 
     await prisma.content.update({
       where: { id: contentId },

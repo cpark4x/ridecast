@@ -43,6 +43,8 @@ vi.mock('@/lib/db', () => ({
       update: vi.fn(),
     },
   },
+  isUniqueConstraintViolation: (error: unknown) =>
+    typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002',
 }));
 
 // Mock the TTS provider factory so we can inspect what key it's called with
@@ -513,6 +515,47 @@ describe('POST /api/audio/generate', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe(TTS_PROVIDER_NOT_CONFIGURED_MESSAGE);
+  });
+
+  it('handles P2002 unique constraint violation on audio.create (concurrent request race)', async () => {
+    // Simulates TOCTOU: two concurrent requests both pass the findFirst check,
+    // but the DB unique constraint on scriptId catches the second create.
+    const scriptRecord = {
+      ...BASE_SCRIPT_RECORD,
+      content: { pipelineStatus: 'generating', pipelineError: null },
+    };
+
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockAudioFindFirst.mockResolvedValueOnce(null); // initial check passes — no audio yet
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+
+    // audio.create throws P2002 — concurrent request won the race
+    const p2002Error = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+    mockAudioCreate.mockRejectedValue(p2002Error);
+
+    // Fallback findFirst returns the audio created by the winning request
+    const winnerAudio = {
+      id: 'audio-winner',
+      scriptId: 'script-1',
+      filePath: 'audio/winner.mp3',
+      durationSecs: 60,
+      voices: ['alloy'],
+      ttsProvider: 'openai',
+    };
+    mockAudioFindFirst.mockResolvedValueOnce(winnerAudio);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe('audio-winner');
+    // Must heal pipeline to 'ready'
+    expect(mockContentUpdate).toHaveBeenCalledWith({
+      where: { id: 'content-1' },
+      data: { pipelineStatus: 'ready', pipelineError: null },
+    });
   });
 
   it('recovery — Audio already exists for scriptId → returns existing Audio, sets pipelineStatus to ready', async () => {

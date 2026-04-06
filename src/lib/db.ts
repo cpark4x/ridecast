@@ -18,3 +18,16 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export type { PrismaClient };
+
+/**
+ * Returns true if the error is a Prisma unique constraint violation (P2002).
+ * Use in catch blocks to handle concurrent duplicate inserts gracefully.
+ */
+export function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code: string }).code === 'P2002'
+  );
+}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { parseBuffer } from 'music-metadata';
-import { prisma } from '@/lib/db';
+import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { createTTSProvider, TTS_PROVIDER_NOT_CONFIGURED_MESSAGE } from '@/lib/tts/provider';
 import { generateNarratorAudio } from '@/lib/tts/narrator';
 import { generateConversationAudio } from '@/lib/tts/conversation';
@@ -124,15 +124,28 @@ export async function POST(request: Request) {
     }
 
     // Create Audio record in DB
-    const audio = await prisma.audio.create({
-      data: {
-        scriptId,
-        filePath,
-        durationSecs,
-        voices,
-        ttsProvider: provider.providerId,
-      },
-    });
+    let audio;
+    try {
+      audio = await prisma.audio.create({
+        data: {
+          scriptId,
+          filePath,
+          durationSecs,
+          voices,
+          ttsProvider: provider.providerId,
+        },
+      });
+    } catch (err) {
+      if (isUniqueConstraintViolation(err)) {
+        // Concurrent request already created audio for this script — fetch and return it
+        const existing = await prisma.audio.findFirst({ where: { scriptId }, orderBy: { createdAt: 'desc' } });
+        if (existing) {
+          await markContentReady(script.contentId);
+          return NextResponse.json(existing);
+        }
+      }
+      throw err;
+    }
     audioCreated = true;
 
     await markContentReady(script.contentId);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { contentHash } from '@/lib/utils/hash';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireSubscription } from '@/lib/subscription';
@@ -32,17 +32,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ id: existing.id, title: existing.title, alreadySaved: true });
     }
 
-    const record = await prisma.content.create({
-      data: {
-        userId,
-        title: title?.trim() || url,
-        rawText: '',
-        wordCount: 0,
-        sourceType: 'pocket',
-        sourceUrl: url,
-        contentHash: contentHash(userId + ':' + url),
-      },
-    });
+    let record;
+    try {
+      record = await prisma.content.create({
+        data: {
+          userId,
+          title: title?.trim() || url,
+          rawText: '',
+          wordCount: 0,
+          sourceType: 'pocket',
+          sourceUrl: url,
+          contentHash: contentHash(userId + ':' + url),
+        },
+      });
+    } catch (err) {
+      if (isUniqueConstraintViolation(err)) {
+        // Concurrent request already saved this URL — fetch and return idempotently
+        const duplicate = await prisma.content.findFirst({
+          where: { userId, sourceUrl: url },
+          select: { id: true, title: true },
+        });
+        if (duplicate) {
+          return NextResponse.json({ id: duplicate.id, title: duplicate.title, alreadySaved: true });
+        }
+      }
+      throw err;
+    }
 
     return NextResponse.json({ id: record.id, title: record.title, alreadySaved: false });
   } catch (error) {

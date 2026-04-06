@@ -39,6 +39,7 @@ model Content {
   user    User     @relation(fields: [userId], references: [id])
   scripts Script[]
 
+  @@unique([userId, sourceUrl])
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, sourceUrl], map: "Content_userId_sourceUrl_idx")
 }
@@ -60,6 +61,7 @@ model Script {
   content Content @relation(fields: [contentId], references: [id])
   audio   Audio[]
 
+  @@unique([contentId, targetDuration])
   @@index([contentId])
 }
 
@@ -76,6 +78,7 @@ model Audio {
   script        Script          @relation(fields: [scriptId], references: [id])
   playbackState PlaybackState[]
 
+  @@unique([scriptId])
   @@index([scriptId, createdAt(sort: Desc)], map: "Audio_scriptId_createdAt_idx")
 }
 
