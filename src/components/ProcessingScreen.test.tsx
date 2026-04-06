@@ -212,20 +212,22 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
     render(
       <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={onComplete} />,
     );
-    // Step 1: advance to the first poll tick (3 s) so the library fetch fires and
-    // setState('ready') + setAudioRecord() run as microtasks inside act()
+    // Step 1: advance to the first poll tick (3 s).
+    // advanceTimersByTimeAsync awaits the entire async interval callback
+    // (two internal `await`s: fetch + res.json()) before act() returns, so
+    // setState('ready') + setAudioRecord() are fully committed and the
+    // autoComplete useEffect has already registered its setTimeout by the
+    // time we reach step 2. This is deterministic on both fast (macOS) and
+    // slow (Ubuntu CI) schedulers, unlike advanceTimersByTime which only
+    // fires the callback synchronously and leaves the async chain pending.
     await act(async () => {
-      vi.advanceTimersByTime(3000);
+      await vi.advanceTimersByTimeAsync(3000);
     });
-    // Flush microtasks so state updates settle before the next advance
-    await act(async () => {});
     // Step 2: advance past autoCompleteDelay (1 500 ms in non-E2E mode).
-    // The setTimeout registered by the ready useEffect was enqueued during step 1,
-    // so it needs a separate advance to fire.
+    // The setTimeout registered by the ready useEffect fires here.
     await act(async () => {
-      vi.advanceTimersByTime(1500);
+      await vi.advanceTimersByTimeAsync(1500);
     });
-    await act(async () => {});
     expect(onComplete).toHaveBeenCalledWith("a1");
   });
 
@@ -336,15 +338,14 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
     render(
       <ProcessingScreen contentId="c1" targetMinutes={10} onComplete={onComplete} />,
     );
-    // First poll tick — captures scriptId, fires audio
-    await act(async () => { vi.advanceTimersByTime(3000); });
-    await act(async () => {});
-    // Second poll tick — ready with two versions
-    await act(async () => { vi.advanceTimersByTime(3000); });
-    await act(async () => {});
-    // Auto-complete delay
-    await act(async () => { vi.advanceTimersByTime(1500); });
-    await act(async () => {});
+    // First poll tick — captures scriptId, fires audio.
+    // advanceTimersByTimeAsync awaits the full async callback chain so
+    // currentScriptId.value is written before the second tick fires.
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    // Second poll tick — ready with two versions; state fully commits inside act().
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    // Auto-complete delay — fires the setTimeout registered by the ready useEffect.
+    await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
     // Must pick the version matching the current run's scriptId, not the older one
     expect(onComplete).toHaveBeenCalledWith("new-audio");
     expect(onComplete).not.toHaveBeenCalledWith("old-audio");
