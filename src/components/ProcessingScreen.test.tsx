@@ -217,12 +217,15 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
     await act(async () => {
       vi.advanceTimersByTime(3000);
     });
+    // Flush microtasks so state updates settle before the next advance
+    await act(async () => {});
     // Step 2: advance past autoCompleteDelay (1 500 ms in non-E2E mode).
     // The setTimeout registered by the ready useEffect was enqueued during step 1,
     // so it needs a separate advance to fire.
     await act(async () => {
       vi.advanceTimersByTime(1500);
     });
+    await act(async () => {});
     expect(onComplete).toHaveBeenCalledWith("a1");
   });
 
@@ -335,10 +338,13 @@ describe("ProcessingScreen — fire-and-poll behavior", () => {
     );
     // First poll tick — captures scriptId, fires audio
     await act(async () => { vi.advanceTimersByTime(3000); });
+    await act(async () => {});
     // Second poll tick — ready with two versions
     await act(async () => { vi.advanceTimersByTime(3000); });
+    await act(async () => {});
     // Auto-complete delay
     await act(async () => { vi.advanceTimersByTime(1500); });
+    await act(async () => {});
     // Must pick the version matching the current run's scriptId, not the older one
     expect(onComplete).toHaveBeenCalledWith("new-audio");
     expect(onComplete).not.toHaveBeenCalledWith("old-audio");
