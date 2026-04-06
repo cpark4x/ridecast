@@ -98,8 +98,19 @@ export function LibraryScreen({ visible }: LibraryScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (visible) loadLibrary();
-  }, [visible, loadLibrary]);
+    if (!visible) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/library");
+        const data = await res.json();
+        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setItems([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [visible]);
 
   // Loading state — all hooks have been called above
   if (items === null) {
