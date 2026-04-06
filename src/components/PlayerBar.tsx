@@ -42,7 +42,7 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
     <div
       onClick={onExpand}
       data-testid="player-bar"
-      className="relative mx-2 h-[58px] flex items-center gap-3 px-3 z-[60] cursor-pointer rounded-[14px] border border-[#EA580C]/20 transition-all"
+      className="relative mx-2 h-[58px] flex items-center gap-3 px-3 z-[60] cursor-pointer rounded-[14px] border border-[#EA580C]/20"
       style={{
         background: `linear-gradient(135deg, ${gradFrom}26, ${gradTo}1a)`,
         backdropFilter: "blur(24px)",
@@ -74,7 +74,7 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
           e.stopPropagation();
           togglePlay();
         }}
-        className="w-[34px] h-[34px] rounded-full bg-white flex items-center justify-center shrink-0 transition-all active:scale-[0.88]"
+        className="w-[34px] h-[34px] rounded-full bg-white flex items-center justify-center shrink-0 transition-transform active:scale-[0.88]"
       >
         {isPlaying ? (
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-[#18181A]">
@@ -93,7 +93,7 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
           skipForward(30);
         }}
         aria-label="Skip forward 30 seconds"
-        className="w-[34px] h-[34px] flex flex-col items-center justify-center shrink-0 transition-all active:scale-[0.88] relative"
+        className="w-[34px] h-[34px] flex flex-col items-center justify-center shrink-0 transition-transform active:scale-[0.88] relative"
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[var(--text-mid)]">
           <path d="M11.5 15.5V8.5L17 12l-5.5 3.5z" />
@@ -105,7 +105,7 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
       </button>
       <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-black/10 rounded-sm overflow-hidden">
         <div
-          className="h-full rounded-sm transition-all duration-300"
+          className="h-full rounded-sm transition-[width] duration-300"
           style={{
             width: `${progress}%`,
             background: `linear-gradient(90deg, ${gradFrom}, ${gradTo})`,

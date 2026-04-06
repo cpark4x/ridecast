@@ -41,7 +41,7 @@ export function BottomNav({ activeTab, onTabChange, onFabClick }: BottomNavProps
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all select-none ${
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors select-none ${
               activeTab === tab.id ? "text-[var(--accent-text)]" : "text-[var(--text-dim)]"
             }`}
           >

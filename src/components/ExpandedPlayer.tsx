@@ -131,7 +131,7 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
         <button
           aria-label="Minimize player"
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-full transition-all hover:bg-black/[0.06]"
+          className="w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.06]"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--text-mid)] fill-none" strokeWidth="2" strokeLinecap="round">
             <polyline points="6 9 12 15 18 9" />
@@ -236,7 +236,7 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
             <div className="flex justify-center mt-2">
               <button
                 onClick={handleUndo}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-black/10 text-[var(--text-mid)] transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-black/10 text-[var(--text-mid)] transition-colors"
               >
                 <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round">
                   <path d="M3 10h11a5 5 0 0 1 0 10H3" /><polyline points="7 6 3 10 7 14" />
@@ -312,7 +312,7 @@ export function ExpandedPlayer({ onClose, onCarMode }: ExpandedPlayerProps) {
           <button
             aria-label={isPlaying ? "Pause" : "Play"}
             onClick={togglePlay}
-            className="w-[68px] h-[68px] bg-[var(--text)] rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-[0.92] shadow-[0_4px_20px_rgba(0,0,0,0.15)]"
+            className="w-[68px] h-[68px] bg-[var(--text)] rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-[0.92] shadow-[0_4px_20px_rgba(0,0,0,0.15)]"
           >
             {isPlaying ? (
               <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white">

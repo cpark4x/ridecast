@@ -41,12 +41,12 @@ export function AppShell() {
            can never bleed over the PlayerBar / BottomNav chrome below */}
       <div className="flex-1 relative overflow-hidden min-h-0">
         {/* Home Screen */}
-        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-all duration-300 ${activeTab === "home" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-[opacity,transform] duration-300 ${activeTab === "home" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
           <HomeScreen visible={activeTab === "home"} onUpload={() => setShowUploadModal(true)} />
         </div>
 
         {/* Processing Screen */}
-        <div className={`absolute inset-0 overflow-hidden transition-all duration-300 ${activeTab === "processing" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+        <div className={`absolute inset-0 overflow-hidden transition-[opacity,transform] duration-300 ${activeTab === "processing" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
           {processing && (
             <ProcessingScreen
               contentId={processing.contentId}
@@ -58,12 +58,12 @@ export function AppShell() {
         </div>
 
         {/* Library Screen */}
-        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-all duration-300 ${activeTab === "library" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-[opacity,transform] duration-300 ${activeTab === "library" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
           <LibraryScreen visible={activeTab === "library"} />
         </div>
 
         {/* Pocket Import Screen */}
-        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-all duration-300 ${activeTab === "pocket-import" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
+        <div className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-none transition-[opacity,transform] duration-300 ${activeTab === "pocket-import" ? "opacity-100 translate-y-0 pointer-events-auto z-10" : "opacity-0 translate-y-3 pointer-events-none z-0"}`}>
           <PocketImportScreen onComplete={() => setActiveTab("library")} />
         </div>
 

@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Hoist mock functions so they're available when vi.mock factories run
-const { mockWriteFile, mockMkdir, mockGenerateSpeech, mockParseBuffer, DEFAULT_TTS_PROVIDER } = vi.hoisted(() => {
+const { mockWriteFile, mockMkdir, mockGenerateSpeech, mockParseBuffer, mockIsBlobConfigured, mockUploadAudio, DEFAULT_TTS_PROVIDER } = vi.hoisted(() => {
   const mockGenerateSpeech = vi.fn();
   return {
     mockWriteFile: vi.fn(),
     mockMkdir: vi.fn(),
     mockGenerateSpeech,
     mockParseBuffer: vi.fn(),
+    mockIsBlobConfigured: vi.fn(),
+    mockUploadAudio: vi.fn(),
     DEFAULT_TTS_PROVIDER: { providerId: 'openai', generateSpeech: mockGenerateSpeech },
   };
 });
@@ -55,6 +57,12 @@ vi.mock('@/lib/tts/provider', () => ({
   TTS_PROVIDER_NOT_CONFIGURED_MESSAGE: 'TTS provider not configured',
 }));
 
+// Mock blob storage
+vi.mock('@/lib/storage/blob', () => ({
+  isBlobStorageConfigured: mockIsBlobConfigured,
+  uploadAudio: mockUploadAudio,
+}));
+
 // Mock uuid
 vi.mock('uuid', () => ({
   v4: () => 'test-uuid-1234',
@@ -93,6 +101,8 @@ describe('POST /api/audio/generate', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     mockWriteFile.mockResolvedValue(undefined);
     mockMkdir.mockResolvedValue(undefined);
+    mockIsBlobConfigured.mockReturnValue(false);
+    mockUploadAudio.mockResolvedValue('https://blob.core.windows.net/audio/test.mp3');
     // Re-establish safe defaults for shared hoisted mocks.
     // vi.clearAllMocks() only clears call history — it does NOT reset implementations.
     // Without explicit resets, a test that sets mockGenerateSpeech.mockRejectedValue(...)
@@ -599,5 +609,139 @@ describe('POST /api/audio/generate', () => {
       where: { id: 'content-recovery' },
       data: { pipelineStatus: 'ready', pipelineError: null },
     });
+  });
+
+  // --- Coverage gap tests ---
+
+  it('generates conversation audio with multi-voice array', async () => {
+    const scriptRecord = {
+      ...BASE_SCRIPT_RECORD,
+      format: 'conversation',
+      scriptText: 'Host A: Hello!\nHost B: Welcome to the show.',
+    };
+    mockFindUnique.mockResolvedValue(scriptRecord);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 45 } });
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    // Conversation format should call generateSpeech (via generateConversationAudio)
+    expect(mockGenerateSpeech).toHaveBeenCalled();
+    // voices should come from generateConversationAudio, not hard-coded ['alloy']
+    const createCall = mockAudioCreate.mock.calls[0][0];
+    expect(Array.isArray(createCall.data.voices)).toBe(true);
+  });
+
+  it('uploads to Azure Blob Storage when configured', async () => {
+    mockIsBlobConfigured.mockReturnValue(true);
+    mockUploadAudio.mockResolvedValue('https://blob.core.windows.net/audio/uploaded.mp3');
+    mockFindUnique.mockResolvedValue(BASE_SCRIPT_RECORD);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const createCall = mockAudioCreate.mock.calls[0][0];
+    expect(createCall.data.filePath).toBe('https://blob.core.windows.net/audio/uploaded.mp3');
+    // Local fs should NOT be used
+    expect(mockWriteFile).not.toHaveBeenCalled();
+    expect(mockMkdir).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 and sets pipelineStatus error when Azure upload fails', async () => {
+    mockIsBlobConfigured.mockReturnValue(true);
+    mockUploadAudio.mockRejectedValue(new Error('BlobServiceError: quota exceeded'));
+    mockFindUnique.mockResolvedValue(BASE_SCRIPT_RECORD);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'error' }),
+      }),
+    );
+  });
+
+  it('returns 500 and sets pipelineStatus error when writeFile fails', async () => {
+    mockFindUnique.mockResolvedValue(BASE_SCRIPT_RECORD);
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockWriteFile.mockRejectedValue(Object.assign(new Error('write ENOSPC'), { code: 'ENOSPC' }));
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    // Audio should NOT have been created (failure before DB write)
+    expect(mockAudioCreate).not.toHaveBeenCalled();
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'error' }),
+      }),
+    );
+  });
+
+  it('falls back to word-count estimate when parseBuffer returns zero duration', async () => {
+    // parseBuffer succeeds but returns 0 — hits the `else throw` branch
+    mockParseBuffer.mockResolvedValue({ format: { duration: 0 } });
+    mockFindUnique.mockResolvedValue({
+      ...BASE_SCRIPT_RECORD,
+      scriptText: 'word '.repeat(300), // 300 words at 150 WPM = 120s
+    });
+    mockGenerateSpeech.mockResolvedValue(Buffer.alloc(100));
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const createCall = mockAudioCreate.mock.calls[0][0];
+    expect(createCall.data.durationSecs).toBe(120);
+  });
+
+  it('returns 500 when P2002 race occurs but fallback findFirst returns null', async () => {
+    mockFindUnique.mockResolvedValue(BASE_SCRIPT_RECORD);
+    mockAudioFindFirst.mockResolvedValueOnce(null); // initial check: no audio
+    mockGenerateSpeech.mockResolvedValue(Buffer.from('fake-audio'));
+    mockParseBuffer.mockResolvedValue({ format: { duration: 60 } });
+
+    // audio.create throws P2002
+    const p2002 = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+    mockAudioCreate.mockRejectedValue(p2002);
+    // Fallback findFirst also returns null (edge case — winner was deleted)
+    mockAudioFindFirst.mockResolvedValueOnce(null);
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'error' }),
+      }),
+    );
+  });
+
+  it('returns TTS_FAILED with auth message when TTS throws authentication error', async () => {
+    mockFindUnique.mockResolvedValue(BASE_SCRIPT_RECORD);
+    mockGenerateSpeech.mockRejectedValue(new Error('authentication failed: 401 Unauthorized'));
+
+    const request = createJsonRequest({ scriptId: 'script-1' });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.code).toBe('TTS_FAILED');
+    expect(data.error).toContain('API keys');
+    expect(mockContentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ pipelineStatus: 'error' }),
+      }),
+    );
   });
 });
