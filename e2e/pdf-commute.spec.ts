@@ -4,10 +4,18 @@ import { mockAiRoutes } from "./api-mocks";
 
 test.describe("Scenario 1: The PDF Commute", () => {
   test("upload PDF → process → library → play → change speed", async ({ page }) => {
+    // ProcessingScreen has a 15 s auto-complete delay in E2E mode so Playwright
+    // can assert "Analyzing" before the tab switches.  Allow 60 s total.
+    test.setTimeout(60_000);
+
     // Mock AI routes before navigation so intercepts are in place
     await mockAiRoutes(page);
 
     await page.goto("/");
+
+    // Open the upload modal (UploadScreen now lives inside a bottom-sheet modal
+    // opened via the FAB — the app starts on HomeScreen, not UploadScreen directly)
+    await page.getByRole("button", { name: "Upload" }).click();
 
     // Verify upload screen
     await expect(page.getByText("Ridecast 2")).toBeVisible();
@@ -64,7 +72,7 @@ test.describe("Scenario 1: The PDF Commute", () => {
     await page.getByText("1x").click();
     await expect(page.getByText("1.25x")).toBeVisible();
 
-    // Skip forward
-    await page.getByText("30s").click();
+    // Skip forward (ExpandedPlayer forward skip = 15s)
+    await page.getByText("15s").click();
   });
 });

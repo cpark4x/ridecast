@@ -27,9 +27,10 @@ test.describe("Scenario 3: The Commute Flow", () => {
     // Expanded player should show
     await expect(page.getByText("Now Playing")).toBeVisible();
 
-    // Verify controls exist
-    await expect(page.getByText("15s")).toBeVisible();
-    await expect(page.getByText("30s")).toBeVisible();
+    // Verify controls exist (ExpandedPlayer: back=5s, forward=15s — not 30s)
+    // Use exact:true for "5s" to avoid substring-matching the "15s" label.
+    await expect(page.getByText("15s", { exact: true })).toBeVisible();
+    await expect(page.getByText("5s", { exact: true })).toBeVisible();
     await expect(page.getByText("Speed")).toBeVisible();
 
     // Enter Car Mode

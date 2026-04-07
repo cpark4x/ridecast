@@ -47,6 +47,11 @@ export async function mockAiRoutes(page: Page): Promise<void> {
           sourceType: "pdf",
           createdAt: new Date().toISOString(),
           wordCount: 2000,
+          // ProcessingScreen polls /api/library and reads item.pipelineStatus to
+          // advance through the pipeline stages.  Without "ready" here the poll
+          // never finds a terminal state and the test times out waiting for the
+          // Library tab to appear.
+          pipelineStatus: "ready",
           versions: [
             {
               scriptId: "e2e-mock-script-id",
@@ -86,6 +91,20 @@ export async function mockAiRoutes(page: Page): Promise<void> {
         updatedAt: new Date().toISOString(),
       }),
     });
+  });
+
+  // Mock GET /api/playback so the PlayerContext restore-effect never overrides
+  // the user-set speed during the test.  When no PlaybackState record exists the
+  // REAL API returns { speed: 1.0 } (not null).  If that response arrives after
+  // Playwright has already cycled the speed button, it silently resets the speed
+  // back to 1.0 and causes assertions like "1.25x" / "1.5x" to fail.
+  // Returning null prevents any async position/speed override.
+  await page.route("**/api/playback*", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+    } else {
+      await route.continue();
+    }
   });
 
   // Mock POST /api/audio/generate (OpenAI TTS)

@@ -3,10 +3,18 @@ import { mockAiRoutes } from "./api-mocks";
 
 test.describe("Scenario 2: The Article Discussion", () => {
   test("paste URL → process → conversation format → play", async ({ page }) => {
+    // ProcessingScreen has a 15 s auto-complete delay in E2E mode so Playwright
+    // can assert "AI chose:" before the tab switches.  Allow 60 s total.
+    test.setTimeout(60_000);
+
     // Mock AI routes before navigation so intercepts are in place
     await mockAiRoutes(page);
 
     await page.goto("/");
+
+    // Open the upload modal (UploadScreen now lives inside a bottom-sheet modal
+    // opened via the FAB — the app starts on HomeScreen, not UploadScreen directly)
+    await page.getByRole("button", { name: "Upload" }).click();
 
     // Paste a URL
     await page.getByPlaceholder("Paste article or newsletter URL...").fill(
