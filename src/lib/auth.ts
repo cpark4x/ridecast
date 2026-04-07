@@ -52,18 +52,39 @@ export async function getCurrentUserId(): Promise<string> {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  const { userId } = await auth();
+  const authResult = await auth();
+  const userId = authResult.userId;
   if (!userId) {
     throw new AuthenticationError();
   }
 
-  // Upsert User record — Clerk IDs are stable, so this is idempotent
+  // Fetch email from Clerk session claims (available without extra API call)
+  // sessionClaims may contain email if Clerk is configured to include it,
+  // otherwise we fall back to the Clerk Backend API on first sign-in.
+  let email: string | undefined;
+  try {
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const clerkUser = await client.users.getUser(userId);
+    const primaryEmail = clerkUser.emailAddresses?.find(
+      (e) => e.id === clerkUser.primaryEmailAddressId
+    );
+    email = primaryEmail?.emailAddress ?? clerkUser.emailAddresses?.[0]?.emailAddress;
+  } catch {
+    // Non-fatal — email capture is best-effort
+  }
+
+  // Upsert User record — Clerk IDs are stable, so this is idempotent.
+  // Also captures email on every request (in case it changed in Clerk).
   await prisma.user.upsert({
     where: { id: userId },
-    update: {},
+    update: {
+      ...(email && { email }),
+    },
     create: {
       id: userId,
       name: "Ridecast User",
+      ...(email && { email }),
     },
   });
 
