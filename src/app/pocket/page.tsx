@@ -55,6 +55,30 @@ export default function PocketPage() {
           </div>
         </section>
 
+        {/* Bookmarklet — first, most prominent */}
+        <section className="pb-14">
+          <h2 className="text-lg font-bold mb-2">Save articles from any page</h2>
+          <p className="text-[var(--text-mid)] text-sm mb-5">
+            Drag this to your bookmark bar. One click from any article saves it to Ridecast.
+          </p>
+
+          {/* Draggable bookmarklet link */}
+          <div className="flex items-center gap-3 p-5 rounded-[14px] bg-gradient-to-br from-[#EA580C]/[0.08] to-[#F97316]/[0.06] border-2 border-[#EA580C]/25 border-dashed">
+            <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#EA580C] to-[#F97316] flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+                <circle cx="12" cy="12" r="9" opacity="0.3" />
+                <polygon points="10,8 16,12 10,16" />
+              </svg>
+            </div>
+            <BookmarkletLink href={BOOKMARKLET} />
+            <span className="text-xs text-[var(--text-dim)]">&larr; drag to bookmarks bar</span>
+          </div>
+
+          <p className="text-xs text-[var(--text-dim)] mt-3 text-center">
+            Works in Chrome, Firefox, Safari, and Edge.
+          </p>
+        </section>
+
         {/* How it works */}
         <section className="pb-14">
           <h2 className="text-[11px] font-semibold text-[var(--text-dim)] uppercase tracking-wider text-center mb-6">
@@ -64,18 +88,18 @@ export default function PocketPage() {
             {[
               {
                 step: '1',
-                title: 'Import your Pocket list',
-                desc: 'Download your Pocket export and upload it. Your entire reading history appears in Ridecast instantly.',
+                title: 'Drag the button above to your bookmarks bar',
+                desc: 'One-time setup. Takes 3 seconds.',
               },
               {
                 step: '2',
-                title: 'Pick an article',
-                desc: 'Choose anything from your library. Set how long you want the episode — 5, 15, or 30 minutes.',
+                title: 'Click it on any article',
+                desc: 'Visit any blog post, news article, or Substack — click the bookmarklet to save it to Ridecast.',
               },
               {
                 step: '3',
-                title: 'Listen on your commute',
-                desc: 'Ridecast generates a natural-sounding audio episode. Play it anywhere — no headphone cord required.',
+                title: 'Open Ridecast and listen',
+                desc: 'Your saved articles appear in your library. Pick one, create an audio episode, and listen.',
               },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-4 p-4 rounded-[12px] bg-white border border-black/[0.07]">
@@ -91,43 +115,18 @@ export default function PocketPage() {
           </div>
         </section>
 
-        {/* Import CTA */}
+        {/* Import CTA — secondary, for Pocket migrants */}
         <section id="import" className="pb-14 text-center">
-          <div className="bg-gradient-to-br from-[#EA580C]/[0.08] to-[#F97316]/[0.06] border border-[#EA580C]/20 rounded-[16px] p-8">
-            <h2 className="text-xl font-bold mb-2">Import your Pocket history</h2>
+          <div className="bg-white border border-black/[0.07] rounded-[16px] p-8">
+            <h2 className="text-xl font-bold mb-2">Already have a Pocket library?</h2>
             <p className="text-[var(--text-mid)] text-sm mb-6">
-              Create an account, then upload your Pocket export file (.html or .csv).
-              Your full reading list will be waiting in your library.
+              Upload your Pocket export file (.html or .csv) and your full reading list appears in Ridecast.
             </p>
             <Link href="/sign-up"
               className="inline-block px-7 py-3.5 rounded-[12px] bg-gradient-to-br from-[#EA580C] to-[#F97316] text-white font-semibold text-[15px] shadow-[0_4px_20px_rgba(234,88,12,0.35)]">
-              Create Free Account &amp; Import
+              Import from Pocket
             </Link>
           </div>
-        </section>
-
-        {/* Bookmarklet */}
-        <section className="pb-14">
-          <h2 className="text-lg font-bold mb-2">Replace your Pocket button</h2>
-          <p className="text-[var(--text-mid)] text-sm mb-5">
-            Drag this to your bookmark bar. One click from any article saves it to Ridecast — just like Pocket did.
-          </p>
-
-          {/* Draggable bookmarklet link */}
-          <div className="flex items-center gap-3 p-4 rounded-[12px] bg-white border border-black/[0.09] border-dashed">
-            <div className="w-8 h-8 rounded-[8px] bg-gradient-to-br from-[#EA580C] to-[#F97316] flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-                <circle cx="12" cy="12" r="9" opacity="0.3" />
-                <polygon points="10,8 16,12 10,16" />
-              </svg>
-            </div>
-            <BookmarkletLink href={BOOKMARKLET} />
-            <span className="text-[11px] text-[var(--text-dim)]">← drag to bookmarks bar</span>
-          </div>
-
-          <p className="text-xs text-[var(--text-dim)] mt-3 text-center">
-            Requires signing in to Ridecast first. Works in Chrome, Firefox, Safari, and Edge.
-          </p>
         </section>
 
         {/* Pricing */}
