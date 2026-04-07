@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { contentHash } from '@/lib/utils/hash';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireSubscription } from '@/lib/subscription';
 
 // Large files need more time than the default 10s
 export const maxDuration = 60;
@@ -12,8 +11,6 @@ const BATCH_SIZE = 500;
 export async function POST(request: Request) {
   try {
     const userId = await getCurrentUserId();
-    const gate = await requireSubscription(userId);
-    if (gate) return gate;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formData: any = await request.formData();

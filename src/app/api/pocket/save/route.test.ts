@@ -5,11 +5,6 @@ vi.mock('@/lib/auth', () => ({
   getCurrentUserId: vi.fn().mockResolvedValue('user_test123'),
 }));
 
-// Mock subscription gate — pass-through
-vi.mock('@/lib/subscription', () => ({
-  requireSubscription: vi.fn().mockResolvedValue(null),
-}));
-
 // Mock prisma
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -29,7 +24,6 @@ vi.mock('@/lib/utils/hash', () => ({
 
 import { prisma } from '@/lib/db';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireSubscription } from '@/lib/subscription';
 import { POST } from './route';
 import { createJsonRequest } from '../../__tests__/test-utils';
 
@@ -47,7 +41,6 @@ describe('POST /api/pocket/save', () => {
       sourceUrl: 'https://example.com/article',
     });
     vi.mocked(getCurrentUserId).mockResolvedValue('user_test123');
-    vi.mocked(requireSubscription).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -193,19 +186,4 @@ describe('POST /api/pocket/save', () => {
     expect((await response.json()).error).toBe('Failed to save.');
   });
 
-  // --- Auth / subscription ---
-
-  it('returns subscription gate response when subscription required', async () => {
-    const gateResponse = new Response(JSON.stringify({ error: 'Subscription required' }), {
-      status: 402,
-      headers: { 'Content-Type': 'application/json' },
-    });
-    vi.mocked(requireSubscription).mockResolvedValue(gateResponse);
-
-    const request = createJsonRequest({ url: 'https://example.com/article' });
-    const response = await POST(request);
-
-    expect(response.status).toBe(402);
-    expect(mockCreate).not.toHaveBeenCalled();
-  });
 });

@@ -2,13 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { contentHash } from '@/lib/utils/hash';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireSubscription } from '@/lib/subscription';
 
 export async function POST(request: Request) {
   try {
     const userId = await getCurrentUserId();
-    const gate = await requireSubscription(userId);
-    if (gate) return gate;
 
     const body = await request.json();
     const { url, title } = body as { url?: string; title?: string };

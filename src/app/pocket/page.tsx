@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { BookmarkletLink } from './BookmarkletLink';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ridecast.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ridecast2.vercel.app';
 
 // Bookmarklet — single line, using APP_URL
 const BOOKMARKLET = `javascript:(function(){var w=window.open('${APP_URL}/save?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title),'ridecast_save','width=480,height=280,left='+(screen.width/2-240)+',top='+(screen.height/2-140));if(!w){location.href='${APP_URL}/save?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);}})()`
