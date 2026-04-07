@@ -25,10 +25,6 @@ function SavePageInner() {
       body: JSON.stringify({ url, title }),
     })
       .then(async (r) => {
-        if (r.status === 401 || r.status === 403) {
-          setStatus('auth');
-          return;
-        }
         const data = await r.json();
         if (data.error) { setStatus('error'); setErrorMsg(data.error); return; }
         setStatus(data.alreadySaved ? 'duplicate' : 'saved');
