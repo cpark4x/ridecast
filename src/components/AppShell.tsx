@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { BottomNav } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
 import { UploadModal } from "./UploadModal";
@@ -12,6 +12,7 @@ import { CarMode } from "./CarMode";
 import { SettingsScreen } from "./SettingsScreen";
 import { usePlayer } from "./PlayerContext";
 import { PocketImportScreen } from "./PocketImportScreen";
+import { Onboarding } from "./Onboarding";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState("home");
@@ -20,13 +21,25 @@ export function AppShell() {
   const [showCarMode, setShowCarMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { currentItem } = usePlayer();
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("ridecast_onboarding_complete")) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   const handleProcess = useCallback((contentId: string, targetMinutes: number, format?: string) => {
     setProcessing({ contentId, targetMinutes, format });
     setShowUploadModal(false);
     setActiveTab("processing");
   }, []);
+
+  const handleOnboardingProcess = useCallback((contentId: string, targetMinutes: number, format?: string) => {
+    setShowOnboarding(false);
+    handleProcess(contentId, targetMinutes, format);
+  }, [handleProcess]);
 
   const handleProcessComplete = useCallback(() => {
     setProcessing(null);
@@ -115,6 +128,16 @@ export function AppShell() {
 
       {/* Settings Screen Overlay */}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
+
+      {/* Onboarding Overlay — covers everything, shown once after sign-up */}
+      {showOnboarding && (
+        <div className="absolute inset-0 z-50 bg-[var(--bg)]">
+          <Onboarding
+            onComplete={() => setShowOnboarding(false)}
+            onProcess={handleOnboardingProcess}
+          />
+        </div>
+      )}
     </div>
   );
 }

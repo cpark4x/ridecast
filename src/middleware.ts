@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/audio/(.*)",
   "/audio/(.*)",
   "/api/webhook",
+  "/api/webhook/clerk",
   "/pocket",
   "/save(.*)",
   "/privacy",

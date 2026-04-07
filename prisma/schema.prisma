@@ -10,6 +10,8 @@ datasource db {
 model User {
   id                 String   @id                       // Clerk provides the ID (no @default)
   name               String   @default("Ridecast User")
+  email              String?                            // Populated by Clerk webhook
+  freeEpisodesUsed   Int      @default(0)               // Counter for free trial episodes
   stripeCustomerId   String?                            // Set when user first subscribes
   subscriptionStatus String   @default("free")          // "free" | "active" | "canceled"
   createdAt          DateTime @default(now())

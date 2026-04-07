@@ -3,7 +3,7 @@ import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { ClaudeProvider } from '@/lib/ai/claude';
 import { WORDS_PER_MINUTE } from '@/lib/utils/duration';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireSubscription } from '@/lib/subscription';
+import { requireSubscription, canProcess, incrementFreeEpisode } from '@/lib/subscription';
 import { extractUrl } from '@/lib/extractors';
 import { contentHash } from '@/lib/utils/hash';
 
@@ -114,6 +114,12 @@ export async function POST(request: Request) {
         throw err;
       }
 
+      // Increment free episode counter after successful script generation
+      const verbatimGate = await canProcess(userId);
+      if (verbatimGate.reason === 'free_trial') {
+        await incrementFreeEpisode(userId);
+      }
+
       await prisma.content.update({ where: { id: contentId }, data: { pipelineStatus: 'generating', pipelineError: null } });
       return NextResponse.json({ ...script, durationAdvisory: null });
     }
@@ -177,6 +183,12 @@ export async function POST(request: Request) {
         }
       }
       throw err;
+    }
+
+    // Increment free episode counter after successful script generation
+    const aiGate = await canProcess(userId);
+    if (aiGate.reason === 'free_trial') {
+      await incrementFreeEpisode(userId);
     }
 
     await prisma.content.update({

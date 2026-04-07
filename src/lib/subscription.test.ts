@@ -9,7 +9,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { prisma } from "@/lib/db";
-import { isByokInstance, hasActiveSubscription, requireSubscription } from "./subscription";
+import { isByokInstance, hasActiveSubscription, requireSubscription, canProcess, incrementFreeEpisode } from "./subscription";
 
 const mockFindUnique = prisma.user.findUnique as ReturnType<typeof vi.fn>;
 
@@ -105,17 +105,59 @@ describe("requireSubscription", () => {
     expect(result).toBeNull();
   });
 
-  it("returns 403 response for free users", async () => {
-    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free" } as never);
+  it("returns null for free users within free trial (freeEpisodesUsed < 3)", async () => {
+    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free", freeEpisodesUsed: 1 } as never);
+    const result = await requireSubscription("user_123");
+    expect(result).toBeNull();
+  });
+
+  it("returns 403 response for free users who exhausted free trial", async () => {
+    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free", freeEpisodesUsed: 3 } as never);
     const result = await requireSubscription("user_123");
     expect(result?.status).toBe(403);
   });
 
   it("403 response body contains upgrade_url", async () => {
-    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free" } as never);
+    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free", freeEpisodesUsed: 3 } as never);
     const result = await requireSubscription("user_123");
     const body = await result!.json();
     expect(body.upgrade_url).toBe("/upgrade");
-    expect(body.error).toBe("Subscription required");
+    expect(body.error).toContain("Subscribe");
+  });
+});
+
+describe("canProcess", () => {
+  beforeEach(() => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_stripe";
+    delete process.env.ANTHROPIC_API_KEY;
+  });
+
+  it("returns subscribed for active subscribers", async () => {
+    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "active", freeEpisodesUsed: 0 } as never);
+    const result = await canProcess("user_123");
+    expect(result).toEqual({ allowed: true, reason: "subscribed" });
+  });
+
+  it("returns free_trial when under limit", async () => {
+    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free", freeEpisodesUsed: 0 } as never);
+    const result = await canProcess("user_123");
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe("free_trial");
+    expect(result.freeEpisodesRemaining).toBe(2);
+  });
+
+  it("returns trial_expired when at limit", async () => {
+    mockFindUnique.mockResolvedValueOnce({ subscriptionStatus: "free", freeEpisodesUsed: 3 } as never);
+    const result = await canProcess("user_123");
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe("trial_expired");
+  });
+
+  it("returns byok for BYOK instances", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-test";
+    process.env.OPENAI_API_KEY = "sk-test";
+    delete process.env.STRIPE_SECRET_KEY;
+    const result = await canProcess("user_123");
+    expect(result).toEqual({ allowed: true, reason: "byok" });
   });
 });
