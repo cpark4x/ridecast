@@ -99,10 +99,22 @@ function SavePageInner() {
           </div>
           <p className="text-lg font-bold">Sign in to save</p>
           <p className="text-[var(--text-mid)] text-xs truncate max-w-xs">{title || url}</p>
-          <a href={`/sign-in?redirect_url=${encodeURIComponent('/save?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title))}`}
+          <button
+            onClick={() => {
+              // Open sign-in in the MAIN browser window (not this tiny popup)
+              // After sign-in, redirect back to /save with the same params to complete the save
+              const redirect = '/save?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title);
+              const signInUrl = '/sign-in?redirect_url=' + encodeURIComponent(redirect);
+              if (window.opener) {
+                window.opener.open(signInUrl, '_self');
+                window.close();
+              } else {
+                window.location.href = signInUrl;
+              }
+            }}
             className="mt-3 px-6 py-2.5 rounded-[12px] bg-[#EA580C] text-white text-sm font-semibold">
             Sign in to Ridecast
-          </a>
+          </button>
         </>
       )}
 
