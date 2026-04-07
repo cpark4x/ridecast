@@ -5,7 +5,12 @@ import { getCurrentUserId } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    const userId = await getCurrentUserId();
+    let userId: string;
+    try {
+      userId = await getCurrentUserId();
+    } catch {
+      return NextResponse.json({ error: 'Sign in to save articles' }, { status: 401 });
+    }
 
     const body = await request.json();
     const { url, title } = body as { url?: string; title?: string };
