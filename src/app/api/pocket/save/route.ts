@@ -1,34 +1,46 @@
 import { NextResponse } from 'next/server';
 import { prisma, isUniqueConstraintViolation } from '@/lib/db';
 import { contentHash } from '@/lib/utils/hash';
-import { getCurrentUserId } from '@/lib/auth';
 
 /**
- * Default owner for bookmarklet saves when user isn't authenticated.
- * This lets the bookmarklet work without sign-in — articles are saved to
- * this owner and visible in the library once they do sign in with this ID.
- * Set BOOKMARKLET_DEFAULT_USER_ID in env to your Clerk user ID.
+ * Default owner for bookmarklet saves.
+ * Set BOOKMARKLET_DEFAULT_USER_ID to your Clerk user ID to link saved
+ * articles to your account. Otherwise uses a standalone bookmarklet user.
  */
 const DEFAULT_OWNER = process.env.BOOKMARKLET_DEFAULT_USER_ID || 'default-bookmarklet-user';
 
+async function ensureUser(id: string): Promise<string> {
+  try {
+    await prisma.user.upsert({
+      where: { id },
+      update: {},
+      create: { id, name: 'Bookmarklet User' },
+    });
+  } catch (err) {
+    // Ignore unique constraint race condition
+    if ((err as { code?: string }).code !== 'P2002') throw err;
+  }
+  return id;
+}
+
 export async function POST(request: Request) {
   try {
+    // Try to get Clerk auth if available — but don't fail if it's not.
+    // This route is SKIP_CLERK in middleware, so auth may not be populated.
     let userId: string;
     try {
-      userId = await getCurrentUserId();
-    } catch {
-      // No auth session — use default owner so bookmarklet works without sign-in.
-      // Ensure the default user exists in DB.
-      try {
-        await prisma.user.upsert({
-          where: { id: DEFAULT_OWNER },
-          update: {},
-          create: { id: DEFAULT_OWNER, name: 'Bookmarklet User' },
-        });
-      } catch (err) {
-        if ((err as { code?: string }).code !== 'P2002') throw err;
+      const { auth } = await import('@clerk/nextjs/server');
+      const authResult = await auth();
+      if (authResult.userId) {
+        userId = authResult.userId;
+        // Ensure user exists in DB
+        await ensureUser(userId);
+      } else {
+        userId = await ensureUser(DEFAULT_OWNER);
       }
-      userId = DEFAULT_OWNER;
+    } catch {
+      // Clerk not available or errored — use default owner
+      userId = await ensureUser(DEFAULT_OWNER);
     }
 
     const body = await request.json();
@@ -68,7 +80,6 @@ export async function POST(request: Request) {
       });
     } catch (err) {
       if (isUniqueConstraintViolation(err)) {
-        // Concurrent request already saved this URL — fetch and return idempotently
         const duplicate = await prisma.content.findFirst({
           where: { userId, sourceUrl: url },
           select: { id: true, title: true },
