@@ -50,22 +50,39 @@ function SavePageInner() {
       </div>
 
       {status === 'loading' && (
-        <p className="text-[var(--text-mid)] text-sm">Saving…</p>
+        <>
+          <div className="w-8 h-8 border-3 border-[#EA580C]/20 border-t-[#EA580C] rounded-full animate-spin" />
+          <p className="text-[var(--text-mid)] text-sm font-medium">Saving…</p>
+          <p className="text-[var(--text-dim)] text-xs truncate max-w-xs">{title || url}</p>
+        </>
       )}
 
       {status === 'saved' && (
         <>
-          <p className="text-lg font-bold">✓ Saved to Ridecast</p>
-          <p className="text-[var(--text-mid)] text-xs">Ready to convert to audio. Closing…</p>
+          <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-8 h-8 stroke-green-600 fill-none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <p className="text-xl font-bold text-green-700">Saved!</p>
+          <p className="text-[var(--text-mid)] text-sm">Open Ridecast to listen</p>
+          <p className="text-[var(--text-dim)] text-xs mt-1">Closing automatically…</p>
         </>
       )}
 
       {status === 'duplicate' && (
         <>
-          <p className="text-lg font-bold">Already in your library</p>
+          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-8 h-8 stroke-blue-500 fill-none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+          </div>
+          <p className="text-lg font-bold">Already saved</p>
           <p className="text-[var(--text-mid)] text-xs truncate max-w-xs">{title || url}</p>
           <button onClick={() => window.close()}
-            className="mt-2 px-5 py-2 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07] text-sm font-semibold">
+            className="mt-3 px-6 py-2.5 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07] text-sm font-semibold">
             Close
           </button>
         </>
@@ -73,10 +90,17 @@ function SavePageInner() {
 
       {status === 'auth' && (
         <>
-          <p className="font-semibold">Sign in to save</p>
+          <div className="w-14 h-14 rounded-full bg-orange-50 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-8 h-8 stroke-[#EA580C] fill-none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+          </div>
+          <p className="text-lg font-bold">Sign in to save</p>
           <p className="text-[var(--text-mid)] text-xs truncate max-w-xs">{title || url}</p>
           <a href={`/sign-in?redirect_url=${encodeURIComponent('/save?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title))}`}
-            className="mt-2 px-5 py-2 rounded-[10px] bg-[#EA580C] text-white text-sm font-semibold">
+            className="mt-3 px-6 py-2.5 rounded-[12px] bg-[#EA580C] text-white text-sm font-semibold">
             Sign in to Ridecast
           </a>
         </>
@@ -84,10 +108,17 @@ function SavePageInner() {
 
       {status === 'error' && (
         <>
-          <p className="text-red-600 font-semibold">Couldn&apos;t save</p>
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-8 h-8 stroke-red-500 fill-none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </div>
+          <p className="text-lg font-bold text-red-600">Couldn&apos;t save</p>
           <p className="text-[var(--text-mid)] text-xs">{errorMsg}</p>
           <button onClick={() => window.close()}
-            className="mt-2 px-5 py-2 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07] text-sm font-semibold">
+            className="mt-3 px-6 py-2.5 rounded-[10px] bg-[var(--surface-2)] border border-black/[0.07] text-sm font-semibold">
             Close
           </button>
         </>
