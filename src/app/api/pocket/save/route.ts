@@ -9,38 +9,18 @@ import { contentHash } from '@/lib/utils/hash';
  */
 const DEFAULT_OWNER = process.env.BOOKMARKLET_DEFAULT_USER_ID || 'default-bookmarklet-user';
 
-async function ensureUser(id: string): Promise<string> {
-  try {
-    await prisma.user.upsert({
-      where: { id },
-      update: {},
-      create: { id, name: 'Bookmarklet User' },
-    });
-  } catch (err) {
-    // Ignore unique constraint race condition
-    if ((err as { code?: string }).code !== 'P2002') throw err;
-  }
-  return id;
-}
-
 export async function POST(request: Request) {
   try {
-    // Try to get Clerk auth if available — but don't fail if it's not.
-    // This route is SKIP_CLERK in middleware, so auth may not be populated.
-    let userId: string;
+    // Ensure default bookmarklet user exists
+    const userId = DEFAULT_OWNER;
     try {
-      const { auth } = await import('@clerk/nextjs/server');
-      const authResult = await auth();
-      if (authResult.userId) {
-        userId = authResult.userId;
-        // Ensure user exists in DB
-        await ensureUser(userId);
-      } else {
-        userId = await ensureUser(DEFAULT_OWNER);
-      }
-    } catch {
-      // Clerk not available or errored — use default owner
-      userId = await ensureUser(DEFAULT_OWNER);
+      await prisma.user.upsert({
+        where: { id: userId },
+        update: {},
+        create: { id: userId, name: 'Bookmarklet User' },
+      });
+    } catch (err) {
+      if ((err as { code?: string }).code !== 'P2002') throw err;
     }
 
     const body = await request.json();
@@ -50,7 +30,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'url is required' }, { status: 400 });
     }
 
-    // Basic URL validation
     try { new URL(url); } catch {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
     }
