@@ -1,10 +1,8 @@
 import Link from 'next/link';
 import { BookmarkletLink } from './BookmarkletLink';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ridecast2.vercel.app';
-
-// Bookmarklet — single line, using APP_URL
-const BOOKMARKLET = `javascript:(function(){var w=window.open('${APP_URL}/save?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title),'ridecast_save','width=480,height=280,left='+(screen.width/2-240)+',top='+(screen.height/2-140));if(!w){location.href='${APP_URL}/save?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);}})()`
+// Bookmarklet href is generated client-side in BookmarkletLink using window.location.origin
+// This ensures it always matches the current domain (no env var mismatch possible)
 
 export default function PocketPage() {
   return (
@@ -70,7 +68,7 @@ export default function PocketPage() {
                 <polygon points="10,8 16,12 10,16" />
               </svg>
             </div>
-            <BookmarkletLink href={BOOKMARKLET} />
+            <BookmarkletLink />
             <span className="text-xs text-[var(--text-dim)]">&larr; drag to bookmarks bar</span>
           </div>
 
