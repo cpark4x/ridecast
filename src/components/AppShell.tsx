@@ -26,8 +26,7 @@ export function AppShell() {
 
   useEffect(() => {
     // Skip onboarding in E2E test mode — tests need direct access to the app
-    const isE2E = typeof window !== "undefined" && window.__NEXT_DATA__?.runtimeConfig?.NEXT_PUBLIC_E2E_TEST_MODE === "true"
-      || process.env.NEXT_PUBLIC_E2E_TEST_MODE === "true";
+    const isE2E = process.env.NEXT_PUBLIC_E2E_TEST_MODE === "true";
     if (!isE2E && typeof window !== "undefined" && !localStorage.getItem("ridecast_onboarding_complete")) {
       setShowOnboarding(true);
     }
