@@ -23,7 +23,7 @@
       "distribution": "store",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io",
+        "EXPO_PUBLIC_API_URL": "https://ridecast2.vercel.app",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_aW5jbHVkZWQtZ29zaGF3ay03NC5jbGVyay5hY2NvdW50cy5kZXYk",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
@@ -34,7 +34,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://ridecast-app.icywater-cb147a65.eastus2.azurecontainerapps.io",
+        "EXPO_PUBLIC_API_URL": "https://ridecast2.vercel.app",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_aW5jbHVkZWQtZ29zaGF3ay03NC5jbGVyay5hY2NvdW50cy5kZXYk",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },

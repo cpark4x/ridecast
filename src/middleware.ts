@@ -19,8 +19,8 @@ const isPublicRoute = createRouteMatcher([
   "/upgrade",
 ]);
 
-// Pages that should never touch Clerk at all — prevents Clerk's localization
-// from redirecting /pocket → /en/pocket. Simple set for O(1) lookup.
+// Pages that should skip Clerk entirely — prevents Clerk's localization
+// from redirecting /pocket → /en/pocket.
 const SKIP_CLERK = new Set(["/pocket", "/save", "/privacy", "/support", "/upgrade"]);
 
 // Clerk v7 localization redirects /path → /en/path. Strip the prefix so
@@ -49,11 +49,15 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
     return NextResponse.rewrite(url);
   }
 
-  // 2. Skip Clerk entirely — dev mode Clerk is broken on production domain.
-  //    All routes bypass auth until Clerk is switched to production keys.
-  const res = NextResponse.next();
-  res.headers.set("x-skip-clerk", "true");
-  return res;
+  // 2. Skip Clerk entirely for bookmarklet/utility pages and their APIs.
+  if (SKIP_CLERK.has(pathname) || pathname.startsWith("/save") || pathname.startsWith("/api/pocket/")) {
+    const res = NextResponse.next();
+    res.headers.set("x-skip-clerk", "true");
+    return res;
+  }
+
+  // 3. Everything else goes through Clerk (handles native app Bearer tokens).
+  return clerkHandler(request, event);
 }
 
 export const config = {
