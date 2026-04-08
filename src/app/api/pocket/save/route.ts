@@ -73,7 +73,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ id: record.id, title: record.title, alreadySaved: false });
   } catch (error) {
     console.error('Pocket save error:', error);
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: 'Failed to save.', detail: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save.' }, { status: 500 });
   }
 }
