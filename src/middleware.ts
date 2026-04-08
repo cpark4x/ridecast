@@ -49,16 +49,11 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
     return NextResponse.rewrite(url);
   }
 
-  // 2. Skip Clerk entirely for public marketing/utility pages.
-  //    This prevents Clerk from injecting a locale redirect.
-  if (SKIP_CLERK.has(pathname) || pathname.startsWith("/save") || pathname.startsWith("/api/pocket/") || pathname === "/api/library") {
-    const res = NextResponse.next();
-    res.headers.set("x-skip-clerk", "true");
-    return res;
-  }
-
-  // 3. Everything else goes through Clerk.
-  return clerkHandler(request, event);
+  // 2. Skip Clerk entirely — dev mode Clerk is broken on production domain.
+  //    All routes bypass auth until Clerk is switched to production keys.
+  const res = NextResponse.next();
+  res.headers.set("x-skip-clerk", "true");
+  return res;
 }
 
 export const config = {
