@@ -25,14 +25,7 @@ interface AudioVersion {
 
 export async function GET() {
   try {
-    let userId: string;
-    try {
-      const { auth } = await import('@clerk/nextjs/server');
-      const authResult = await auth();
-      userId = authResult.userId ?? DEFAULT_OWNER;
-    } catch {
-      userId = DEFAULT_OWNER;
-    }
+    const userId = DEFAULT_OWNER;
 
     const items = await prisma.content.findMany({
       where: { userId },
